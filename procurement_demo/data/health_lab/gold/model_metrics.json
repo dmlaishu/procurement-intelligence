@@ -1,0 +1,88 @@
+{
+ "split_date": "2024-01-01",
+ "n_train_tenders": 1163,
+ "n_test_tenders": 469,
+ "cycle": {
+  "n_train": 759,
+  "n_test": 259,
+  "mae_days_model_p50": 46.9,
+  "mae_days_km_benchmark": 56.3,
+  "mae_days_global_median": 73.0,
+  "pinball50_model": 23.4,
+  "pinball50_benchmark": 28.1,
+  "p80_coverage": 0.761,
+  "median_actual_days": 79.0,
+  "within_30_days_share": 0.456,
+  "top_features": [
+   [
+    "bid_window_days",
+    0.0985
+   ],
+   [
+    "method_code",
+    0.0454
+   ],
+   [
+    "review_type",
+    0.0117
+   ],
+   [
+    "country_iso3",
+    0.0095
+   ],
+   [
+    "env_category",
+    0.006
+   ],
+   [
+    "major_sector",
+    0.0055
+   ],
+   [
+    "wgi_control_of_corruption",
+    0.0032
+   ],
+   [
+    "desc_words",
+    0.0031
+   ],
+   [
+    "wgi_regulatory_quality",
+    0.0026
+   ],
+   [
+    "wgi_gov_effectiveness",
+    0.0023
+   ]
+  ]
+ },
+ "single_bid": {
+  "n_train": 772,
+  "n_test": 295,
+  "base_rate_train": 0.417,
+  "base_rate_test": 0.281,
+  "auc": 0.668,
+  "brier": 0.2353,
+  "brier_base_rate": 0.2206,
+  "top_decile_rate": 0.724,
+  "lift_top_decile": 2.57
+ },
+ "rebid": {
+  "n_train": 1163,
+  "n_test": 469,
+  "base_rate_train": 0.005,
+  "base_rate_test": 0.0,
+  "status": "skipped: not enough positives"
+ },
+ "amendment": {
+  "n_train": 773,
+  "n_test": 295,
+  "base_rate_train": 0.391,
+  "base_rate_test": 0.447,
+  "auc": 0.545,
+  "brier": 0.3445,
+  "brier_base_rate": 0.2505,
+  "top_decile_rate": 0.448,
+  "lift_top_decile": 1.0
+ }
+}

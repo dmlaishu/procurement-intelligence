@@ -1,0 +1,2740 @@
+<!doctype html><html><head><meta charset='utf-8'><title>Data Model: Procurement Intelligence Platform</title><style>body{font-family:Segoe UI,Arial,sans-serif;max-width:980px;margin:32px auto;padding:0 16px;line-height:1.55;color:#1f2328}
+h1{border-bottom:2px solid #d0d7de;padding-bottom:6px}h2{border-bottom:1px solid #d0d7de;padding-bottom:4px;margin-top:36px}
+table{border-collapse:collapse;margin:12px 0;width:100%}th,td{border:1px solid #d0d7de;padding:6px 10px;vertical-align:top;text-align:left}
+th{background:#f6f8fa}code{background:#f6f8fa;padding:1px 4px;border-radius:4px;font-size:90%}
+pre{background:#f6f8fa;padding:12px;border-radius:6px;overflow-x:auto;font-size:72%;line-height:1.25}pre code{background:none;padding:0}
+blockquote{border-left:4px solid #0969da;margin:12px 0;padding:4px 14px;background:#f0f6ff}
+@media print{body{max-width:none;margin:0}h2{page-break-after:avoid}pre,table{page-break-inside:avoid}pre{font-size:62%}}svg{max-width:100%;height:auto}.legend span{display:inline-block;margin-right:14px;font-size:90%}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+@media print{svg{page-break-inside:avoid}table{page-break-inside:auto}tr{page-break-inside:avoid}h3,h4{page-break-after:avoid}}</style></head><body><h1>Deliverable 1: Data Model</h1>
+<p><strong>Procurement Intelligence Platform: how structured, semi-structured and unstructured World Bank data fit together</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Physical platform</td>
+<td>Databricks Delta tables in Unity Catalog: <code>bronze</code>, <code>silver</code>, <code>gold</code>, <code>ops</code> schemas</td>
+</tr>
+<tr>
+<td>Domain</td>
+<td>Medical laboratory and diagnostic equipment in World Bank-financed health projects</td>
+</tr>
+<tr>
+<td>Verified on</td>
+<td>local prototype run on public World Bank data, 22 October 2026. Row counts below are from that run</td>
+</tr>
+<tr>
+<td>Companion files</td>
+<td><code>er_diagram.svg</code> (diagram), <code>01_DATA_MODEL_DDL.sql</code> (full Gold DDL with keys and column comments)</td>
+</tr>
+</tbody>
+</table>
+<h2>1. Design principles</h2>
+<ol>
+<li><strong>One conformed spine of keys.</strong> Every source is reduced to a small set of shared identifiers: <strong>Project ID</strong>
+   (P-code), <strong>tender_id</strong> (normalised bid reference), <strong>supplier_key</strong> (resolved supplier), <strong>item_type</strong>
+   (equipment type), <strong>doc_id / chunk_id</strong> and <strong>country_iso3 + year</strong> (with region). Every question that crosses
+   silos crosses through these keys. The hierarchy users navigate is Region → Country → Project → Tender →
+   Contract → Supplier → Equipment type, with documents, passages, lessons and ratings attached to the project.</li>
+<li><strong>A star schema for "what happened", a document hierarchy for "why".</strong> Tenders and contracts are facts. Projects,
+   suppliers and country-year governance are dimensions. Documents go <em>document → chunk → lesson / rating evidence</em>,
+   so every lesson carries its page and section for citation.</li>
+<li><strong>Links are data, with provenance.</strong> Joins that are not exact (fuzzy supplier names, description-matched
+   contracts, LLM-extracted lessons) are stored as rows in a <strong>knowledge-graph edge table</strong> with <code>method</code> and
+   <code>confidence</code>. A user, a model or the verifier can therefore always ask <em>how sure is this link?</em></li>
+<li><strong>Time-aware.</strong> Every fact carries the date it became known. Governance scores are forward-filled, never
+   back-filled, and features use only information available at invitation time. This prevents leakage into models.</li>
+<li><strong>Missing is explicit.</strong> Open tenders are kept as censored (<code>award_observed = false</code>), unknown outcomes are flagged
+   (<code>outcome_unknown</code>), and missing CPIA is a flag (<code>cpia_missing</code>), not a zero.</li>
+</ol>
+<h2>2. Entity-relationship diagram</h2>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1184 746" font-family="Segoe UI, Arial, sans-serif" role="img" aria-label="Entity-relationship diagram of the procurement intelligence data model">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#57606a"/></marker></defs>
+<rect x="0" y="0" width="1184" height="746" fill="#ffffff"/>
+<line x1="200" y1="90" x2="258" y2="90" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="229" y="86" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1</text>
+<line x1="500" y1="90" x2="442" y2="90" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="471" y="86" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1</text>
+<line x1="684" y1="87" x2="742" y2="85" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="713" y="82" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1</text>
+<line x1="592" y1="160" x2="592" y2="238" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="592" y="195" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 project_id</text>
+<line x1="428" y1="160" x2="514" y2="238" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="471" y="195" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 project_id</text>
+<line x1="269" y1="160" x2="179" y2="238" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="224" y="195" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 country + year</text>
+<line x1="350" y1="238" x2="350" y2="160" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="350" y="195" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">1:1</text>
+<line x1="168" y1="456" x2="290" y2="346" stroke="#57606a" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+<text x="229" y="397" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">aggregates tenders</text>
+<line x1="551" y1="160" x2="377" y2="456" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="464" y="304" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 item_type</text>
+<line x1="200" y1="507" x2="258" y2="505" stroke="#57606a" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+<text x="229" y="502" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">by</text>
+<line x1="742" y1="308" x2="684" y2="308" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="713" y="304" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1</text>
+<line x1="984" y1="308" x2="926" y2="308" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="955" y="304" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1</text>
+<line x1="1076" y1="456" x2="1076" y2="378" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="1076" y="413" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 chunk_id</text>
+<line x1="834" y1="456" x2="834" y2="378" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="834" y="413" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 doc_id</text>
+<line x1="592" y1="456" x2="592" y2="378" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="592" y="413" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 project_id</text>
+<line x1="742" y1="523" x2="684" y2="521" stroke="#57606a" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+<text x="713" y="518" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">resolves</text>
+<line x1="1010" y1="144" x2="909" y2="238" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="959" y="187" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 doc_id</text>
+<rect x="16" y="20" width="184" height="140" rx="6" fill="#ffffff" stroke="#0969da" stroke-width="1.6"/>
+<path d="M16,26 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#0969da"/>
+<text x="24" y="35" font-size="12" font-weight="700" fill="#ffffff">NOTICE</text>
+<text x="24" y="49" font-size="10" fill="#ffffff" opacity="0.9">gold.notices</text>
+<text x="24" y="72" font-size="11" fill="#24292f" font-weight="600">notice_id</text>
+<text x="192" y="72" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">PK</text>
+<text x="24" y="88" font-size="11" fill="#24292f">bid_ref_key</text>
+<text x="192" y="88" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="24" y="104" font-size="11" fill="#24292f">project_id</text>
+<text x="192" y="104" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="24" y="120" font-size="11" fill="#24292f">notice_type</text>
+<text x="24" y="136" font-size="11" fill="#24292f">notice_date</text>
+<text x="24" y="152" font-size="11" fill="#24292f">n_bidders</text>
+<rect x="258" y="20" width="184" height="140" rx="6" fill="#ffffff" stroke="#0969da" stroke-width="1.6"/>
+<path d="M258,26 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#0969da"/>
+<text x="266" y="35" font-size="12" font-weight="700" fill="#ffffff">TENDER</text>
+<text x="266" y="49" font-size="10" fill="#ffffff" opacity="0.9">gold.fact_tender</text>
+<text x="266" y="72" font-size="11" fill="#24292f" font-weight="600">tender_id</text>
+<text x="434" y="72" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">PK</text>
+<text x="266" y="88" font-size="11" fill="#24292f">project_id</text>
+<text x="434" y="88" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="266" y="104" font-size="11" fill="#24292f">country_iso3, tender_year</text>
+<text x="434" y="104" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="266" y="120" font-size="11" fill="#24292f">method_code</text>
+<text x="266" y="136" font-size="11" fill="#24292f">cycle_days</text>
+<text x="266" y="152" font-size="11" fill="#24292f">award_observed</text>
+<rect x="500" y="20" width="184" height="140" rx="6" fill="#ffffff" stroke="#0969da" stroke-width="1.6"/>
+<path d="M500,26 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#0969da"/>
+<text x="508" y="35" font-size="12" font-weight="700" fill="#ffffff">CONTRACT</text>
+<text x="508" y="49" font-size="10" fill="#ffffff" opacity="0.9">gold.fact_contract</text>
+<text x="508" y="72" font-size="11" fill="#24292f" font-weight="600">wb_contract_number</text>
+<text x="676" y="72" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">PK</text>
+<text x="508" y="88" font-size="11" fill="#24292f">tender_id</text>
+<text x="676" y="88" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="508" y="104" font-size="11" fill="#24292f">project_id</text>
+<text x="676" y="104" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="508" y="120" font-size="11" fill="#24292f">supplier_key</text>
+<text x="676" y="120" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="508" y="136" font-size="11" fill="#24292f">item_type</text>
+<text x="676" y="136" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="508" y="152" font-size="11" fill="#24292f">amount_usd</text>
+<rect x="742" y="20" width="184" height="124" rx="6" fill="#ffffff" stroke="#1a7f37" stroke-width="1.6"/>
+<path d="M742,26 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#1a7f37"/>
+<text x="750" y="35" font-size="12" font-weight="700" fill="#ffffff">SUPPLIER</text>
+<text x="750" y="49" font-size="10" fill="#ffffff" opacity="0.9">gold.dim_supplier</text>
+<text x="750" y="72" font-size="11" fill="#24292f" font-weight="600">supplier_key</text>
+<text x="918" y="72" font-size="9.5" text-anchor="end" fill="#1a7f37" font-weight="700">PK</text>
+<text x="750" y="88" font-size="11" fill="#24292f">supplier_name</text>
+<text x="750" y="104" font-size="11" fill="#24292f">name_variants</text>
+<text x="750" y="120" font-size="11" fill="#24292f">supplier_country</text>
+<text x="750" y="136" font-size="11" fill="#24292f">n_contracts</text>
+<rect x="984" y="20" width="184" height="124" rx="6" fill="#ffffff" stroke="#bc4c00" stroke-width="1.6"/>
+<path d="M984,26 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#bc4c00"/>
+<text x="992" y="35" font-size="12" font-weight="700" fill="#ffffff">PROJECT_OUTCOME</text>
+<text x="992" y="49" font-size="10" fill="#ffffff" opacity="0.9">gold.project_outcomes</text>
+<text x="992" y="72" font-size="11" fill="#24292f" font-weight="600">project_id</text>
+<text x="1160" y="72" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK FK</text>
+<text x="992" y="88" font-size="11" fill="#24292f">doc_id</text>
+<text x="1160" y="88" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="992" y="104" font-size="11" fill="#24292f">restructurings</text>
+<text x="992" y="120" font-size="11" fill="#24292f">closing_extension_days</text>
+<text x="992" y="136" font-size="11" fill="#24292f">outcome_rating</text>
+<rect x="16" y="238" width="184" height="124" rx="6" fill="#ffffff" stroke="#1a7f37" stroke-width="1.6"/>
+<path d="M16,244 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#1a7f37"/>
+<text x="24" y="253" font-size="12" font-weight="700" fill="#ffffff">GOVERNANCE</text>
+<text x="24" y="267" font-size="10" fill="#ffffff" opacity="0.9">gold.country_governance_year</text>
+<text x="24" y="290" font-size="11" fill="#24292f" font-weight="600">country_iso3</text>
+<text x="192" y="290" font-size="9.5" text-anchor="end" fill="#1a7f37" font-weight="700">PK</text>
+<text x="24" y="306" font-size="11" fill="#24292f" font-weight="600">year</text>
+<text x="192" y="306" font-size="9.5" text-anchor="end" fill="#1a7f37" font-weight="700">PK</text>
+<text x="24" y="322" font-size="11" fill="#24292f">cpia_* (3)</text>
+<text x="24" y="338" font-size="11" fill="#24292f">wgi_* (3)</text>
+<text x="24" y="354" font-size="11" fill="#24292f">cpia_missing</text>
+<rect x="258" y="456" width="184" height="92" rx="6" fill="#ffffff" stroke="#1a7f37" stroke-width="1.6"/>
+<path d="M258,462 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#1a7f37"/>
+<text x="266" y="471" font-size="12" font-weight="700" fill="#ffffff">ITEM_TYPE</text>
+<text x="266" y="485" font-size="10" fill="#ffffff" opacity="0.9">taxonomy (common.py)</text>
+<text x="266" y="508" font-size="11" fill="#24292f" font-weight="600">item_type</text>
+<text x="434" y="508" font-size="9.5" text-anchor="end" fill="#1a7f37" font-weight="700">PK</text>
+<text x="266" y="524" font-size="11" fill="#24292f">in_domain</text>
+<text x="266" y="540" font-size="11" fill="#24292f">4-language patterns</text>
+<rect x="258" y="238" width="184" height="108" rx="6" fill="#ffffff" stroke="#8250df" stroke-width="1.6"/>
+<path d="M258,244 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#8250df"/>
+<text x="266" y="253" font-size="12" font-weight="700" fill="#ffffff">TENDER_FEATURES</text>
+<text x="266" y="267" font-size="10" fill="#ffffff" opacity="0.9">gold.tender_features</text>
+<text x="266" y="290" font-size="11" fill="#24292f" font-weight="600">tender_id</text>
+<text x="434" y="290" font-size="9.5" text-anchor="end" fill="#8250df" font-weight="700">PK FK</text>
+<text x="266" y="306" font-size="11" fill="#24292f">planning-time features</text>
+<text x="266" y="322" font-size="11" fill="#24292f">governance at open</text>
+<text x="266" y="338" font-size="11" fill="#24292f">prior_group_median_days</text>
+<rect x="500" y="238" width="184" height="140" rx="6" fill="#ffffff" stroke="#1a7f37" stroke-width="1.6"/>
+<path d="M500,244 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#1a7f37"/>
+<text x="508" y="253" font-size="12" font-weight="700" fill="#ffffff">PROJECT</text>
+<text x="508" y="267" font-size="10" fill="#ffffff" opacity="0.9">gold.dim_project</text>
+<text x="508" y="290" font-size="11" fill="#24292f" font-weight="600">project_id</text>
+<text x="676" y="290" font-size="9.5" text-anchor="end" fill="#1a7f37" font-weight="700">PK</text>
+<text x="508" y="306" font-size="11" fill="#24292f">country_iso3</text>
+<text x="508" y="322" font-size="11" fill="#24292f">region</text>
+<text x="508" y="338" font-size="11" fill="#24292f">major_sector</text>
+<text x="508" y="354" font-size="11" fill="#24292f">commitment_usd</text>
+<text x="508" y="370" font-size="11" fill="#24292f">status</text>
+<rect x="742" y="238" width="184" height="140" rx="6" fill="#ffffff" stroke="#bc4c00" stroke-width="1.6"/>
+<path d="M742,244 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#bc4c00"/>
+<text x="750" y="253" font-size="12" font-weight="700" fill="#ffffff">DOCUMENT</text>
+<text x="750" y="267" font-size="10" fill="#ffffff" opacity="0.9">bronze.project_docs_meta</text>
+<text x="750" y="290" font-size="11" fill="#24292f" font-weight="600">doc_id</text>
+<text x="918" y="290" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK</text>
+<text x="750" y="306" font-size="11" fill="#24292f">project_id</text>
+<text x="918" y="306" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="750" y="322" font-size="11" fill="#24292f">project_ids[]</text>
+<text x="750" y="338" font-size="11" fill="#24292f">doc_type_code</text>
+<text x="750" y="354" font-size="11" fill="#24292f">doc_date</text>
+<text x="750" y="370" font-size="11" fill="#24292f">landing_url</text>
+<rect x="984" y="238" width="184" height="140" rx="6" fill="#ffffff" stroke="#bc4c00" stroke-width="1.6"/>
+<path d="M984,244 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#bc4c00"/>
+<text x="992" y="253" font-size="12" font-weight="700" fill="#ffffff">CHUNK</text>
+<text x="992" y="267" font-size="10" fill="#ffffff" opacity="0.9">gold.proj_doc_chunks</text>
+<text x="992" y="290" font-size="11" fill="#24292f" font-weight="600">chunk_id</text>
+<text x="1160" y="290" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK</text>
+<text x="992" y="306" font-size="11" fill="#24292f">doc_id</text>
+<text x="1160" y="306" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="992" y="322" font-size="11" fill="#24292f">section_path</text>
+<text x="992" y="338" font-size="11" fill="#24292f">section_kind</text>
+<text x="992" y="354" font-size="11" fill="#24292f">page_start, page_end</text>
+<text x="992" y="370" font-size="11" fill="#24292f">search_text</text>
+<rect x="16" y="456" width="184" height="108" rx="6" fill="#ffffff" stroke="#8250df" stroke-width="1.6"/>
+<path d="M16,462 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#8250df"/>
+<text x="24" y="471" font-size="12" font-weight="700" fill="#ffffff">TENDER_BENCHMARK</text>
+<text x="24" y="485" font-size="10" fill="#ffffff" opacity="0.9">gold.tender_benchmarks</text>
+<text x="24" y="508" font-size="11" fill="#24292f" font-weight="600">level</text>
+<text x="192" y="508" font-size="9.5" text-anchor="end" fill="#8250df" font-weight="700">PK</text>
+<text x="24" y="524" font-size="11" fill="#24292f" font-weight="600">item / country / method</text>
+<text x="192" y="524" font-size="9.5" text-anchor="end" fill="#8250df" font-weight="700">PK</text>
+<text x="24" y="540" font-size="11" fill="#24292f">n, n_awarded</text>
+<text x="24" y="556" font-size="11" fill="#24292f">median_days, p80_days</text>
+<rect x="500" y="456" width="184" height="124" rx="6" fill="#ffffff" stroke="#bc4c00" stroke-width="1.6"/>
+<path d="M500,462 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#bc4c00"/>
+<text x="508" y="471" font-size="12" font-weight="700" fill="#ffffff">PROJECT_RATING</text>
+<text x="508" y="485" font-size="10" fill="#ffffff" opacity="0.9">gold.project_ratings_resolved</text>
+<text x="508" y="508" font-size="11" fill="#24292f" font-weight="600">project_id</text>
+<text x="676" y="508" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK FK</text>
+<text x="508" y="524" font-size="11" fill="#24292f" font-weight="600">dimension</text>
+<text x="676" y="524" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK</text>
+<text x="508" y="540" font-size="11" fill="#24292f">resolved_rating</text>
+<text x="508" y="556" font-size="11" fill="#24292f">resolved_from</text>
+<text x="508" y="572" font-size="11" fill="#24292f">conflict</text>
+<rect x="742" y="456" width="184" height="140" rx="6" fill="#ffffff" stroke="#bc4c00" stroke-width="1.6"/>
+<path d="M742,462 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#bc4c00"/>
+<text x="750" y="471" font-size="12" font-weight="700" fill="#ffffff">RATING_EVIDENCE</text>
+<text x="750" y="485" font-size="10" fill="#ffffff" opacity="0.9">gold.rating_evidence</text>
+<text x="750" y="508" font-size="11" fill="#24292f" font-weight="600">source_id</text>
+<text x="918" y="508" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK</text>
+<text x="750" y="524" font-size="11" fill="#24292f">project_id</text>
+<text x="918" y="524" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="750" y="540" font-size="11" fill="#24292f">doc_id</text>
+<text x="918" y="540" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="750" y="556" font-size="11" fill="#24292f">source_type</text>
+<text x="750" y="572" font-size="11" fill="#24292f">date</text>
+<text x="750" y="588" font-size="11" fill="#24292f">rating</text>
+<rect x="984" y="456" width="184" height="140" rx="6" fill="#ffffff" stroke="#bc4c00" stroke-width="1.6"/>
+<path d="M984,462 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#bc4c00"/>
+<text x="992" y="471" font-size="12" font-weight="700" fill="#ffffff">LESSON</text>
+<text x="992" y="485" font-size="10" fill="#ffffff" opacity="0.9">gold.lessons</text>
+<text x="992" y="508" font-size="11" fill="#24292f" font-weight="600">lesson_id</text>
+<text x="1160" y="508" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK</text>
+<text x="992" y="524" font-size="11" fill="#24292f">chunk_id</text>
+<text x="1160" y="524" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="992" y="540" font-size="11" fill="#24292f">project_id</text>
+<text x="1160" y="540" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="992" y="556" font-size="11" fill="#24292f">procurement_stage</text>
+<text x="992" y="572" font-size="11" fill="#24292f">risk_category</text>
+<text x="992" y="588" font-size="11" fill="#24292f">quote_verified</text>
+<rect x="16" y="650" width="1152" height="80" rx="6" fill="#f6f8fa" stroke="#8c959f" stroke-dasharray="4 3"/>
+<text x="28" y="670" font-size="12" font-weight="700" fill="#24292f">KG_EDGE  (gold.kg_edges)  115,327 edges: one row per link between any two entities above</text>
+<text x="28" y="690" font-size="11" fill="#24292f">(src_type, src_id, rel, dst_type, dst_id, method, confidence, valid_from, evidence)   method ∈ exact_key | fuzzy_desc | fuzzy_name | temporal | llm_extracted | human_confirmed</text>
+<text x="28" y="710" font-size="10.5" fill="#57606a">FINANCED_BY 14,613   OF_TYPE 14,613   AWARDED_TO 14,608   ANNOUNCES 14,445   FINANCED_BY 10,403   HAS_CONTEXT 10,403   OF_TYPE 10,403   RESULTED_IN 9,782</text>
+</svg>
+<p class="legend"><span><i style="background:#0969da"></i>Facts (what happened)</span><span><i style="background:#1a7f37"></i>Dimensions</span>
+<span><i style="background:#bc4c00"></i>Documents and knowledge (how / why)</span><span><i style="background:#8250df"></i>Analytical (model features, benchmarks)</span></p>
+
+<p>Arrows point from the many side to the one side. Dashed lines are derivations, not foreign keys. <code>DOCUMENT</code> is
+<code>bronze.project_docs_meta</code>; in the local prototype the same rows live in <code>data/raw/documents_meta.json</code>
+(131 documents: ISR 36, PP 36, PAD 30, ICR 17, ICRR 12). <code>ITEM_TYPE</code> is a reference
+taxonomy rather than a table: every contract and tender carries its <code>item_type</code> and an <code>in_domain</code> flag.</p>
+<h2>3. Layers</h2>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Tables</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Bronze</strong></td>
+<td><code>contract_awards</code>, <code>procurement_notices</code>, <code>projects</code>, <code>governance_indicators</code>, <code>project_docs_meta</code> + PDF volume</td>
+<td>API records and PDFs exactly as received, with ingest timestamp; Change Data Feed on</td>
+</tr>
+<tr>
+<td><strong>Silver</strong></td>
+<td><code>contracts</code>, <code>notices</code>, <code>projects</code>, <code>governance</code>, <code>tenders</code>, <code>proj_doc_pages</code></td>
+<td>typed, de-duplicated, keys normalised (ISO codes, bid references, supplier names); one page of text per row</td>
+</tr>
+<tr>
+<td><strong>Gold</strong></td>
+<td>facts, dimensions, documents and knowledge, ML tables, <code>kg_edges</code> (below)</td>
+<td>resolved entities and links; what the models, the vector index and the copilot read</td>
+</tr>
+<tr>
+<td><strong>Ops</strong></td>
+<td><code>proc_briefs</code>, <code>proc_feedback</code>, <code>v_proc_kpis</code></td>
+<td>every brief generated, user feedback, realised award dates: the inputs of the learning loop</td>
+</tr>
+</tbody>
+</table>
+<h2>4. Table catalogue</h2>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Layer</th>
+<th>Grain (one row per)</th>
+<th>Primary key</th>
+<th>Foreign keys / joins</th>
+<th>Rows (prototype)</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>notices</code></td>
+<td>Gold (silver.notices)</td>
+<td>one procurement notice</td>
+<td><code>notice_id</code></td>
+<td>bid_ref_key → fact_tender; project_id → dim_project</td>
+<td>15,158</td>
+<td>Procurement Notices API</td>
+</tr>
+<tr>
+<td><code>fact_tender</code></td>
+<td>Gold</td>
+<td>one tender (bid reference), from invitation to award</td>
+<td><code>tender_id</code></td>
+<td>project_id; (country_iso3, tender_year) → governance; supplier_key</td>
+<td>10,403</td>
+<td>built from notices</td>
+</tr>
+<tr>
+<td><code>fact_contract</code></td>
+<td>Gold</td>
+<td>one contract-supplier row</td>
+<td><code>wb_contract_number + supplier_key</code></td>
+<td>tender_id; project_id; supplier_key</td>
+<td>14,613</td>
+<td>Major Contract Awards (FinancesOne)</td>
+</tr>
+<tr>
+<td><code>dim_supplier</code></td>
+<td>Gold</td>
+<td>one resolved supplier</td>
+<td><code>supplier_key</code></td>
+<td>-</td>
+<td>7,540</td>
+<td>resolved from contract supplier names</td>
+</tr>
+<tr>
+<td><code>dim_project</code></td>
+<td>Gold</td>
+<td>one project</td>
+<td><code>project_id</code></td>
+<td>country_iso3</td>
+<td>179</td>
+<td>Projects API</td>
+</tr>
+<tr>
+<td><code>country_governance_year</code></td>
+<td>Gold</td>
+<td>country × year</td>
+<td><code>(country_iso3, year)</code></td>
+<td>-</td>
+<td>1,290</td>
+<td>WDI API: CPIA + WGI</td>
+</tr>
+<tr>
+<td><code>project_docs_meta</code></td>
+<td>Bronze</td>
+<td>one project document</td>
+<td><code>doc_id</code></td>
+<td>project_id (project_ids[] for PPARs)</td>
+<td>131</td>
+<td>Documents &amp; Reports API</td>
+</tr>
+<tr>
+<td><code>proj_doc_pages</code></td>
+<td>Silver</td>
+<td>document page</td>
+<td><code>(doc_id, page_num)</code></td>
+<td>doc_id</td>
+<td>(Databricks only)</td>
+<td>PDF text</td>
+</tr>
+<tr>
+<td><code>proj_doc_chunks</code></td>
+<td>Gold</td>
+<td>section-bounded passage (≤ 450 words)</td>
+<td><code>chunk_id</code></td>
+<td>doc_id; project_id</td>
+<td>6,187</td>
+<td>parsed PDFs</td>
+</tr>
+<tr>
+<td><code>lessons</code></td>
+<td>Gold</td>
+<td>one lesson learned</td>
+<td><code>lesson_id</code></td>
+<td>chunk_id; doc_id; project_id</td>
+<td>150</td>
+<td>Lessons / Key factors sections</td>
+</tr>
+<tr>
+<td><code>rating_evidence</code></td>
+<td>Gold</td>
+<td>one dated DO / IP rating</td>
+<td><code>source_id + dimension</code></td>
+<td>project_id; doc_id</td>
+<td>301</td>
+<td>ICR data sheets, ISRs, PPARs</td>
+</tr>
+<tr>
+<td><code>project_ratings_resolved</code></td>
+<td>Gold</td>
+<td>project × rating dimension</td>
+<td><code>(project_id, dimension)</code></td>
+<td>project_id</td>
+<td>34</td>
+<td>rating_evidence</td>
+</tr>
+<tr>
+<td><code>project_outcomes</code></td>
+<td>Gold</td>
+<td>one completed project</td>
+<td><code>project_id</code></td>
+<td>doc_id</td>
+<td>17</td>
+<td>ICR data sheet</td>
+</tr>
+<tr>
+<td><code>tender_features</code></td>
+<td>Gold (ML)</td>
+<td>one tender with ≥ invitation date</td>
+<td><code>tender_id</code></td>
+<td>tender_id</td>
+<td>1,632</td>
+<td>fact_tender + project + governance</td>
+</tr>
+<tr>
+<td><code>tender_benchmarks</code></td>
+<td>Gold (ML)</td>
+<td>benchmark cohort</td>
+<td><code>(level, country, category, method)</code></td>
+<td>-</td>
+<td>67</td>
+<td>Kaplan-Meier over fact_tender</td>
+</tr>
+<tr>
+<td><code>item_types</code></td>
+<td>Reference</td>
+<td>one equipment type</td>
+<td><code>item_type</code></td>
+<td>-</td>
+<td>14</td>
+<td>taxonomy in procurement_demo/common.py</td>
+</tr>
+<tr>
+<td><code>kg_edges</code></td>
+<td>Gold</td>
+<td>one typed link</td>
+<td><code>(src_type, src_id, rel, dst_type, dst_id)</code></td>
+<td>any entity ↔ any entity</td>
+<td>115,327</td>
+<td>all of the above</td>
+</tr>
+<tr>
+<td><code>proc_briefs</code></td>
+<td>Ops</td>
+<td>one generated brief</td>
+<td><code>brief_id</code></td>
+<td>evidence_ids[] → any entity</td>
+<td>(Databricks only)</td>
+<td>copilot</td>
+</tr>
+<tr>
+<td><code>proc_feedback</code></td>
+<td>Ops</td>
+<td>feedback on a brief / evidence item</td>
+<td><code>(brief_id, evidence_id, created_ts)</code></td>
+<td>brief_id</td>
+<td>(Databricks only)</td>
+<td>users; realised award dates</td>
+</tr>
+</tbody>
+</table>
+<h2>5. How disjoint keys are reconciled</h2>
+<table>
+<thead>
+<tr>
+<th>Link</th>
+<th>Rule</th>
+<th>Edge <code>method</code> / confidence</th>
+<th>Prototype result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Notice → Tender</td>
+<td>normalised bid reference (<code>KE-MOWASCO-16771-CW-RFB</code> ≡ <code>KEMOWASCO16771CWRFB</code>)</td>
+<td><code>exact_key</code> / 1.0</td>
+<td>10,403 tenders</td>
+</tr>
+<tr>
+<td>Contract → Tender</td>
+<td>(1) normalised borrower contract reference = bid reference; (2) else same project + category, signed ≤ 18 months after invitation, description token Jaccard ≥ 0.5</td>
+<td><code>exact_key</code> 1.0 / <code>fuzzy_desc</code> = similarity</td>
+<td>9,600 exact + 182 fuzzy = <strong>67%</strong> of contracts</td>
+</tr>
+<tr>
+<td>Contract → Supplier</td>
+<td>normalised name key (drops M/S, legal forms, punctuation); within blocks of country + first token, similarity ≥ 0.92 → union-find merge</td>
+<td><code>exact_key</code> / <code>fuzzy_name</code></td>
+<td>7,835 raw names → <strong>7,540</strong> suppliers (94 fuzzy merges)</td>
+</tr>
+<tr>
+<td>Contract / Tender → Equipment type</td>
+<td>description classified by an ordered taxonomy of patterns in English, French, Spanish and Portuguese (tolerant of garbled accents); generic classes are blocked for vehicles, CCTV and printing</td>
+<td><code>keyword</code> / 0.7</td>
+<td>2,220 of 14,613 contracts are laboratory or diagnostic equipment</td>
+</tr>
+<tr>
+<td>Contract / Tender / Document → Project</td>
+<td>Project ID; PPARs covering several projects fan out to each</td>
+<td><code>exact_key</code></td>
+<td><strong>100%</strong> of contracts</td>
+</tr>
+<tr>
+<td>Tender → Governance</td>
+<td>country + year of invitation, forward-filled ≤ 3 years</td>
+<td><code>temporal</code></td>
+<td>all tenders</td>
+</tr>
+<tr>
+<td>Lesson → Chunk → Document → Project</td>
+<td>lesson keeps its chunk and page; chunk keeps its document</td>
+<td><code>rule_numbered_paragraph</code> (local) / <code>llm_extracted</code> (Databricks)</td>
+<td>150 lessons, 147 quote-verified</td>
+</tr>
+<tr>
+<td>Country identifiers</td>
+<td>ISO-2 ↔ ISO-3 ↔ names in notices (incl. "Viet Nam" / "Vietnam")</td>
+<td>alias table</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<p>Matches with confidence between 0.6 and 0.9 go to a review queue. Confirmed decisions are written back as
+<code>method = 'human_confirmed'</code> and reused.</p>
+<h2>6. Knowledge graph (<code>gold.kg_edges</code>)</h2>
+<p>The relational tables answer known questions fast. The edge table answers <em>path</em> questions: "which lessons come from
+projects where this supplier won Works contracts?". It is a property graph stored as one Delta table, clustered by
+<code>(rel, dst_id)</code> for reverse lookups. No separate graph database is needed at this scale.</p>
+<table>
+<thead>
+<tr>
+<th>From → To</th>
+<th>Relationship</th>
+<th>Edges</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CONTRACT → PROJECT</td>
+<td><code>FINANCED_BY</code></td>
+<td>14,613</td>
+</tr>
+<tr>
+<td>CONTRACT → ITEM_TYPE</td>
+<td><code>OF_TYPE</code></td>
+<td>14,613</td>
+</tr>
+<tr>
+<td>CONTRACT → SUPPLIER</td>
+<td><code>AWARDED_TO</code></td>
+<td>14,608</td>
+</tr>
+<tr>
+<td>NOTICE → TENDER</td>
+<td><code>ANNOUNCES</code></td>
+<td>14,445</td>
+</tr>
+<tr>
+<td>TENDER → PROJECT</td>
+<td><code>FINANCED_BY</code></td>
+<td>10,403</td>
+</tr>
+<tr>
+<td>TENDER → GOVERNANCE</td>
+<td><code>HAS_CONTEXT</code></td>
+<td>10,403</td>
+</tr>
+<tr>
+<td>TENDER → ITEM_TYPE</td>
+<td><code>OF_TYPE</code></td>
+<td>10,403</td>
+</tr>
+<tr>
+<td>TENDER → CONTRACT</td>
+<td><code>RESULTED_IN</code></td>
+<td>9,782</td>
+</tr>
+<tr>
+<td>PROJECT → SECTOR</td>
+<td><code>IN_SECTOR</code></td>
+<td>7,540</td>
+</tr>
+<tr>
+<td>SUPPLIER → COUNTRY</td>
+<td><code>BASED_IN</code></td>
+<td>7,540</td>
+</tr>
+<tr>
+<td>PROJECT → COUNTRY</td>
+<td><code>LOCATED_IN</code></td>
+<td>179</td>
+</tr>
+<tr>
+<td>LESSON → STAGE</td>
+<td><code>AT_STAGE</code></td>
+<td>167</td>
+</tr>
+<tr>
+<td>LESSON → PROJECT</td>
+<td><code>ABOUT</code></td>
+<td>150</td>
+</tr>
+<tr>
+<td>LESSON → CHUNK</td>
+<td><code>FROM</code></td>
+<td>150</td>
+</tr>
+<tr>
+<td>DOCUMENT → PROJECT</td>
+<td><code>DESCRIBES</code></td>
+<td>131</td>
+</tr>
+<tr>
+<td>TENDER → STATE</td>
+<td><code>IN_STATE</code></td>
+<td>109</td>
+</tr>
+<tr>
+<td>COUNTRY → REGION</td>
+<td><code>IN_REGION</code></td>
+<td>87</td>
+</tr>
+<tr>
+<td>PROJECT → STATE</td>
+<td><code>LOCATED_IN</code></td>
+<td>2</td>
+</tr>
+<tr>
+<td>STATE → COUNTRY</td>
+<td><code>PART_OF</code></td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Total: 115,327 edges.</strong> Three-hop example (contract → supplier → project → ICR lesson):</p>
+<pre><code class="language-sql">SELECT l.lesson, l.evidence_quote, l.title, l.page_start
+FROM gold.kg_edges a                                                     -- CONTRACT -AWARDED_TO-&gt; SUPPLIER
+JOIN gold.kg_edges f ON f.src_id = a.src_id AND f.rel = 'FINANCED_BY'    -- CONTRACT -FINANCED_BY-&gt; PROJECT
+JOIN gold.lessons  l ON l.project_id = f.dst_id AND l.quote_verified
+JOIN gold.fact_contract c ON c.wb_contract_number = a.src_id AND c.procurement_category = 'Works'
+WHERE a.rel = 'AWARDED_TO' AND a.dst_id = :supplier_key;
+</code></pre>
+<h2>7. Document model (unstructured side)</h2>
+<pre><code>DOCUMENT (PAD / ISR / ICR / PPAR, 60-150 pages)
+  └─ PAGE            silver.proj_doc_pages     text per page, line breaks kept, running headers removed
+      └─ CHUNK       gold.proj_doc_chunks      bounded by headings (Roman / letter / ANNEX), ≤ 450 words, 60 overlap
+          │                                    section_path, section_kind, content_type, page_start-page_end
+          ├─ LESSON          gold.lessons             verbatim evidence_quote checked against the chunk
+          └─ (vector index)  search_text embedded     doc type | project | country | sector | date | section + text
+  └─ DATA SHEET (ICR) → RATING_EVIDENCE (dated ISR/ICR/PPAR ratings) → PROJECT_RATING (resolved, conflict flag)
+                      → PROJECT_OUTCOME (restructurings, closing extension, outcome ratings)
+</code></pre>
+<p>Prototype: 131 reports → 6,187 chunks → 150 lessons and
+301 dated ratings.</p>
+<h2>8. Data dictionary</h2>
+<p>Null shares and examples are measured on the prototype tables. High null shares are expected where an event has not
+happened yet (e.g. <code>award_date</code> for open tenders) or a field is not published for older projects.</p>
+<h3><code>gold.dim_project</code> (179 rows)</h3>
+<p><em>Grain:</em> one project.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Key</th>
+<th>Null</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>project_id</code></td>
+<td>STRING</td>
+<td>PK</td>
+<td>0%</td>
+<td>World Bank project ID (P-code). The conformed key that joins structured and unstructured data</td>
+<td><code>P149340</code></td>
+</tr>
+<tr>
+<td><code>country_iso3</code></td>
+<td>STRING</td>
+<td></td>
+<td>13%</td>
+<td>Country, ISO 3166 alpha-3 (ISO-2 and spelling variants resolved via alias table)</td>
+<td><code>IND</code></td>
+</tr>
+<tr>
+<td><code>project_name</code></td>
+<td>STRING</td>
+<td></td>
+<td>24%</td>
+<td>Project name</td>
+<td><code>Nagaland Health Project</code></td>
+</tr>
+<tr>
+<td><code>approval_date</code></td>
+<td>DATE</td>
+<td></td>
+<td>30%</td>
+<td>Board approval date</td>
+<td><code>2016-12-19</code></td>
+</tr>
+<tr>
+<td><code>closing_date</code></td>
+<td>DATE</td>
+<td></td>
+<td>24%</td>
+<td>Current closing date</td>
+<td><code>2024-06-30</code></td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>STRING</td>
+<td></td>
+<td>24%</td>
+<td>Active | Closed | Pipeline | Dropped</td>
+<td><code>Closed</code></td>
+</tr>
+<tr>
+<td><code>lending_instrument</code></td>
+<td>STRING</td>
+<td></td>
+<td>24%</td>
+<td>IPF, PforR, DPF, ...</td>
+<td><code>Investment Project Financing</code></td>
+</tr>
+<tr>
+<td><code>commitment_usd</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>24%</td>
+<td>Total commitment (USD)</td>
+<td><code>48000000.0</code></td>
+</tr>
+<tr>
+<td><code>env_category</code></td>
+<td>STRING</td>
+<td></td>
+<td>63%</td>
+<td>Environmental category A/B/C/F (older projects)</td>
+<td><code>B</code></td>
+</tr>
+<tr>
+<td><code>es_risk_rating</code></td>
+<td>STRING</td>
+<td></td>
+<td>100%</td>
+<td>Environmental &amp; social risk rating (ESF projects; NULL before ESF)</td>
+<td></td>
+</tr>
+<tr>
+<td><code>major_sector</code></td>
+<td>STRING</td>
+<td></td>
+<td>24%</td>
+<td>Major sector of the project</td>
+<td><code>Health</code></td>
+</tr>
+<tr>
+<td><code>implementing_agency</code></td>
+<td>STRING</td>
+<td></td>
+<td>26%</td>
+<td>Implementing agency</td>
+<td><code>Department of Health and Family Welfare, Governm…</code></td>
+</tr>
+<tr>
+<td><code>project_url</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Project page</td>
+<td><code>https://projects.worldbank.org/en/projects-opera…</code></td>
+</tr>
+<tr>
+<td><code>objective</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Project development objective</td>
+<td></td>
+</tr>
+<tr>
+<td><code>region</code></td>
+<td>STRING</td>
+<td></td>
+<td>2%</td>
+<td>World Bank region of the borrower country</td>
+<td><code>South Asia</code></td>
+</tr>
+<tr>
+<td><code>state</code></td>
+<td>STRING</td>
+<td></td>
+<td>99%</td>
+<td>Sub-national state (India scope only)</td>
+<td><code>Nagaland</code></td>
+</tr>
+<tr>
+<td><code>n_tenders</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>22%</td>
+<td>Tenders observed for the project</td>
+<td><code>53.0</code></td>
+</tr>
+<tr>
+<td><code>median_cycle_days</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>41%</td>
+<td>Median invitation-to-award days for the project's tenders</td>
+<td><code>208.0</code></td>
+</tr>
+</tbody>
+</table>
+<h3><code>gold.dim_supplier</code> (7,540 rows)</h3>
+<p><em>Grain:</em> one resolved supplier.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Key</th>
+<th>Null</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>supplier_key</code></td>
+<td>STRING</td>
+<td>PK</td>
+<td>0%</td>
+<td>Resolved supplier: normalised name key + supplier country (after fuzzy merge)</td>
+<td><code>b hler farma&#124;NI</code></td>
+</tr>
+<tr>
+<td><code>supplier_name</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Supplier name as published</td>
+<td><code>BÜHLER FARMA, S.A.</code></td>
+</tr>
+<tr>
+<td><code>name_variants</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>JSON list of all raw spellings merged into this supplier</td>
+<td><code>[&quot;B\u00dcHLER FARMA, S.A.&quot;]</code></td>
+</tr>
+<tr>
+<td><code>n_contracts</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>Contracts awarded to this supplier</td>
+<td><code>9</code></td>
+</tr>
+<tr>
+<td><code>total_usd</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>0%</td>
+<td>Total awarded value (USD)</td>
+<td><code>1305730.25</code></td>
+</tr>
+<tr>
+<td><code>supplier_country</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Supplier country</td>
+<td><code>Nicaragua</code></td>
+</tr>
+</tbody>
+</table>
+<h3><code>gold.country_governance_year</code> (1,290 rows)</h3>
+<p><em>Grain:</em> country × year.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Key</th>
+<th>Null</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>country_iso3</code></td>
+<td>STRING</td>
+<td>PK</td>
+<td>0%</td>
+<td>Country, ISO 3166 alpha-3 (ISO-2 and spelling variants resolved via alias table)</td>
+<td><code>RWA</code></td>
+</tr>
+<tr>
+<td><code>year</code></td>
+<td>BIGINT</td>
+<td>PK</td>
+<td>0%</td>
+<td>Calendar year of the indicator (forward-filled ≤ 3 years, never back-filled)</td>
+<td><code>2017</code></td>
+</tr>
+<tr>
+<td><code>cpia_budget_financial_mgmt</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>34%</td>
+<td>CPIA quality of budgetary and financial management (1-6)</td>
+<td><code>4.0</code></td>
+</tr>
+<tr>
+<td><code>cpia_public_sector_mgmt</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>34%</td>
+<td>CPIA public sector management and institutions cluster (1-6)</td>
+<td><code>3.7</code></td>
+</tr>
+<tr>
+<td><code>cpia_transparency_corruption</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>34%</td>
+<td>CPIA transparency, accountability and corruption (1-6)</td>
+<td><code>3.5</code></td>
+</tr>
+<tr>
+<td><code>wgi_control_of_corruption</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>0%</td>
+<td>WGI control of corruption (about -2.5 to 2.5)</td>
+<td><code>0.5040962</code></td>
+</tr>
+<tr>
+<td><code>wgi_gov_effectiveness</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>0%</td>
+<td>WGI government effectiveness</td>
+<td><code>0.3584605</code></td>
+</tr>
+<tr>
+<td><code>wgi_regulatory_quality</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>0%</td>
+<td>WGI regulatory quality</td>
+<td><code>0.1621531</code></td>
+</tr>
+<tr>
+<td><code>cpia_missing</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>1 when CPIA is not published (non-IDA countries)</td>
+<td><code>0</code></td>
+</tr>
+</tbody>
+</table>
+<h3><code>gold.notices</code> (15,158 rows)</h3>
+<p><em>Grain:</em> one procurement notice.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Key</th>
+<th>Null</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>notice_id</code></td>
+<td>STRING</td>
+<td>PK</td>
+<td>0%</td>
+<td>Procurement notice id (OP...)</td>
+<td><code>OP00241332</code></td>
+</tr>
+<tr>
+<td><code>country_iso3</code></td>
+<td>STRING</td>
+<td></td>
+<td>18%</td>
+<td>Country, ISO 3166 alpha-3 (ISO-2 and spelling variants resolved via alias table)</td>
+<td><code>KEN</code></td>
+</tr>
+<tr>
+<td><code>notice_type</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Invitation for Bids, Request for Expression of Interest, Contract Award, ...</td>
+<td><code>Contract Award</code></td>
+</tr>
+<tr>
+<td><code>notice_date</code></td>
+<td>DATE</td>
+<td></td>
+<td>0%</td>
+<td>Publication date of the notice</td>
+<td><code>2023-08-09</code></td>
+</tr>
+<tr>
+<td><code>deadline_date</code></td>
+<td>DATE</td>
+<td></td>
+<td>89%</td>
+<td>Bid / EOI submission deadline</td>
+<td><code>2023-04-06</code></td>
+</tr>
+<tr>
+<td><code>project_id</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>World Bank project ID (P-code). The conformed key that joins structured and unstructured data</td>
+<td><code>P152394</code></td>
+</tr>
+<tr>
+<td><code>bid_ref</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Borrower bid reference as published</td>
+<td><code>KE-HOMABAY COUNTY-269732-GO-RFQ</code></td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Free-text description of the package / contract</td>
+<td><code>SUPPLY OF 1NO. ANAESTHETIC MACHINE</code></td>
+</tr>
+<tr>
+<td><code>procurement_category</code></td>
+<td>STRING</td>
+<td></td>
+<td>2%</td>
+<td>Works | Goods | Consultant Services | Non-consulting Services</td>
+<td><code>Goods</code></td>
+</tr>
+<tr>
+<td><code>method_code</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Method code: RFB, RFQ, QCBS, CQS, INDV, DIR, ...</td>
+<td><code>RFQ</code></td>
+</tr>
+<tr>
+<td><code>method_name</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Method as published on the notice</td>
+<td><code>Request for Quotations</code></td>
+</tr>
+<tr>
+<td><code>implementing_org</code></td>
+<td>STRING</td>
+<td></td>
+<td>88%</td>
+<td>Implementing agency named on the notice</td>
+<td><code>Project Coordination Unit (PCU)</code></td>
+</tr>
+<tr>
+<td><code>rebid_text</code></td>
+<td>BOOLEAN</td>
+<td></td>
+<td>0%</td>
+<td>Notice text indicates a re-tender / re-advertisement</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>award_date</code></td>
+<td>DATE</td>
+<td></td>
+<td>62%</td>
+<td>Earliest contract-award notice date</td>
+<td><code>2021-05-20</code></td>
+</tr>
+<tr>
+<td><code>n_bidders</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>12%</td>
+<td>Number of bids / proposals received (award notice)</td>
+<td><code>3.0</code></td>
+</tr>
+<tr>
+<td><code>n_rejected</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>12%</td>
+<td>Number of bids rejected (award notice)</td>
+<td><code>0.0</code></td>
+</tr>
+<tr>
+<td><code>rejection_reasons</code></td>
+<td>STRING</td>
+<td></td>
+<td>12%</td>
+<td>Reasons for rejection, as published</td>
+<td></td>
+</tr>
+<tr>
+<td><code>awarded_names</code></td>
+<td>STRING</td>
+<td></td>
+<td>12%</td>
+<td>Awarded firm(s) named on the award notice</td>
+<td><code>PHISSIAL ENTERPRISES</code></td>
+</tr>
+<tr>
+<td><code>contract_duration_months</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>13%</td>
+<td>Contract duration on the award notice</td>
+<td><code>3.0</code></td>
+</tr>
+<tr>
+<td><code>notice_version</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>13%</td>
+<td>Amendment counter of the award notice</td>
+<td><code>1.0</code></td>
+</tr>
+<tr>
+<td><code>bid_ref_key</code></td>
+<td>STRING</td>
+<td></td>
+<td>3%</td>
+<td>Normalised bid reference; equals tender_id</td>
+<td><code>KEHOMABAYCOUNTY269732GORFQ</code></td>
+</tr>
+</tbody>
+</table>
+<h3><code>gold.fact_tender</code> (10,403 rows)</h3>
+<p><em>Grain:</em> one tender (bid reference), from invitation to award.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Key</th>
+<th>Null</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tender_id</code></td>
+<td>STRING</td>
+<td>PK</td>
+<td>0%</td>
+<td>Normalised bid reference (upper-case, punctuation removed); the tender's identity</td>
+<td><code>JKMSCLOTAUTOCLAVESINGLEBIN09</code></td>
+</tr>
+<tr>
+<td><code>open_date</code></td>
+<td>DATE</td>
+<td></td>
+<td>84%</td>
+<td>First invitation (IFB / REOI) date: start of the procurement cycle</td>
+<td><code>2020-12-23</code></td>
+</tr>
+<tr>
+<td><code>deadline_date</code></td>
+<td>DATE</td>
+<td></td>
+<td>85%</td>
+<td>Bid / EOI submission deadline</td>
+<td><code>2021-01-09</code></td>
+</tr>
+<tr>
+<td><code>n_invitations</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>Number of invitation notices for the same bid reference (re-advertisements)</td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td><code>project_id</code></td>
+<td>STRING</td>
+<td>FK</td>
+<td>0%</td>
+<td>World Bank project ID (P-code). The conformed key that joins structured and unstructured data</td>
+<td><code>P154990</code></td>
+</tr>
+<tr>
+<td><code>country_iso3</code></td>
+<td>STRING</td>
+<td></td>
+<td>19%</td>
+<td>Country, ISO 3166 alpha-3 (ISO-2 and spelling variants resolved via alias table)</td>
+<td><code>IND</code></td>
+</tr>
+<tr>
+<td><code>procurement_category</code></td>
+<td>STRING</td>
+<td></td>
+<td>1%</td>
+<td>Works | Goods | Consultant Services | Non-consulting Services</td>
+<td><code>Goods</code></td>
+</tr>
+<tr>
+<td><code>procurement_method</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Full method name (Request for Bids, QCBS, ...)</td>
+<td><code>Request for Bids</code></td>
+</tr>
+<tr>
+<td><code>method_code</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Method code: RFB, RFQ, QCBS, CQS, INDV, DIR, ...</td>
+<td><code>RFB</code></td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Free-text description of the package / contract</td>
+<td><code>Procurement of 100 No. Autoclave Vertical Single…</code></td>
+</tr>
+<tr>
+<td><code>implementing_org</code></td>
+<td>STRING</td>
+<td></td>
+<td>84%</td>
+<td>Implementing agency named on the notice</td>
+<td><code>Jammu and Kashmir Medical Supplies Corporation L…</code></td>
+</tr>
+<tr>
+<td><code>open_notice_type</code></td>
+<td>STRING</td>
+<td></td>
+<td>84%</td>
+<td>Type of the opening notice</td>
+<td><code>Invitation for Bids</code></td>
+</tr>
+<tr>
+<td><code>award_date</code></td>
+<td>DATE</td>
+<td></td>
+<td>5%</td>
+<td>Earliest contract-award notice date</td>
+<td><code>2021-06-21</code></td>
+</tr>
+<tr>
+<td><code>n_bidders</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>5%</td>
+<td>Number of bids / proposals received (award notice)</td>
+<td><code>1.0</code></td>
+</tr>
+<tr>
+<td><code>n_rejected</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>5%</td>
+<td>Number of bids rejected (award notice)</td>
+<td><code>0.0</code></td>
+</tr>
+<tr>
+<td><code>rejection_reasons</code></td>
+<td>STRING</td>
+<td></td>
+<td>5%</td>
+<td>Reasons for rejection, as published</td>
+<td></td>
+</tr>
+<tr>
+<td><code>awarded_names</code></td>
+<td>STRING</td>
+<td></td>
+<td>5%</td>
+<td>Awarded firm(s) named on the award notice</td>
+<td><code>NEW ALPINE TRADERS</code></td>
+</tr>
+<tr>
+<td><code>contract_duration_months</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>7%</td>
+<td>Contract duration on the award notice</td>
+<td><code>2.0</code></td>
+</tr>
+<tr>
+<td><code>rebid_flag</code></td>
+<td>BOOLEAN</td>
+<td></td>
+<td>0%</td>
+<td>Target: re-tendered (re-advertised or flagged as re-tender)</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>award_amended_flag</code></td>
+<td>BOOLEAN</td>
+<td></td>
+<td>0%</td>
+<td>Award notice was amended</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>award_observed</code></td>
+<td>BOOLEAN</td>
+<td></td>
+<td>0%</td>
+<td>An award notice exists (event observed)</td>
+<td><code>True</code></td>
+</tr>
+<tr>
+<td><code>observed_days</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>90%</td>
+<td>Days from open to award, or to the data cut if still open (survival time)</td>
+<td><code>180.0</code></td>
+</tr>
+<tr>
+<td><code>outcome_unknown</code></td>
+<td>BOOLEAN</td>
+<td></td>
+<td>0%</td>
+<td>No award after 2 years: excluded as unknown outcome, not censored</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>cycle_days</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>89%</td>
+<td>Target: days from invitation to award (awarded tenders only)</td>
+<td><code>180.0</code></td>
+</tr>
+<tr>
+<td><code>bid_window_days</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>85%</td>
+<td>Days between invitation and submission deadline</td>
+<td><code>17.0</code></td>
+</tr>
+<tr>
+<td><code>single_bid_flag</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>5%</td>
+<td>Target: exactly one responsive bid</td>
+<td><code>1.0</code></td>
+</tr>
+<tr>
+<td><code>rejected_share</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>27%</td>
+<td>Share of bids rejected</td>
+<td><code>0.0</code></td>
+</tr>
+<tr>
+<td><code>tender_year</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>0%</td>
+<td>Year of invitation (joins governance by country + year)</td>
+<td><code>2020.0</code></td>
+</tr>
+<tr>
+<td><code>review_type</code></td>
+<td>STRING</td>
+<td></td>
+<td>20%</td>
+<td>Prior | Post review by the Bank ('unknown' when not published)</td>
+<td><code>Post</code></td>
+</tr>
+<tr>
+<td><code>contract_usd</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>20%</td>
+<td>Awarded contract value (from the linked contract)</td>
+<td><code>100792.77</code></td>
+</tr>
+<tr>
+<td><code>supplier_key</code></td>
+<td>STRING</td>
+<td></td>
+<td>21%</td>
+<td>Resolved supplier: normalised name key + supplier country (after fuzzy merge)</td>
+<td><code>new alpine traders&#124;IN</code></td>
+</tr>
+<tr>
+<td><code>state_from</code></td>
+<td>STRING</td>
+<td></td>
+<td>99%</td>
+<td>Where the state came from: implementing agency or project</td>
+<td><code>agency</code></td>
+</tr>
+<tr>
+<td><code>state</code></td>
+<td>STRING</td>
+<td></td>
+<td>99%</td>
+<td>Sub-national state (India scope only)</td>
+<td><code>Jammu and Kashmir</code></td>
+</tr>
+<tr>
+<td><code>item_type</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>What was bought, classified into the scope's taxonomy (e.g. PCR, imaging, reagents, analyzers)</td>
+<td><code>Biosafety, sterilization and cold chain</code></td>
+</tr>
+<tr>
+<td><code>in_domain</code></td>
+<td>BOOLEAN</td>
+<td></td>
+<td>0%</td>
+<td>Item type belongs to the domain (laboratory and diagnostic equipment)</td>
+<td><code>True</code></td>
+</tr>
+<tr>
+<td><code>region</code></td>
+<td>STRING</td>
+<td></td>
+<td>2%</td>
+<td>World Bank region of the borrower country</td>
+<td><code>South Asia</code></td>
+</tr>
+</tbody>
+</table>
+<h3><code>gold.fact_contract</code> (14,613 rows)</h3>
+<p><em>Grain:</em> one contract-supplier row.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Key</th>
+<th>Null</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>wb_contract_number</code></td>
+<td>STRING</td>
+<td>PK</td>
+<td>0%</td>
+<td>World Bank contract number</td>
+<td><code>1686395</code></td>
+</tr>
+<tr>
+<td><code>supplier_id</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>WB supplier id (kept as evidence; not trusted alone)</td>
+<td><code>640252</code></td>
+</tr>
+<tr>
+<td><code>supplier_name</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Supplier name as published</td>
+<td><code>RAMIETECH SOLUTIONS</code></td>
+</tr>
+<tr>
+<td><code>supplier_country</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Supplier country</td>
+<td><code>India</code></td>
+</tr>
+<tr>
+<td><code>supplier_country_code</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Supplier country ISO-2</td>
+<td><code>IN</code></td>
+</tr>
+<tr>
+<td><code>project_id</code></td>
+<td>STRING</td>
+<td>FK</td>
+<td>0%</td>
+<td>World Bank project ID (P-code). The conformed key that joins structured and unstructured data</td>
+<td><code>P149340</code></td>
+</tr>
+<tr>
+<td><code>project_name</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Project name</td>
+<td><code>Nagaland Health Project</code></td>
+</tr>
+<tr>
+<td><code>country_iso3</code></td>
+<td>STRING</td>
+<td></td>
+<td>12%</td>
+<td>Country, ISO 3166 alpha-3 (ISO-2 and spelling variants resolved via alias table)</td>
+<td><code>IND</code></td>
+</tr>
+<tr>
+<td><code>region</code></td>
+<td>STRING</td>
+<td></td>
+<td>1%</td>
+<td>World Bank region of the borrower country</td>
+<td><code>South Asia</code></td>
+</tr>
+<tr>
+<td><code>fiscal_year</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>WB fiscal year of the award</td>
+<td><code>2022</code></td>
+</tr>
+<tr>
+<td><code>signing_date</code></td>
+<td>DATE</td>
+<td></td>
+<td>0%</td>
+<td>Contract signing date</td>
+<td><code>2022-01-18</code></td>
+</tr>
+<tr>
+<td><code>procurement_category</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Works | Goods | Consultant Services | Non-consulting Services</td>
+<td><code>Goods</code></td>
+</tr>
+<tr>
+<td><code>procurement_method</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Full method name (Request for Bids, QCBS, ...)</td>
+<td><code>Request for Bids</code></td>
+</tr>
+<tr>
+<td><code>review_type</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Prior | Post review by the Bank ('unknown' when not published)</td>
+<td><code>Post</code></td>
+</tr>
+<tr>
+<td><code>amount_usd</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>0%</td>
+<td>Contract amount (USD)</td>
+<td><code>475879.8</code></td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Free-text description of the package / contract</td>
+<td><code>Supply and Installation of IT equipment and Netw…</code></td>
+</tr>
+<tr>
+<td><code>borrower_ref</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Borrower contract reference as published</td>
+<td><code>NHP/PP/2021/A/005</code></td>
+</tr>
+<tr>
+<td><code>borrower_ref_key</code></td>
+<td>STRING</td>
+<td></td>
+<td>3%</td>
+<td>Normalised borrower reference (exact-key link to tender_id)</td>
+<td><code>NHPPP2021A005</code></td>
+</tr>
+<tr>
+<td><code>supplier_name_key</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Normalised supplier name (legal forms, M/S, punctuation removed)</td>
+<td><code>ramietech solutions</code></td>
+</tr>
+<tr>
+<td><code>item_type</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>What was bought, classified into the scope's taxonomy (e.g. PCR, imaging, reagents, analyzers)</td>
+<td><code>IT, furniture and vehicles</code></td>
+</tr>
+<tr>
+<td><code>in_domain</code></td>
+<td>BOOLEAN</td>
+<td></td>
+<td>0%</td>
+<td>Item type belongs to the domain (laboratory and diagnostic equipment)</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>supplier_key</code></td>
+<td>STRING</td>
+<td>PK</td>
+<td>0%</td>
+<td>Resolved supplier: normalised name key + supplier country (after fuzzy merge)</td>
+<td><code>ramietech solutions&#124;IN</code></td>
+</tr>
+<tr>
+<td><code>tender_id</code></td>
+<td>STRING</td>
+<td>FK</td>
+<td>33%</td>
+<td>Normalised bid reference (upper-case, punctuation removed); the tender's identity</td>
+<td><code>NHPPP2021A005</code></td>
+</tr>
+<tr>
+<td><code>tender_link_method</code></td>
+<td>STRING</td>
+<td></td>
+<td>33%</td>
+<td>How the contract was linked to its tender: exact_key | fuzzy_desc</td>
+<td><code>exact_key</code></td>
+</tr>
+<tr>
+<td><code>tender_link_confidence</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>33%</td>
+<td>Confidence of the tender link (1.0 exact; similarity otherwise)</td>
+<td><code>1.0</code></td>
+</tr>
+<tr>
+<td><code>state</code></td>
+<td>STRING</td>
+<td></td>
+<td>99%</td>
+<td>Sub-national state (India scope only)</td>
+<td><code>Nagaland</code></td>
+</tr>
+</tbody>
+</table>
+<h3><code>gold.proj_doc_chunks</code> (6,187 rows)</h3>
+<p><em>Grain:</em> section-bounded passage (≤ 450 words).</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Key</th>
+<th>Null</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chunk_id</code></td>
+<td>STRING</td>
+<td>PK</td>
+<td>0%</td>
+<td><doc_id>_<sequence>; one section-bounded passage</td>
+<td><code>34459657_0004</code></td>
+</tr>
+<tr>
+<td><code>doc_id</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Documents &amp; Reports API id (also the PDF file name)</td>
+<td><code>34459657</code></td>
+</tr>
+<tr>
+<td><code>doc_type_code</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>PAD | ISR | ICR | PPAR | PROC_PLAN</td>
+<td><code>ISR</code></td>
+</tr>
+<tr>
+<td><code>project_id</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>World Bank project ID (P-code). The conformed key that joins structured and unstructured data</td>
+<td><code>P180849</code></td>
+</tr>
+<tr>
+<td><code>country_iso3</code></td>
+<td>STRING</td>
+<td></td>
+<td>19%</td>
+<td>Country, ISO 3166 alpha-3 (ISO-2 and spelling variants resolved via alias table)</td>
+<td><code>TUR</code></td>
+</tr>
+<tr>
+<td><code>doc_date</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Document date</td>
+<td><code>2025-02-25</code></td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Document title (used in citations)</td>
+<td><code>Disclosable Version of the ISR - Türkiye Earthqu…</code></td>
+</tr>
+<tr>
+<td><code>landing_url</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Document page on documents.worldbank.org (citation link)</td>
+<td><code>http://documents.worldbank.org/curated/en/099022…</code></td>
+</tr>
+<tr>
+<td><code>section_path</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Heading path of the chunk (e.g. 'V. LESSONS &gt; B. ...')</td>
+<td><code>FRONT MATTER &gt; 4. KEY ISSUES &amp; STATUS</code></td>
+</tr>
+<tr>
+<td><code>section_kind</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>lessons | key_factors | procurement_fiduciary | risk | ratings | results | design | annex | other</td>
+<td><code>other</code></td>
+</tr>
+<tr>
+<td><code>content_type</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>narrative | table | annex</td>
+<td><code>narrative</code></td>
+</tr>
+<tr>
+<td><code>page_start</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>First page of the passage (citation)</td>
+<td><code>2</code></td>
+</tr>
+<tr>
+<td><code>page_end</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>Last page of the passage</td>
+<td><code>2</code></td>
+</tr>
+<tr>
+<td><code>n_words</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>Words in the chunk (≤ 450, 60 overlap)</td>
+<td><code>174</code></td>
+</tr>
+<tr>
+<td><code>chunk_text</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Passage text, running headers removed</td>
+<td><code>4.1 Implementation Status and Key Decisions The …</code></td>
+</tr>
+<tr>
+<td><code>search_text</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Contextual text that is embedded: doc type | project | country | sector | date | section + text</td>
+<td><code>ISR &#124; Türkiye Earthquake Recovery and Reconstruc…</code></td>
+</tr>
+</tbody>
+</table>
+<h3><code>gold.lessons</code> (150 rows)</h3>
+<p><em>Grain:</em> one lesson learned.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Key</th>
+<th>Null</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lesson_id</code></td>
+<td>STRING</td>
+<td>PK</td>
+<td>0%</td>
+<td><doc_id>_L<n></td>
+<td><code>34318883_L0071</code></td>
+</tr>
+<tr>
+<td><code>doc_id</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Documents &amp; Reports API id (also the PDF file name)</td>
+<td><code>34318883</code></td>
+</tr>
+<tr>
+<td><code>chunk_id</code></td>
+<td>STRING</td>
+<td>FK</td>
+<td>0%</td>
+<td><doc_id>_<sequence>; one section-bounded passage</td>
+<td><code>34318883_0046</code></td>
+</tr>
+<tr>
+<td><code>project_id</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>World Bank project ID (P-code). The conformed key that joins structured and unstructured data</td>
+<td><code>P157291</code></td>
+</tr>
+<tr>
+<td><code>country_iso3</code></td>
+<td>STRING</td>
+<td></td>
+<td>28%</td>
+<td>Country, ISO 3166 alpha-3 (ISO-2 and spelling variants resolved via alias table)</td>
+<td><code>KHM</code></td>
+</tr>
+<tr>
+<td><code>doc_type_code</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>PAD | ISR | ICR | PPAR | PROC_PLAN</td>
+<td><code>ICR</code></td>
+</tr>
+<tr>
+<td><code>section_kind</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>lessons | key_factors | procurement_fiduciary | risk | ratings | results | design | annex | other</td>
+<td><code>key_factors</code></td>
+</tr>
+<tr>
+<td><code>paragraph</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>2%</td>
+<td>Numbered paragraph in the report</td>
+<td><code>74.0</code></td>
+</tr>
+<tr>
+<td><code>page_start</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>First page of the passage (citation)</td>
+<td><code>27</code></td>
+</tr>
+<tr>
+<td><code>lesson</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Lesson statement (first sentence)</td>
+<td><code>Construction of the two PRHs financed by the Pro…</code></td>
+</tr>
+<tr>
+<td><code>detail</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Full paragraph</td>
+<td><code>Construction of the two PRHs financed by the Pro…</code></td>
+</tr>
+<tr>
+<td><code>procurement_stage</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>planning | tender_design | evaluation_award | contract_management | general</td>
+<td><code>planning;contract_management</code></td>
+</tr>
+<tr>
+<td><code>risk_category</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>delay | capacity | fiduciary | safeguards | cost_overrun | specification | other</td>
+<td><code>delay</code></td>
+</tr>
+<tr>
+<td><code>procurement_related</code></td>
+<td>BOOLEAN</td>
+<td></td>
+<td>0%</td>
+<td>Lesson concerns procurement</td>
+<td><code>True</code></td>
+</tr>
+<tr>
+<td><code>evidence_quote</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Verbatim quote; must be found in the source chunk</td>
+<td><code>Construction of the two PRHs financed by the Pro…</code></td>
+</tr>
+<tr>
+<td><code>extraction_method</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>rule_numbered_paragraph (local) | llm_extracted (Databricks)</td>
+<td><code>rule_numbered_paragraph</code></td>
+</tr>
+<tr>
+<td><code>quote_verified</code></td>
+<td>BOOLEAN</td>
+<td></td>
+<td>0%</td>
+<td>The quote was found verbatim in the source chunk (only verified lessons are served)</td>
+<td><code>True</code></td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Document title (used in citations)</td>
+<td><code>Cambodia - Health Equity and Quality Improvement…</code></td>
+</tr>
+<tr>
+<td><code>landing_url</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Document page on documents.worldbank.org (citation link)</td>
+<td><code>http://documents.worldbank.org/curated/en/099051…</code></td>
+</tr>
+<tr>
+<td><code>doc_date</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Document date</td>
+<td><code>2024-05-15</code></td>
+</tr>
+</tbody>
+</table>
+<h3><code>gold.rating_evidence</code> (301 rows)</h3>
+<p><em>Grain:</em> one dated DO / IP rating.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Key</th>
+<th>Null</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>project_id</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>World Bank project ID (P-code). The conformed key that joins structured and unstructured data</td>
+<td><code>P131825</code></td>
+</tr>
+<tr>
+<td><code>dimension</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>development_objective | implementation_progress</td>
+<td><code>development_objective</code></td>
+</tr>
+<tr>
+<td><code>source_type</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>ISR | ICR | ICRR | PPAR</td>
+<td><code>ISR</code></td>
+</tr>
+<tr>
+<td><code>date</code></td>
+<td>DATE</td>
+<td></td>
+<td>0%</td>
+<td>Date of the rating</td>
+<td><code>2019-12-28</code></td>
+</tr>
+<tr>
+<td><code>rating</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Highly Satisfactory ... Highly Unsatisfactory</td>
+<td><code>Moderately Satisfactory</code></td>
+</tr>
+<tr>
+<td><code>source_id</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td><doc_id>#ISR<n> etc.: the exact rating record</td>
+<td><code>33858328#ISR14</code></td>
+</tr>
+<tr>
+<td><code>doc_id</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Documents &amp; Reports API id (also the PDF file name)</td>
+<td><code>33858328</code></td>
+</tr>
+<tr>
+<td><code>via</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Where it was parsed from (e.g. ICR data sheet)</td>
+<td><code>ICR data sheet</code></td>
+</tr>
+</tbody>
+</table>
+<h3><code>gold.project_ratings_resolved</code> (34 rows)</h3>
+<p><em>Grain:</em> project × rating dimension.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Key</th>
+<th>Null</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>project_id</code></td>
+<td>STRING</td>
+<td>PK</td>
+<td>0%</td>
+<td>World Bank project ID (P-code). The conformed key that joins structured and unstructured data</td>
+<td><code>P131825</code></td>
+</tr>
+<tr>
+<td><code>dimension</code></td>
+<td>STRING</td>
+<td>PK</td>
+<td>0%</td>
+<td>development_objective | implementation_progress</td>
+<td><code>development_objective</code></td>
+</tr>
+<tr>
+<td><code>resolved_rating</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Rating after the evidence hierarchy is applied</td>
+<td><code>Moderately Satisfactory</code></td>
+</tr>
+<tr>
+<td><code>resolved_from</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Source type that won (PPAR &gt; ICRR &gt; ICR &gt; latest ISR)</td>
+<td><code>ICRR</code></td>
+</tr>
+<tr>
+<td><code>resolved_source_id</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Record that won</td>
+<td><code>33921463</code></td>
+</tr>
+<tr>
+<td><code>conflict</code></td>
+<td>BOOLEAN</td>
+<td></td>
+<td>0%</td>
+<td>Sources fall on opposite sides of the satisfactory line</td>
+<td><code>True</code></td>
+</tr>
+<tr>
+<td><code>spread</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>Rating steps between best and worst evidence</td>
+<td><code>3</code></td>
+</tr>
+<tr>
+<td><code>n_evidence</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>Number of rating records</td>
+<td><code>19</code></td>
+</tr>
+<tr>
+<td><code>worst_isr</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Worst supervision rating during implementation</td>
+<td><code>Unsatisfactory</code></td>
+</tr>
+<tr>
+<td><code>trajectory</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>JSON list of (source, date, rating): kept so both sides can be cited</td>
+<td><code>[[&quot;ISR&quot;, &quot;2014-08-09&quot;, &quot;Satisfactory&quot;], [&quot;ISR&quot;, …</code></td>
+</tr>
+</tbody>
+</table>
+<h3><code>gold.project_outcomes</code> (17 rows)</h3>
+<p><em>Grain:</em> one completed project.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Key</th>
+<th>Null</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>project_id</code></td>
+<td>STRING</td>
+<td>PK</td>
+<td>0%</td>
+<td>World Bank project ID (P-code). The conformed key that joins structured and unstructured data</td>
+<td><code>P152799</code></td>
+</tr>
+<tr>
+<td><code>doc_id</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Documents &amp; Reports API id (also the PDF file name)</td>
+<td><code>34382469</code></td>
+</tr>
+<tr>
+<td><code>restructurings</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>Number of restructurings (ICR data sheet)</td>
+<td><code>4</code></td>
+</tr>
+<tr>
+<td><code>closing_planned</code></td>
+<td>DATE</td>
+<td></td>
+<td>59%</td>
+<td>Original closing date</td>
+<td><code>2023-12-31</code></td>
+</tr>
+<tr>
+<td><code>closing_actual</code></td>
+<td>DATE</td>
+<td></td>
+<td>59%</td>
+<td>Actual closing date</td>
+<td><code>2023-12-31</code></td>
+</tr>
+<tr>
+<td><code>closing_extension_days</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>59%</td>
+<td>Days the closing date was extended</td>
+<td><code>0.0</code></td>
+</tr>
+<tr>
+<td><code>outcome_rating</code></td>
+<td>STRING</td>
+<td></td>
+<td>6%</td>
+<td>Final outcome rating</td>
+<td><code>Moderately Satisfactory</code></td>
+</tr>
+<tr>
+<td><code>bank_performance</code></td>
+<td>STRING</td>
+<td></td>
+<td>6%</td>
+<td>Bank performance rating</td>
+<td><code>Satisfactory</code></td>
+</tr>
+<tr>
+<td><code>me_quality</code></td>
+<td>STRING</td>
+<td></td>
+<td>6%</td>
+<td>Quality of monitoring and evaluation</td>
+<td><code>Substantial</code></td>
+</tr>
+<tr>
+<td><code>n_isr_ratings</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>ISR ratings found in the data sheet</td>
+<td><code>17</code></td>
+</tr>
+</tbody>
+</table>
+<h3><code>gold.tender_features</code> (1,632 rows)</h3>
+<p><em>Grain:</em> one tender with ≥ invitation date. Inherits every <code>fact_tender</code> column; only the added columns are listed.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Key</th>
+<th>Null</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>commitment_usd</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>14%</td>
+<td>Total commitment (USD)</td>
+<td><code>36000000.0</code></td>
+</tr>
+<tr>
+<td><code>approval_date</code></td>
+<td>DATE</td>
+<td></td>
+<td>15%</td>
+<td>Board approval date</td>
+<td><code>2020-06-23</code></td>
+</tr>
+<tr>
+<td><code>env_category</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Environmental category A/B/C/F (older projects)</td>
+<td><code>B</code></td>
+</tr>
+<tr>
+<td><code>es_risk_rating</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Environmental &amp; social risk rating (ESF projects; NULL before ESF)</td>
+<td><code>missing</code></td>
+</tr>
+<tr>
+<td><code>major_sector</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Major sector of the project</td>
+<td><code>Education</code></td>
+</tr>
+<tr>
+<td><code>cpia_budget_financial_mgmt</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>45%</td>
+<td>CPIA quality of budgetary and financial management (1-6)</td>
+<td><code>4.0</code></td>
+</tr>
+<tr>
+<td><code>cpia_public_sector_mgmt</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>45%</td>
+<td>CPIA public sector management and institutions cluster (1-6)</td>
+<td><code>3.2</code></td>
+</tr>
+<tr>
+<td><code>cpia_transparency_corruption</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>45%</td>
+<td>CPIA transparency, accountability and corruption (1-6)</td>
+<td><code>3.0</code></td>
+</tr>
+<tr>
+<td><code>wgi_control_of_corruption</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>18%</td>
+<td>WGI control of corruption (about -2.5 to 2.5)</td>
+<td><code>-1.0685743</code></td>
+</tr>
+<tr>
+<td><code>wgi_gov_effectiveness</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>18%</td>
+<td>WGI government effectiveness</td>
+<td><code>-0.6059794</code></td>
+</tr>
+<tr>
+<td><code>wgi_regulatory_quality</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>18%</td>
+<td>WGI regulatory quality</td>
+<td><code>-0.9179055</code></td>
+</tr>
+<tr>
+<td><code>cpia_missing</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>18%</td>
+<td>1 when CPIA is not published (non-IDA countries)</td>
+<td><code>0.0</code></td>
+</tr>
+<tr>
+<td><code>log_contract_usd</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>43%</td>
+<td>log(1 + estimated value)</td>
+<td><code>8.743530038729363</code></td>
+</tr>
+<tr>
+<td><code>log_commitment</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>14%</td>
+<td>log(1 + project commitment)</td>
+<td><code>17.399029524198163</code></td>
+</tr>
+<tr>
+<td><code>project_age_days</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>15%</td>
+<td>Days from project approval to invitation</td>
+<td><code>1801.0</code></td>
+</tr>
+<tr>
+<td><code>open_month</code></td>
+<td>INT</td>
+<td></td>
+<td>0%</td>
+<td>Month of invitation</td>
+<td><code>5</code></td>
+</tr>
+<tr>
+<td><code>desc_words</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>Words in the description</td>
+<td><code>12</code></td>
+</tr>
+<tr>
+<td><code>kw_works_civil</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>Description mentions works civil keywords (0/1)</td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>kw_supply</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>Description mentions supply keywords (0/1)</td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>kw_consulting</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>Description mentions consulting keywords (0/1)</td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>kw_it</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>Description mentions it keywords (0/1)</td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>kw_vehicle</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>Description mentions vehicle keywords (0/1)</td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>kw_lot</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>Description mentions lot keywords (0/1)</td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>prior_group_median_days</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>47%</td>
+<td>Median cycle of earlier tenders in the same country/category/method (no leakage)</td>
+<td><code>48.0</code></td>
+</tr>
+<tr>
+<td><code>prior_project_median_days</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>43%</td>
+<td>Median cycle of the project's earlier tenders</td>
+<td><code>31.0</code></td>
+</tr>
+<tr>
+<td><code>prior_project_tenders</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>Earlier tenders in the project</td>
+<td><code>49</code></td>
+</tr>
+</tbody>
+</table>
+<h3><code>gold.tender_benchmarks</code> (67 rows)</h3>
+<p><em>Grain:</em> benchmark cohort.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Key</th>
+<th>Null</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>level</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Fallback level: country+category+method → category+method → category</td>
+<td><code>country+category+method</code></td>
+</tr>
+<tr>
+<td><code>country_iso3</code></td>
+<td>STRING</td>
+<td></td>
+<td>51%</td>
+<td>Country, ISO 3166 alpha-3 (ISO-2 and spelling variants resolved via alias table)</td>
+<td><code>BGD</code></td>
+</tr>
+<tr>
+<td><code>procurement_category</code></td>
+<td>STRING</td>
+<td></td>
+<td>45%</td>
+<td>Works | Goods | Consultant Services | Non-consulting Services</td>
+<td><code>Goods</code></td>
+</tr>
+<tr>
+<td><code>method_code</code></td>
+<td>STRING</td>
+<td></td>
+<td>21%</td>
+<td>Method code: RFB, RFQ, QCBS, CQS, INDV, DIR, ...</td>
+<td><code>RFB</code></td>
+</tr>
+<tr>
+<td><code>n</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>Tenders in the cohort (awarded + censored)</td>
+<td><code>23</code></td>
+</tr>
+<tr>
+<td><code>n_awarded</code></td>
+<td>BIGINT</td>
+<td></td>
+<td>0%</td>
+<td>Awarded tenders in the cohort</td>
+<td><code>23</code></td>
+</tr>
+<tr>
+<td><code>median_days</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>1%</td>
+<td>Kaplan-Meier median days to award (censoring-aware)</td>
+<td><code>134.0</code></td>
+</tr>
+<tr>
+<td><code>p80_days</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>6%</td>
+<td>Kaplan-Meier 80th percentile days to award (NULL when not reached)</td>
+<td><code>228.0</code></td>
+</tr>
+<tr>
+<td><code>naive_median_awarded_only</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>0%</td>
+<td>Median when still-open tenders are ignored (shows the bias)</td>
+<td><code>134.0</code></td>
+</tr>
+<tr>
+<td><code>item_type</code></td>
+<td>STRING</td>
+<td></td>
+<td>55%</td>
+<td>What was bought, classified into the scope's taxonomy (e.g. PCR, imaging, reagents, analyzers)</td>
+<td><code>Biosafety, sterilization and cold chain</code></td>
+</tr>
+</tbody>
+</table>
+<h3><code>gold.kg_edges</code> (115,327 rows)</h3>
+<p><em>Grain:</em> one typed link.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Key</th>
+<th>Null</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src_type</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Source entity type</td>
+<td><code>CONTRACT</code></td>
+</tr>
+<tr>
+<td><code>src_id</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Source entity id</td>
+<td><code>1755492</code></td>
+</tr>
+<tr>
+<td><code>rel</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Relationship</td>
+<td><code>OF_TYPE</code></td>
+</tr>
+<tr>
+<td><code>dst_type</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Target entity type</td>
+<td><code>ITEM_TYPE</code></td>
+</tr>
+<tr>
+<td><code>dst_id</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>Target entity id</td>
+<td><code>IT, furniture and vehicles</code></td>
+</tr>
+<tr>
+<td><code>method</code></td>
+<td>STRING</td>
+<td></td>
+<td>0%</td>
+<td>exact_key | fuzzy_desc | fuzzy_name | temporal | llm_extracted | human_confirmed | rule_*</td>
+<td><code>keyword</code></td>
+</tr>
+<tr>
+<td><code>confidence</code></td>
+<td>DOUBLE</td>
+<td></td>
+<td>0%</td>
+<td>0-1 confidence of the link</td>
+<td><code>0.7</code></td>
+</tr>
+</tbody>
+</table>
+<h2>9. Physical design (Delta DDL)</h2>
+<p>The full DDL for all Gold tables is in <code>01_DATA_MODEL_DDL.sql</code>. Example:</p>
+<pre><code class="language-sql">CREATE TABLE IF NOT EXISTS gold.fact_contract (
+  wb_contract_number             STRING NOT NULL COMMENT 'World Bank contract number',
+  supplier_id                    STRING COMMENT 'WB supplier id (kept as evidence; not trusted alone)',
+  supplier_name                  STRING COMMENT 'Supplier name as published',
+  supplier_country               STRING COMMENT 'Supplier country',
+  supplier_country_code          STRING COMMENT 'Supplier country ISO-2',
+  project_id                     STRING COMMENT 'World Bank project ID (P-code). The conformed key that joins structured and unstructured data',
+  project_name                   STRING COMMENT 'Project name',
+  country_iso3                   STRING COMMENT 'Country, ISO 3166 alpha-3 (ISO-2 and spelling variants resolved via alias table)',
+  region                         STRING COMMENT 'World Bank region of the borrower country',
+  fiscal_year                    BIGINT COMMENT 'WB fiscal year of the award',
+  signing_date                   DATE COMMENT 'Contract signing date',
+  procurement_category           STRING COMMENT 'Works | Goods | Consultant Services | Non-consulting Services',
+  procurement_method             STRING COMMENT 'Full method name (Request for Bids, QCBS, ...)',
+  review_type                    STRING COMMENT 'Prior | Post review by the Bank (''unknown'' when not published)',
+  amount_usd                     DOUBLE COMMENT 'Contract amount (USD)',
+  description                    STRING COMMENT 'Free-text description of the package / contract',
+  borrower_ref                   STRING COMMENT 'Borrower contract reference as published',
+  borrower_ref_key               STRING COMMENT 'Normalised borrower reference (exact-key link to tender_id)',
+  supplier_name_key              STRING COMMENT 'Normalised supplier name (legal forms, M/S, punctuation removed)',
+  item_type                      STRING COMMENT 'What was bought, classified into the scope''s taxonomy (e.g. PCR, imaging, reagents, analyzers)',
+  in_domain                      BOOLEAN COMMENT 'Item type belongs to the domain (laboratory and diagnostic equipment)',
+  supplier_key                   STRING NOT NULL COMMENT 'Resolved supplier: normalised name key + supplier country (after fuzzy merge)',
+  tender_id                      STRING COMMENT 'Normalised bid reference (upper-case, punctuation removed); the tender''s identity',
+  tender_link_method             STRING COMMENT 'How the contract was linked to its tender: exact_key | fuzzy_desc',
+  tender_link_confidence         DOUBLE COMMENT 'Confidence of the tender link (1.0 exact; similarity otherwise)',
+  state                          STRING COMMENT 'Sub-national state (India scope only)',
+  CONSTRAINT pk_fact_contract PRIMARY KEY (wb_contract_number, supplier_key) RELY,
+  CONSTRAINT fk_fact_contract_tender_id FOREIGN KEY (tender_id) REFERENCES gold.fact_tender,
+  CONSTRAINT fk_fact_contract_project_id FOREIGN KEY (project_id) REFERENCES gold.dim_project,
+  CONSTRAINT fk_fact_contract_supplier_key FOREIGN KEY (supplier_key) REFERENCES gold.dim_supplier
+)
+CLUSTER BY (item_type, country_iso3)
+COMMENT 'one contract-supplier row. Source: Major Contract Awards (FinancesOne)'
+TBLPROPERTIES (delta.enableChangeDataFeed = true);
+</code></pre>
+<p><strong>Scaling.</strong> The full public corpus is about 300k contract rows, about 425k notices, about 22k projects and tens of
+thousands of documents. That is small for Delta. Liquid clustering on country and year keeps scans narrow, Change Data
+Feed makes Silver → Gold and the vector index incremental, and supplier resolution uses blocking so it stays near-linear.</p></body></html>

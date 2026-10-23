@@ -1,0 +1,214 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1184 746" font-family="Segoe UI, Arial, sans-serif" role="img" aria-label="Entity-relationship diagram of the procurement intelligence data model">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#57606a"/></marker></defs>
+<rect x="0" y="0" width="1184" height="746" fill="#ffffff"/>
+<line x1="200" y1="90" x2="258" y2="90" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="229" y="86" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1</text>
+<line x1="500" y1="90" x2="442" y2="90" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="471" y="86" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1</text>
+<line x1="684" y1="87" x2="742" y2="85" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="713" y="82" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1</text>
+<line x1="592" y1="160" x2="592" y2="238" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="592" y="195" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 project_id</text>
+<line x1="428" y1="160" x2="514" y2="238" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="471" y="195" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 project_id</text>
+<line x1="269" y1="160" x2="179" y2="238" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="224" y="195" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 country + year</text>
+<line x1="350" y1="238" x2="350" y2="160" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="350" y="195" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">1:1</text>
+<line x1="168" y1="456" x2="290" y2="346" stroke="#57606a" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+<text x="229" y="397" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">aggregates tenders</text>
+<line x1="551" y1="160" x2="377" y2="456" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="464" y="304" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 item_type</text>
+<line x1="200" y1="507" x2="258" y2="505" stroke="#57606a" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+<text x="229" y="502" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">by</text>
+<line x1="742" y1="308" x2="684" y2="308" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="713" y="304" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1</text>
+<line x1="984" y1="308" x2="926" y2="308" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="955" y="304" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1</text>
+<line x1="1076" y1="456" x2="1076" y2="378" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="1076" y="413" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 chunk_id</text>
+<line x1="834" y1="456" x2="834" y2="378" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="834" y="413" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 doc_id</text>
+<line x1="592" y1="456" x2="592" y2="378" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="592" y="413" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 project_id</text>
+<line x1="742" y1="523" x2="684" y2="521" stroke="#57606a" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+<text x="713" y="518" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">resolves</text>
+<line x1="1010" y1="144" x2="909" y2="238" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="959" y="187" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 doc_id</text>
+<rect x="16" y="20" width="184" height="140" rx="6" fill="#ffffff" stroke="#0969da" stroke-width="1.6"/>
+<path d="M16,26 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#0969da"/>
+<text x="24" y="35" font-size="12" font-weight="700" fill="#ffffff">NOTICE</text>
+<text x="24" y="49" font-size="10" fill="#ffffff" opacity="0.9">gold.notices</text>
+<text x="24" y="72" font-size="11" fill="#24292f" font-weight="600">notice_id</text>
+<text x="192" y="72" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">PK</text>
+<text x="24" y="88" font-size="11" fill="#24292f">bid_ref_key</text>
+<text x="192" y="88" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="24" y="104" font-size="11" fill="#24292f">project_id</text>
+<text x="192" y="104" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="24" y="120" font-size="11" fill="#24292f">notice_type</text>
+<text x="24" y="136" font-size="11" fill="#24292f">notice_date</text>
+<text x="24" y="152" font-size="11" fill="#24292f">n_bidders</text>
+<rect x="258" y="20" width="184" height="140" rx="6" fill="#ffffff" stroke="#0969da" stroke-width="1.6"/>
+<path d="M258,26 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#0969da"/>
+<text x="266" y="35" font-size="12" font-weight="700" fill="#ffffff">TENDER</text>
+<text x="266" y="49" font-size="10" fill="#ffffff" opacity="0.9">gold.fact_tender</text>
+<text x="266" y="72" font-size="11" fill="#24292f" font-weight="600">tender_id</text>
+<text x="434" y="72" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">PK</text>
+<text x="266" y="88" font-size="11" fill="#24292f">project_id</text>
+<text x="434" y="88" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="266" y="104" font-size="11" fill="#24292f">country_iso3, tender_year</text>
+<text x="434" y="104" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="266" y="120" font-size="11" fill="#24292f">method_code</text>
+<text x="266" y="136" font-size="11" fill="#24292f">cycle_days</text>
+<text x="266" y="152" font-size="11" fill="#24292f">award_observed</text>
+<rect x="500" y="20" width="184" height="140" rx="6" fill="#ffffff" stroke="#0969da" stroke-width="1.6"/>
+<path d="M500,26 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#0969da"/>
+<text x="508" y="35" font-size="12" font-weight="700" fill="#ffffff">CONTRACT</text>
+<text x="508" y="49" font-size="10" fill="#ffffff" opacity="0.9">gold.fact_contract</text>
+<text x="508" y="72" font-size="11" fill="#24292f" font-weight="600">wb_contract_number</text>
+<text x="676" y="72" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">PK</text>
+<text x="508" y="88" font-size="11" fill="#24292f">tender_id</text>
+<text x="676" y="88" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="508" y="104" font-size="11" fill="#24292f">project_id</text>
+<text x="676" y="104" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="508" y="120" font-size="11" fill="#24292f">supplier_key</text>
+<text x="676" y="120" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="508" y="136" font-size="11" fill="#24292f">item_type</text>
+<text x="676" y="136" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="508" y="152" font-size="11" fill="#24292f">amount_usd</text>
+<rect x="742" y="20" width="184" height="124" rx="6" fill="#ffffff" stroke="#1a7f37" stroke-width="1.6"/>
+<path d="M742,26 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#1a7f37"/>
+<text x="750" y="35" font-size="12" font-weight="700" fill="#ffffff">SUPPLIER</text>
+<text x="750" y="49" font-size="10" fill="#ffffff" opacity="0.9">gold.dim_supplier</text>
+<text x="750" y="72" font-size="11" fill="#24292f" font-weight="600">supplier_key</text>
+<text x="918" y="72" font-size="9.5" text-anchor="end" fill="#1a7f37" font-weight="700">PK</text>
+<text x="750" y="88" font-size="11" fill="#24292f">supplier_name</text>
+<text x="750" y="104" font-size="11" fill="#24292f">name_variants</text>
+<text x="750" y="120" font-size="11" fill="#24292f">supplier_country</text>
+<text x="750" y="136" font-size="11" fill="#24292f">n_contracts</text>
+<rect x="984" y="20" width="184" height="124" rx="6" fill="#ffffff" stroke="#bc4c00" stroke-width="1.6"/>
+<path d="M984,26 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#bc4c00"/>
+<text x="992" y="35" font-size="12" font-weight="700" fill="#ffffff">PROJECT_OUTCOME</text>
+<text x="992" y="49" font-size="10" fill="#ffffff" opacity="0.9">gold.project_outcomes</text>
+<text x="992" y="72" font-size="11" fill="#24292f" font-weight="600">project_id</text>
+<text x="1160" y="72" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK FK</text>
+<text x="992" y="88" font-size="11" fill="#24292f">doc_id</text>
+<text x="1160" y="88" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="992" y="104" font-size="11" fill="#24292f">restructurings</text>
+<text x="992" y="120" font-size="11" fill="#24292f">closing_extension_days</text>
+<text x="992" y="136" font-size="11" fill="#24292f">outcome_rating</text>
+<rect x="16" y="238" width="184" height="124" rx="6" fill="#ffffff" stroke="#1a7f37" stroke-width="1.6"/>
+<path d="M16,244 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#1a7f37"/>
+<text x="24" y="253" font-size="12" font-weight="700" fill="#ffffff">GOVERNANCE</text>
+<text x="24" y="267" font-size="10" fill="#ffffff" opacity="0.9">gold.country_governance_year</text>
+<text x="24" y="290" font-size="11" fill="#24292f" font-weight="600">country_iso3</text>
+<text x="192" y="290" font-size="9.5" text-anchor="end" fill="#1a7f37" font-weight="700">PK</text>
+<text x="24" y="306" font-size="11" fill="#24292f" font-weight="600">year</text>
+<text x="192" y="306" font-size="9.5" text-anchor="end" fill="#1a7f37" font-weight="700">PK</text>
+<text x="24" y="322" font-size="11" fill="#24292f">cpia_* (3)</text>
+<text x="24" y="338" font-size="11" fill="#24292f">wgi_* (3)</text>
+<text x="24" y="354" font-size="11" fill="#24292f">cpia_missing</text>
+<rect x="258" y="456" width="184" height="92" rx="6" fill="#ffffff" stroke="#1a7f37" stroke-width="1.6"/>
+<path d="M258,462 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#1a7f37"/>
+<text x="266" y="471" font-size="12" font-weight="700" fill="#ffffff">ITEM_TYPE</text>
+<text x="266" y="485" font-size="10" fill="#ffffff" opacity="0.9">taxonomy (common.py)</text>
+<text x="266" y="508" font-size="11" fill="#24292f" font-weight="600">item_type</text>
+<text x="434" y="508" font-size="9.5" text-anchor="end" fill="#1a7f37" font-weight="700">PK</text>
+<text x="266" y="524" font-size="11" fill="#24292f">in_domain</text>
+<text x="266" y="540" font-size="11" fill="#24292f">4-language patterns</text>
+<rect x="258" y="238" width="184" height="108" rx="6" fill="#ffffff" stroke="#8250df" stroke-width="1.6"/>
+<path d="M258,244 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#8250df"/>
+<text x="266" y="253" font-size="12" font-weight="700" fill="#ffffff">TENDER_FEATURES</text>
+<text x="266" y="267" font-size="10" fill="#ffffff" opacity="0.9">gold.tender_features</text>
+<text x="266" y="290" font-size="11" fill="#24292f" font-weight="600">tender_id</text>
+<text x="434" y="290" font-size="9.5" text-anchor="end" fill="#8250df" font-weight="700">PK FK</text>
+<text x="266" y="306" font-size="11" fill="#24292f">planning-time features</text>
+<text x="266" y="322" font-size="11" fill="#24292f">governance at open</text>
+<text x="266" y="338" font-size="11" fill="#24292f">prior_group_median_days</text>
+<rect x="500" y="238" width="184" height="140" rx="6" fill="#ffffff" stroke="#1a7f37" stroke-width="1.6"/>
+<path d="M500,244 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#1a7f37"/>
+<text x="508" y="253" font-size="12" font-weight="700" fill="#ffffff">PROJECT</text>
+<text x="508" y="267" font-size="10" fill="#ffffff" opacity="0.9">gold.dim_project</text>
+<text x="508" y="290" font-size="11" fill="#24292f" font-weight="600">project_id</text>
+<text x="676" y="290" font-size="9.5" text-anchor="end" fill="#1a7f37" font-weight="700">PK</text>
+<text x="508" y="306" font-size="11" fill="#24292f">country_iso3</text>
+<text x="508" y="322" font-size="11" fill="#24292f">region</text>
+<text x="508" y="338" font-size="11" fill="#24292f">major_sector</text>
+<text x="508" y="354" font-size="11" fill="#24292f">commitment_usd</text>
+<text x="508" y="370" font-size="11" fill="#24292f">status</text>
+<rect x="742" y="238" width="184" height="140" rx="6" fill="#ffffff" stroke="#bc4c00" stroke-width="1.6"/>
+<path d="M742,244 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#bc4c00"/>
+<text x="750" y="253" font-size="12" font-weight="700" fill="#ffffff">DOCUMENT</text>
+<text x="750" y="267" font-size="10" fill="#ffffff" opacity="0.9">bronze.project_docs_meta</text>
+<text x="750" y="290" font-size="11" fill="#24292f" font-weight="600">doc_id</text>
+<text x="918" y="290" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK</text>
+<text x="750" y="306" font-size="11" fill="#24292f">project_id</text>
+<text x="918" y="306" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="750" y="322" font-size="11" fill="#24292f">project_ids[]</text>
+<text x="750" y="338" font-size="11" fill="#24292f">doc_type_code</text>
+<text x="750" y="354" font-size="11" fill="#24292f">doc_date</text>
+<text x="750" y="370" font-size="11" fill="#24292f">landing_url</text>
+<rect x="984" y="238" width="184" height="140" rx="6" fill="#ffffff" stroke="#bc4c00" stroke-width="1.6"/>
+<path d="M984,244 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#bc4c00"/>
+<text x="992" y="253" font-size="12" font-weight="700" fill="#ffffff">CHUNK</text>
+<text x="992" y="267" font-size="10" fill="#ffffff" opacity="0.9">gold.proj_doc_chunks</text>
+<text x="992" y="290" font-size="11" fill="#24292f" font-weight="600">chunk_id</text>
+<text x="1160" y="290" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK</text>
+<text x="992" y="306" font-size="11" fill="#24292f">doc_id</text>
+<text x="1160" y="306" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="992" y="322" font-size="11" fill="#24292f">section_path</text>
+<text x="992" y="338" font-size="11" fill="#24292f">section_kind</text>
+<text x="992" y="354" font-size="11" fill="#24292f">page_start, page_end</text>
+<text x="992" y="370" font-size="11" fill="#24292f">search_text</text>
+<rect x="16" y="456" width="184" height="108" rx="6" fill="#ffffff" stroke="#8250df" stroke-width="1.6"/>
+<path d="M16,462 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#8250df"/>
+<text x="24" y="471" font-size="12" font-weight="700" fill="#ffffff">TENDER_BENCHMARK</text>
+<text x="24" y="485" font-size="10" fill="#ffffff" opacity="0.9">gold.tender_benchmarks</text>
+<text x="24" y="508" font-size="11" fill="#24292f" font-weight="600">level</text>
+<text x="192" y="508" font-size="9.5" text-anchor="end" fill="#8250df" font-weight="700">PK</text>
+<text x="24" y="524" font-size="11" fill="#24292f" font-weight="600">item / country / method</text>
+<text x="192" y="524" font-size="9.5" text-anchor="end" fill="#8250df" font-weight="700">PK</text>
+<text x="24" y="540" font-size="11" fill="#24292f">n, n_awarded</text>
+<text x="24" y="556" font-size="11" fill="#24292f">median_days, p80_days</text>
+<rect x="500" y="456" width="184" height="124" rx="6" fill="#ffffff" stroke="#bc4c00" stroke-width="1.6"/>
+<path d="M500,462 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#bc4c00"/>
+<text x="508" y="471" font-size="12" font-weight="700" fill="#ffffff">PROJECT_RATING</text>
+<text x="508" y="485" font-size="10" fill="#ffffff" opacity="0.9">gold.project_ratings_resolved</text>
+<text x="508" y="508" font-size="11" fill="#24292f" font-weight="600">project_id</text>
+<text x="676" y="508" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK FK</text>
+<text x="508" y="524" font-size="11" fill="#24292f" font-weight="600">dimension</text>
+<text x="676" y="524" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK</text>
+<text x="508" y="540" font-size="11" fill="#24292f">resolved_rating</text>
+<text x="508" y="556" font-size="11" fill="#24292f">resolved_from</text>
+<text x="508" y="572" font-size="11" fill="#24292f">conflict</text>
+<rect x="742" y="456" width="184" height="140" rx="6" fill="#ffffff" stroke="#bc4c00" stroke-width="1.6"/>
+<path d="M742,462 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#bc4c00"/>
+<text x="750" y="471" font-size="12" font-weight="700" fill="#ffffff">RATING_EVIDENCE</text>
+<text x="750" y="485" font-size="10" fill="#ffffff" opacity="0.9">gold.rating_evidence</text>
+<text x="750" y="508" font-size="11" fill="#24292f" font-weight="600">source_id</text>
+<text x="918" y="508" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK</text>
+<text x="750" y="524" font-size="11" fill="#24292f">project_id</text>
+<text x="918" y="524" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="750" y="540" font-size="11" fill="#24292f">doc_id</text>
+<text x="918" y="540" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="750" y="556" font-size="11" fill="#24292f">source_type</text>
+<text x="750" y="572" font-size="11" fill="#24292f">date</text>
+<text x="750" y="588" font-size="11" fill="#24292f">rating</text>
+<rect x="984" y="456" width="184" height="140" rx="6" fill="#ffffff" stroke="#bc4c00" stroke-width="1.6"/>
+<path d="M984,462 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#bc4c00"/>
+<text x="992" y="471" font-size="12" font-weight="700" fill="#ffffff">LESSON</text>
+<text x="992" y="485" font-size="10" fill="#ffffff" opacity="0.9">gold.lessons</text>
+<text x="992" y="508" font-size="11" fill="#24292f" font-weight="600">lesson_id</text>
+<text x="1160" y="508" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK</text>
+<text x="992" y="524" font-size="11" fill="#24292f">chunk_id</text>
+<text x="1160" y="524" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="992" y="540" font-size="11" fill="#24292f">project_id</text>
+<text x="1160" y="540" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="992" y="556" font-size="11" fill="#24292f">procurement_stage</text>
+<text x="992" y="572" font-size="11" fill="#24292f">risk_category</text>
+<text x="992" y="588" font-size="11" fill="#24292f">quote_verified</text>
+<rect x="16" y="650" width="1152" height="80" rx="6" fill="#f6f8fa" stroke="#8c959f" stroke-dasharray="4 3"/>
+<text x="28" y="670" font-size="12" font-weight="700" fill="#24292f">KG_EDGE  (gold.kg_edges)  115,327 edges: one row per link between any two entities above</text>
+<text x="28" y="690" font-size="11" fill="#24292f">(src_type, src_id, rel, dst_type, dst_id, method, confidence, valid_from, evidence)   method ∈ exact_key | fuzzy_desc | fuzzy_name | temporal | llm_extracted | human_confirmed</text>
+<text x="28" y="710" font-size="10.5" fill="#57606a">FINANCED_BY 14,613   OF_TYPE 14,613   AWARDED_TO 14,608   ANNOUNCES 14,445   FINANCED_BY 10,403   HAS_CONTEXT 10,403   OF_TYPE 10,403   RESULTED_IN 9,782</text>
+</svg>

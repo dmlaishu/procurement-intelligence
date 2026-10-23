@@ -1,0 +1,392 @@
+{
+ "package": {
+  "description": "Supply, installation and commissioning of automated real-time PCR systems and GeneXpert analyzers for regional public health laboratories, Lot 2",
+  "procurement_category": "Goods",
+  "method_code": "RFB",
+  "country_iso3": "KEN",
+  "open_notice_type": "Invitation for Bids",
+  "review_type": "Prior",
+  "state": null,
+  "item_type": "Molecular diagnostics (PCR, GeneXpert)",
+  "contract_usd": 2500000,
+  "log_contract_usd": 14.731801689838349,
+  "bid_window_days": 30,
+  "open_month": 3,
+  "major_sector": "Health",
+  "planned_open_date": "2027-03-01",
+  "env_category": "B",
+  "es_risk_rating": "Substantial",
+  "log_commitment": 19.519293035953808,
+  "project_age_days": 400,
+  "kw_works_civil": 0,
+  "kw_supply": 1,
+  "kw_lot": 1,
+  "desc_words": 19
+ },
+ "scores": {
+  "cycle_p50": 154.8307368764369,
+  "cycle_p80": 251.7491312451208,
+  "single_bid_prob": 0.12619036089696922,
+  "single_bid_base_rate": 0.4170984455958549,
+  "amendment_prob": 0.70313861246366,
+  "amendment_base_rate": 0.3906856403622251
+ },
+ "flags": [
+  "delay"
+ ],
+ "statements": [
+  {
+   "section": "Schedule",
+   "text": "Historical benchmark (Molecular diagnostics (PCR, GeneXpert) tenders using RFB (all countries)): half of tenders reach award within 124 days of the invitation and 80% within 240 days.",
+   "citations": [
+    "B1"
+   ],
+   "abstention": false
+  },
+  {
+   "section": "Schedule",
+   "text": "Counting only completed tenders would understate the median by 6 days, because slow tenders are still open.",
+   "citations": [
+    "B1",
+    "D1"
+   ],
+   "abstention": false
+  },
+  {
+   "section": "Schedule",
+   "text": "For this package the model estimates 155 days to award (P50) and 252 days at the 80th percentile.",
+   "citations": [
+    "M1"
+   ],
+   "abstention": false
+  },
+  {
+   "section": "Schedule",
+   "text": "Plan the award milestone for 08 Nov 2027 or later (planned invitation 01 Mar 2027 plus the P80 estimate) rather than the median.",
+   "citations": [
+    "D2",
+    "M1"
+   ],
+   "abstention": false
+  },
+  {
+   "section": "Risks",
+   "text": "Expected cycle is longer than the benchmark median (155 vs 124 days).",
+   "citations": [
+    "M1",
+    "B1"
+   ],
+   "abstention": false
+  },
+  {
+   "section": "Market approach",
+   "text": "Among the 12 most similar past Goods tenders, the most common method was Request for Bids (7 of 12); median number of bidders 1.5.",
+   "citations": [
+    "T1",
+    "T2",
+    "T3",
+    "T4",
+    "T5",
+    "T6",
+    "D3"
+   ],
+   "abstention": false
+  },
+  {
+   "section": "Lessons from completed projects",
+   "text": "\u201cIn addition to the change in the MoH leadership in mid -June 2020, the COVID -19 pandemic also slowed down and adversely affected implementation progress and delays were also encountered for the project restructuring, for the initiation of the agreed procurement processes and subsequent partial canc\u201d (ICR, P152625, p. 31) - note: this project's ratings were mixed across sources, and the final ICRR rating is Moderately Unsatisfactory, so the lesson comes from a project that underperformed.",
+   "citations": [
+    "L1",
+    "R1"
+   ],
+   "abstention": false
+  },
+  {
+   "section": "Lessons from completed projects",
+   "text": "\u201cIntroduction of c ontract terms against non- deliveries and poor deliveries .\u201d (ICR, P152625, p. 39) - note: this project's ratings were mixed across sources, and the final ICRR rating is Moderately Unsatisfactory, so the lesson comes from a project that underperformed.",
+   "citations": [
+    "L2",
+    "R2"
+   ],
+   "abstention": false
+  },
+  {
+   "section": "Lessons from completed projects",
+   "text": "\u201cThe COVID -19 pandemic disrupted and delayed project activities.\u201d (ICR, P149340, p. 19) - note: this project's supervision ratings fell to Moderately Unsatisfactory before the final ICR rating of Satisfactory, so the lesson reflects a recovery.",
+   "citations": [
+    "L3",
+    "R3"
+   ],
+   "abstention": false
+  },
+  {
+   "section": "Lessons from completed projects",
+   "text": "\u201cThe COVID-19 pandemic significantly diverted resources and attention, delaying some project activities and necessitating adjustments to Project priorities.\u201d (ICR, P152799, p. 31) - note: this project's supervision ratings fell to Moderately Unsatisfactory before the final ICRR rating of Moderately Satisfactory, so the lesson reflects a recovery.",
+   "citations": [
+    "L4",
+    "R4"
+   ],
+   "abstention": false
+  },
+  {
+   "section": "Lessons from completed projects",
+   "text": "\u201cAt the Government\u2019s request, the WB activated the CERC and reallocated USS$14 million to expedite implementation of the Master Plan.\u201d (ICR, P157291, p. 27)",
+   "citations": [
+    "L5"
+   ],
+   "abstention": false
+  },
+  {
+   "section": "Lessons from completed projects",
+   "text": "\u201cFuture similar health projects should consider the lessons learned from this project regarding timely disbursement of county allocations.\u201d (ICR, P152394, p. 37)",
+   "citations": [
+    "L6"
+   ],
+   "abstention": false
+  },
+  {
+   "section": "Supporting evidence",
+   "text": "\u201cFor each contract to be financed by the loan, for the different procurement methods or consultant selection methods, the need for prequalification, estimated costs, prior review requirements, and time frame will be approved by the Bank with the No Objection to the Procurement Plan.\u201d (PAD, Procurement, p. 68)",
+   "citations": [
+    "P1"
+   ],
+   "abstention": false
+  },
+  {
+   "section": "Supporting evidence",
+   "text": "\u201cFor effective real-time monitoring and follow up of contract management plans for key high -value contracts under the project, the Bank team advised the PMU/MoH to establish and use a basic contract management tool.\u201d (ICR, B. Environmental, Social, And Fiduciary Compliance, p. 34)",
+   "citations": [
+    "P2"
+   ],
+   "abstention": false
+  },
+  {
+   "section": "Supporting evidence",
+   "text": "\u201cThese delays did not leave time for the related procurement and, finally resulted in a decision to cancel US$34.4 million from the loan.\u201d (ICR, B. Key Factors During Implementation, p. 32)",
+   "citations": [
+    "P3"
+   ],
+   "abstention": false
+  },
+  {
+   "section": "Supporting evidence",
+   "text": "\u201cPerformance on procurement arrangements and compliance was hindered by difficulties and delays encountered by the countries and regional institutions.\u201d (ICR, B. Environmental, Social, And Fiduciary Compliance, p. 36)",
+   "citations": [
+    "P4"
+   ],
+   "abstention": false
+  }
+ ],
+ "guardrail_log": [],
+ "evidence": {
+  "B1": {
+   "id": "B1",
+   "text": "Kaplan-Meier benchmark for Molecular diagnostics (PCR, GeneXpert) tenders using RFB (all countries): median 124 days, P80 240 days (80% of tenders awarded within it) from invitation to award; n=27 tenders, 24 awarded, 3 still open (censored); awarded-only median 118 days.",
+   "source": "gold.tender_benchmarks",
+   "level": "item_type+method"
+  },
+  "D1": {
+   "id": "D1",
+   "text": "Derived: censoring-aware median 124 - awarded-only median 118 = 6 days.",
+   "inputs": [
+    "B1"
+   ]
+  },
+  "M1": {
+   "id": "M1",
+   "text": "Model scores for this package: cycle P50 155 days, P80 252 days; single-bid probability 13% (base rate 42%); re-tender probability nan% (base rate nan%).",
+   "source": "models: cycle_p50, cycle_p80, single_bid, rebid (out-of-time validated)"
+  },
+  "D2": {
+   "id": "D2",
+   "text": "Derived: planned invitation 01 Mar 2027 + model P80 252 days = 08 Nov 2027.",
+   "inputs": [
+    "M1"
+   ]
+  },
+  "T1": {
+   "id": "T1",
+   "text": "Procurement and installation of Inverter Battery Back-Up System at Central Public Health Reference Laboratory and in Four Regional Labs | nan | Request for Bids | opened 2022-01-26 | 350 days to award, 4 bidder(s)",
+   "source": "gold.fact_tender",
+   "tender_id": "SLMOHS237587GORFB",
+   "project_id": "P154807"
+  },
+  "T2": {
+   "id": "T2",
+   "text": "Supply and Installation of Regional Hospital Information System (RHIS) including training | ALB | Request for Bids | opened 2019-07-31 | 588 days to award, 9 bidder(s)",
+   "source": "gold.fact_tender",
+   "tender_id": "HSIPGICB022017",
+   "project_id": "P144688"
+  },
+  "T3": {
+   "id": "T3",
+   "text": "Bench Top Fully Automated Biochemistry Analyzer | LKA | Request for Bids | opened 2023-01-12 | 26 days to award, 1 bidder(s)",
+   "source": "gold.fact_tender",
+   "tender_id": "LKMOH181075GORFB",
+   "project_id": "P173867"
+  },
+  "T4": {
+   "id": "T4",
+   "text": "Procurement of Supply, Installation, Testing and Commissioning of Solar Power Systems in Healthcare Facilities of Project Districts | PAK | Request for Bids | opened 2026-02-19 | 131 days to award, 5 bidder(s)",
+   "source": "gold.fact_tender",
+   "tender_id": "PKHPMU522650GORFB",
+   "project_id": "P166309"
+  },
+  "T5": {
+   "id": "T5",
+   "text": "PROCUREMENT OF PCR EQUIPMENT WITH ACCESSORIES packaged in 3 lots: (LOT 1. PCR equipment with accessories; LOT 2. assorted Universal Filter T | TJK | Request for Bids | opened 2023-06-28 | 142 days to award, 2 bidder(s)",
+   "source": "gold.fact_tender",
+   "tender_id": "TEC19D962RFB2023002",
+   "project_id": "P173765"
+  },
+  "T6": {
+   "id": "T6",
+   "text": "Direct Procurement/Supply, installation and commissioning of 6 No. PCR machines (ABI QuantStudio 5) from Thermofisher Scientific. | KEN | Direct Selection | opened n/a | no award yet, 0 bidder(s)",
+   "source": "gold.fact_tender",
+   "tender_id": "KEKEMSA201764GODIR",
+   "project_id": "P173820"
+  },
+  "D3": {
+   "id": "D3",
+   "text": "Derived from 12 similar tenders T1, T2, T3, T4, T5, T6: methods {'Request for Bids': 7, 'Request for Quotations': 3, 'Direct Selection': 1, 'UN Agencies (Direct)': 1}; bidders median 1.5; count 12; top method count 7.",
+   "inputs": [
+    "T1",
+    "T2",
+    "T3",
+    "T4",
+    "T5",
+    "T6"
+   ]
+  },
+  "L1": {
+   "id": "L1",
+   "text": "In addition to the change in the MoH leadership in mid -June 2020, the COVID -19 pandemic also slowed down and adversely affected implementation progress and delays were also encountered for the project restructuring, for the initiation of the agreed procurement processes and subsequent partial cancellation of Loan funds, in the compliance with a legal covenant, and u nresolved disputes as well as non -payment issues under several 21 https://cis-legislation.com/document.fwx?rgn=83251 22 https://afmrk.gov.kz/en/activity/strategy-and-program/100-concrete-steps-towards-the-implementation-of.html Social Health Insurance Project: Improving Access, Quality, Efficiency and Financial Protection (P152625) contracts. There was a significant delay in project restructuring. Specifically, while the scope of the restructuring was agreed at the MTR in June 2020, the formal request for project restructuring was received only one year after the MTR, in June 2021. Additionally, the MoH decided not to conduct the procurements which was a part of the restructuring (procurement of medical equipment for MCH and intensive care units ) and to cancel the contract for the laboratory equipment including new-generation genetic sequencer and automated systems for isolation of DNA, RNA, proteins , and cells) , and there were lengthy discussions on the potential use of the unallocated funds. These delays did not leave time for the related procurement and, finally resulted in a decision to cancel US$34.4 mi",
+   "source": "ICR Kazakhstan - Social Health Insurance Project : Improving Access, Quality, Efficiency and Financial Protection Project",
+   "doc_id": "33911550",
+   "chunk_id": "33911550_0038",
+   "page": 31,
+   "url": "http://documents.worldbank.org/curated/en/099740110032237201/BOSIB092b576c70b208c8c0cbc7fc7f4963",
+   "quote": "In addition to the change in the MoH leadership in mid -June 2020, the COVID -19 pandemic also slowed down and adversely affected implementation progress and delays were also encountered for the project restructuring, for the initiation of the agreed procurement processes and subsequent partial canc",
+   "project_id": "P152625"
+  },
+  "R1": {
+   "id": "R1",
+   "text": "Rating evidence for P152625: ISR 2016-07-25: Satisfactory; ISR 2017-01-12: Satisfactory; ISR 2017-07-11: Satisfactory; ISR 2018-07-06: Moderately Unsatisfactory; ISR 2018-12-26: Moderately Unsatisfactory; ISR 2019-04-26: Moderately Satisfactory; ISR 2019-10-22: Moderately Satisfactory; ISR 2020-04-20: Satisfactory; ISR 2020-10-28: Moderately Satisfactory; ISR 2021-04-29: Moderately Satisfactory; ISR 2021-11-08: Moderately Satisfactory; ISR 2022-03-30: Moderately Satisfactory; ISR 2022-03-31: Moderately Satisfactory; ICR 2022-09-29: Moderately Satisfactory; ICR 2023-11-07: Moderately Satisfactory; ICRR 2023-11-08: Moderately Unsatisfactory. Resolved: Moderately Unsatisfactory (from ICRR).",
+   "source": "gold.project_ratings_resolved",
+   "project_id": "P152625"
+  },
+  "L2": {
+   "id": "L2",
+   "text": "Introduction of c ontract terms against non- deliveries and poor deliveries . Non-delivery or poor-quality delivery of contractors may delay the project implementation and hinder achieving good results. Under the SHIP, the absence of penalties in the consultancy contracts resulted in several non -delivery or sub -optimal delivery cases. To hold the contractors duly accountable, the contracts should have relevant clauses which clearly specify penalties in the case of non-deliveries or poor-quality deliveries.",
+   "source": "ICR Kazakhstan - Social Health Insurance Project : Improving Access, Quality, Efficiency and Financial Protection Project",
+   "doc_id": "33911550",
+   "chunk_id": "33911550_0051",
+   "page": 39,
+   "url": "http://documents.worldbank.org/curated/en/099740110032237201/BOSIB092b576c70b208c8c0cbc7fc7f4963",
+   "quote": "Introduction of c ontract terms against non- deliveries and poor deliveries .",
+   "project_id": "P152625"
+  },
+  "R2": {
+   "id": "R2",
+   "text": "Rating evidence for P152625: ISR 2016-07-25: Satisfactory; ISR 2017-01-12: Satisfactory; ISR 2017-07-11: Satisfactory; ISR 2018-07-06: Moderately Unsatisfactory; ISR 2018-12-26: Moderately Unsatisfactory; ISR 2019-04-26: Moderately Satisfactory; ISR 2019-10-22: Moderately Satisfactory; ISR 2020-04-20: Satisfactory; ISR 2020-10-28: Moderately Satisfactory; ISR 2021-04-29: Moderately Satisfactory; ISR 2021-11-08: Moderately Satisfactory; ISR 2022-03-30: Moderately Satisfactory; ISR 2022-03-31: Moderately Satisfactory; ICR 2022-09-29: Moderately Satisfactory; ICR 2023-11-07: Moderately Satisfactory; ICRR 2023-11-08: Moderately Unsatisfactory. Resolved: Moderately Unsatisfactory (from ICRR).",
+   "source": "gold.project_ratings_resolved",
+   "project_id": "P152625"
+  },
+  "L3": {
+   "id": "L3",
+   "text": "The COVID -19 pandemic disrupted and delayed project activities. In 2020, lockdowns and quarantine requirements limited mobility, disrupting project activities and health services. VHC activities were cancelled, delaying incentive payments. Infrastructure delays were worsened by supply and labor disruptions. Travel restrictions affected supervision and contractor payments. In- person training was cancelled or rescheduled. Health facilities focused on COVID testing and treatment, hindering progress on health service indicators. The 2021 vaccination drive disrupted routine services, affecting childhood immunizations. Committees were slow to use RBF incentive payments, leading to downgraded DO and IP ratings to marginally unsatisfactory in late 2021. Intensive WB support helped revitalize implementation.",
+   "source": "ICR India - Nagaland Health Project",
+   "doc_id": "34440880",
+   "chunk_id": "34440880_0030",
+   "page": 19,
+   "url": "http://documents.worldbank.org/curated/en/099122324104527444/BOSIB13c92552706e1838f162fb7497c455",
+   "quote": "The COVID -19 pandemic disrupted and delayed project activities.",
+   "project_id": "P149340"
+  },
+  "R3": {
+   "id": "R3",
+   "text": "Rating evidence for P149340: ISR 2017-03-31: Satisfactory; ISR 2017-10-17: Satisfactory; ISR 2018-04-26: Moderately Satisfactory; ISR 2018-10-12: Moderately Satisfactory; ISR 2018-12-31: Moderately Satisfactory; ISR 2019-06-28: Moderately Satisfactory; ISR 2019-12-23: Moderately Satisfactory; ISR 2020-06-29: Moderately Satisfactory; ISR 2020-09-02: Moderately Satisfactory; ISR 2021-04-05: Moderately Satisfactory; ISR 2021-11-19: Moderately Unsatisfactory; ISR 2022-05-25: Satisfactory; ISR 2022-12-17: Satisfactory; ISR 2023-06-13: Satisfactory; ISR 2023-11-21: Satisfactory; ISR 2024-05-23: Satisfactory; ISR 2024-05-23: Satisfactory; ICR 2024-12-20: Satisfactory. Resolved: Satisfactory (from ICR).",
+   "source": "gold.project_ratings_resolved",
+   "project_id": "P149340"
+  },
+  "L4": {
+   "id": "L4",
+   "text": "The COVID-19 pandemic significantly diverted resources and attention, delaying some project activities and necessitating adjustments to Project priorities. Following the second restructuring, as the severity of the COVID -19 crisis deepened, the MoH (as the primary agency responsible) mobilized all its resources to respond to the pandemic. As a result, human resources previously supporting project implementati on were reassigned to urgent activities related to the COVID -19 response and project activities focusing on longer-term systems strengthening and capacity building were deprioritized. In addition, international procurement was also delayed due to unprecedented disruptions in global supply chains.",
+   "source": "ICR T\u00fcrkiye - Health System Strengthening and Support Project",
+   "doc_id": "34382469",
+   "chunk_id": "34382469_0043",
+   "page": 31,
+   "url": "http://documents.worldbank.org/curated/en/099082724130015386/BOSIB1f226705b03d19a38104c3887aa30e",
+   "quote": "The COVID-19 pandemic significantly diverted resources and attention, delaying some project activities and necessitating adjustments to Project priorities.",
+   "project_id": "P152799"
+  },
+  "R4": {
+   "id": "R4",
+   "text": "Rating evidence for P152799: ISR 2015-12-11: Satisfactory; ISR 2016-06-08: Satisfactory; ISR 2016-12-23: Moderately Satisfactory; ISR 2017-06-27: Moderately Satisfactory; ISR 2017-11-06: Moderately Unsatisfactory; ISR 2018-05-10: Moderately Unsatisfactory; ISR 2018-11-14: Moderately Unsatisfactory; ISR 2019-05-17: Moderately Unsatisfactory; ISR 2019-11-21: Moderately Satisfactory; ISR 2020-06-01: Moderately Satisfactory; ISR 2020-12-23: Moderately Satisfactory; ISR 2021-05-03: Moderately Unsatisfactory; ISR 2021-05-05: Moderately Unsatisfactory; ISR 2022-01-25: Moderately Satisfactory; ISR 2022-10-12: Moderately Unsatisfactory; ISR 2023-06-19: Moderately Satisfactory; ISR 2024-01-15: Satisfactory; ISR 2024-01-15: Satisfactory; ICR 2024-08-27: Moderately Satisfactory; ICRR 2025-02-26: Moderately Satisfactory. Resolved: Moderately Satisfactory (from ICRR).",
+   "source": "gold.project_ratings_resolved",
+   "project_id": "P152799"
+  },
+  "L5": {
+   "id": "L5",
+   "text": "At the Government\u2019s request, the WB activated the CERC and reallocated USS$14 million to expedite implementation of the Master Plan. The CERC implementation plan , a condition to trigger the component , included activities fully aligned with the Master Plan and procurement of (a) medical supplies and equipment for treatment of COVID-19 positive cases ( for example , artificial ventilators, mobile x -ray machines, and monitor equipment) and (b) supplies and equipment to enhance the testing capacity of the National Reference Laboratory. The procurement process was initiated in mid -April with total cost of US$9.36 million, and a contract with the United Nations Development Programme to purchase ventilators, ambulances , and mobile x-ray machines was signed in April 2020 . Three additional contracts were signed with other agencies for the procurement o f remaining equipment in June 2020. The allocation of funding to the CERC resulted in a financing gap for H-EQIP that was replenished under the AF/fourth restructuring.",
+   "source": "ICR Cambodia - Health Equity and Quality Improvement Project",
+   "doc_id": "34318883",
+   "chunk_id": "34318883_0045",
+   "page": 27,
+   "url": "http://documents.worldbank.org/curated/en/099051524140041686/BOSIB14187dde402c19fa3119209214909e",
+   "quote": "At the Government\u2019s request, the WB activated the CERC and reallocated USS$14 million to expedite implementation of the Master Plan.",
+   "project_id": "P157291"
+  },
+  "L6": {
+   "id": "L6",
+   "text": "Future similar health projects should consider the lessons learned from this project regarding timely disbursement of county allocations. Delays in funds flow was a major contributor in the suboptimal absorption of funds at the county level and delays in the THS-UCP implementation. These delays were further compounded by protracted procurement processes. For the most part throughout project implementation, for any given fiscal year, project funds were transferred to the counties between December and January in any given fiscal year, meaning th at there was less than a year for absorption of funds and implementation. Design of future health projects should be mindful of these potential delays and include necessary mitigation measures. .",
+   "source": "ICR Kenya - Transforming Health Systems for Universal Care Project",
+   "doc_id": "34327185",
+   "chunk_id": "34327185_0050",
+   "page": 37,
+   "url": "http://documents.worldbank.org/curated/en/099052924155042642/BOSIB19c73401b0391b63a13e454085c6d8",
+   "quote": "Future similar health projects should consider the lessons learned from this project regarding timely disbursement of county allocations.",
+   "project_id": "P152394"
+  },
+  "P1": {
+   "id": "P1",
+   "text": "A. General 28. Procurement for the P roject will be carried out in accordance with the World Bank\u2019s \u201cGuidelines: Procurement of Goods, Works, and Non -Consulting Services under IBRD Loans and IDA Credits & Grants by World Bank Borrowers ,\u201d dated January 2011; \u201cGuidelines: Selection and Employment of Consultants under IBRD Loans and IDA Credits & Grants by World Bank Borrowers,\u201d dated January 2011, revised on July 2014; and the provisions stipulated in the Legal Agreement. The general description s of various items under different expenditure categories are described below. For each contract to be financed by the loan, for the different procurement methods or consultant selection methods, the need for prequalification, estimated costs, prior review requirements, and time frame will be approved by the Bank with the No Objection to the Procurement Plan. The Procurement Plan will be updated at least annually or as required to reflect the actual project implementation needs and improvements in institutio nal capacity. 29. Procurement activities under this Project are aligned to the Country Partnership Strategy objective related to supporting open procurement . First, a ll invitations to bid, bidding documents, minutes of bid openings, requests for expressions o f interest , and the pertinent summary of the evaluation reports of bids and proposals of all goods, works, nonconsultant services, and consultants\u2019 services procured by the Borrower, through NMOH, will be published on the web page of Argentina\u2019s Office of National Procurement (Oficina Nacional de Contrataciones). Second, the Procurement Plan, including execution data, will be managed through SEPA ( the World Bank\u2019s Procurement Plan Execution System), which is publicly accessible once the plan has the Bank\u2019s No Objection. 30. Procurement of Works: Contracting major civil works under this Project is not foreseen and only minor works of refurbishment or to install laboratory equipment have been identified at this stage. Therefore, no International Competitive Bidding (ICB) processes are foreseen during implementation, although, if needed, procurement shall be done using the World Bank\u2019s Standard Bidding Documents (SBD s) for all ICB processes. Procurement of works under National Competitive Bidding (NCB) and Shopping procedures shall be done using simplified SBDs satisfactory to the Bank. Such SBD s will be included as annexes in the project\u2019s Operations Manual. 31. Procurement of Goods: Goods to be procured under this Project will include laboratory equipment, medical equipment, and health-related goods (i.e., medicines). Procurement of goods will be done using the World Bank\u2019s SBD for all ICB processes; procurement of goods under NCB and Shopping procedures shall be done using SBDs satisfactory to the Bank. Such SBDs will be included as annexes in the Project\u2019s Operations Manual. 32. Procurement of Non-Consulting Services: Non-consulting services for the Project will include logistics for",
+   "source": "PAD Argentina - Protecting Vulnerable People Against Non-communicable Diseases Project",
+   "doc_id": "24534324",
+   "page": 68,
+   "section": "PROCUREMENT",
+   "url": "http://documents.worldbank.org/curated/en/584531467993214019/Argentina-Protecting-Vulnerable-People-Against-Non-communicable-Diseases-Project",
+   "quote": "For each contract to be financed by the loan, for the different procurement methods or consultant selection methods, the need for prequalification, estimated costs, prior review requirements, and time frame will be approved by the Bank with the No Objection to the Procurement Plan."
+  },
+  "P2": {
+   "id": "P2",
+   "text": "76. Environmental and Social. At appraisal and during the restructurings, no safeguard policies were triggered, and the project had no Social or Environmental Safeguards risks . Therefore, the project had been assigned Environmental Assessment (EA) category \u2018C\u2019. 77. Financial Management . Financial management was Satisfactory throughout the project. The MoH was responsible for the financial management o f the project. The project fully complied with the financial management conditions of the Loan Agreement. Both interim unaudited financial reports and the annual audit reports were submitted in a timely manner and were found acceptable to the Bank. The Independent Auditors\u2019 Report has been completed and has been authorized by the project management and was received by the Bank in June 2022. 78. Procurement. The Bank team recommended to strengthen contract management and monitoring. For effective real-time monitoring and follow up of contract management plans for key high -value contracts under the project, the Bank team advised the PMU/MoH to establish and use a basic contract management tool. Contract management plans were also developed for ten high-value contracts. 79. Procurement performance was downgraded to Moderately Unsatisfactory at closure, as there were several accumulated/unresolved issues related with procurement and contract management , including legal cases on non-acceptance of several deliverables, and resulting in partial payments, contracts pending completion of the settlement process, non-payment for delivered goods under two contracts, and MoH\u2019s lack of timely and clear procurement decisions on the unallocated funds . Absence of decisions and/or delays in the decision -making process led to a partial cancellation of loan funds (US$ 34.40 million). Social Health Insurance Project: Improving Access, Quality, Efficiency and Financial Protection (P152625)",
+   "source": "ICR Kazakhstan - Social Health Insurance Project : Improving Access, Quality, Efficiency and Financial Protection Project",
+   "doc_id": "33911550",
+   "page": 34,
+   "section": "IV. BANK PERFORMANCE, COMPLIANCE ISSUES, AND RISK TO DEVELOPMENT OUTCOME > B. ENVIRONMENTAL, SOCIAL, AND FIDUCIARY COMPLIANCE",
+   "url": "http://documents.worldbank.org/curated/en/099740110032237201/BOSIB092b576c70b208c8c0cbc7fc7f4963",
+   "quote": "For effective real-time monitoring and follow up of contract management plans for key high -value contracts under the project, the Bank team advised the PMU/MoH to establish and use a basic contract management tool."
+  },
+  "P3": {
+   "id": "P3",
+   "text": "and Financial Protection (P152625) contracts. There was a significant delay in project restructuring. Specifically, while the scope of the restructuring was agreed at the MTR in June 2020, the formal request for project restructuring was received only one year after the MTR, in June 2021. Additionally, the MoH decided not to conduct the procurements which was a part of the restructuring (procurement of medical equipment for MCH and intensive care units ) and to cancel the contract for the laboratory equipment including new-generation genetic sequencer and automated systems for isolation of DNA, RNA, proteins , and cells) , and there were lengthy discussions on the potential use of the unallocated funds. These delays did not leave time for the related procurement and, finally resulted in a decision to cancel US$34.4 million from the loan. 66. Changes in the organizational structure of the MoH also caused delays in project implementation . While the project preparations started under one Ministry, the project continued under the leadership of another Ministry. On August 6, 2014, the Ministry of Healthcare was merged with the Ministry of Labor and Social Protection and became the Ministry of Healthcare and Social Development. Later in 2017, by decree of the President of the Republic of Kazakhstan dated January 25, 2017, the Ministry of Healthcare and Social Development was once again divided into two ministries. It is important to note that at the time of the merger of the two ministries, the project had a Minister with a social protection background rather than health which reduced the ministry\u2019s engagement towards the project, thus again causing delays. 67. Changes in the PMU team adversely affected project implementation. The presence of a highly competent PMU team and an influential project coordinator (who used to hold the MoH VM and Executive Secretary positions in the past) helped to have successful implementation until the mid-term review of the project where the national project coordinator of the project (head of PMU) has left his position and became the Chairman of the SHIF. The project once again lost momentum and an influential leader under whom the PMU worked effectively with continuous and strong dialogue with the MoH. The PMU technical team also dismantled after the PMU coordinator. With the loss of an effective team and team leader, interactions between the PMU and the Mo H became quite challenging. 68. Issue of time -based contracts. The decision made at the p roject outset on using time -based contracts for consulting services caused delays and poor performance for some activities. While the rationale and nature of the time- based contract would suit the type of consultancy needed for project activities (including mostly coaching the Government staff under the",
+   "source": "ICR Kazakhstan - Social Health Insurance Project : Improving Access, Quality, Efficiency and Financial Protection Project",
+   "doc_id": "33911550",
+   "page": 32,
+   "section": "III. KEY FACTORS THAT AFFECTED IMPLEMENTATION AND OUTCOME > B. KEY FACTORS DURING IMPLEMENTATION",
+   "url": "http://documents.worldbank.org/curated/en/099740110032237201/BOSIB092b576c70b208c8c0cbc7fc7f4963",
+   "quote": "These delays did not leave time for the related procurement and, finally resulted in a decision to cancel US$34.4 million from the loan."
+  },
+  "P4": {
+   "id": "P4",
+   "text": "82. Environmental Safeguards. The project triggered Operational Policy 4.01 due to the renovation and construction of laboratories, OHCs, specialized CoEs; generation of infectious medical waste; and OHS concerns, including environmental health. The project was assigned an environmental category of B. Each country prepared an infection control and waste management plan and an environmental and social management framework (ESMF). Although the PAD noted that all participating countries had health projects that the World Bank has supported and were therefore familiar with safeguards requirements, there was recognition that capacity building and institutional strengthening would be needed. To this end, the PIUs in Lesotho, Malawi, and Mozambique contracted safeguards specialists to conduct safeguards screening in accordance with the environmental and social management framework. Site-specific environmental and social management plans were prepared for laboratories, OHCs, and incinerators , albeit with delays. After training by Africa CDC and ECSA -HC, implementation of measures in the infection control and waste management plans improved. Overall, the project complied with the environmental saf eguard requirements, but there were recurrent difficulties and delays in compliance , with a Moderately Satisfactory rating during the entire period. 83. Social Safeguards. Each participating country prepared a grievance redress mechanism (GRM). During the initial years, project teams finalized client feedback surveys to capture beneficiary perspectives. During project implementation, all countries tracked patient satisfaction with TB services. Lesotho systematically incorporated social safeguards measures and strategies in all components, serving as an example of good practice. 48 Malawi also introduced innovations in the GRM mechanism. 49 All GRMs aimed to capture both complaints from patients and suppliers. Several complaints were noted during implementation, and all were successfully addressed, as noted in ISRs. The records of these complaints were well documented, and the World Bank team was kept well informed. No allegations of gender-based violence were raised. Overall, the social safeguards were rated Moderately Satisfactory during the implementation period. 84. Financial Management. The project\u2019s financial management arrangements were rated Satisfactor for the entire implementation period. The participating countries and regional institutions maintained appropriate financial management arrangements, including ensuring staffing and conducting audits. There were a few exceptions flagged in ISRs, such as internal control weaknesses, problems with management of per diems, and poor record management on staff allowances (Zambia), but the overall Satisfactory rating was maintained. 85. Procurement. Performance on procurement arrangements and compliance was hindered by difficulties and delays encountered by the countries and regional institutions. Overall, performance was rated M oderately Satisfactory throughout virtually the entire period, with a few exceptions. Key issues which impeded implementation were delays 48 Key actions taken included assessing health care workers to review the impact of COVID -19 on their wellbeing and developing strategies for using the hospital",
+   "source": "ICR Africa - Southern Africa Tuberculosis and Health Systems Support Project",
+   "doc_id": "34440912",
+   "page": 36,
+   "section": "IV. BANK PERFORMANCE, COMPLIANCE, AND RISK TO DEVELOPMENT OUTCOME > B. ENVIRONMENTAL, SOCIAL, AND FIDUCIARY COMPLIANCE",
+   "url": "http://documents.worldbank.org/curated/en/099122324145013013/BOSIB1cdaa142e0001a53a1edab8aba0a28",
+   "quote": "Performance on procurement arrangements and compliance was hindered by difficulties and delays encountered by the countries and regional institutions."
+  }
+ }
+}

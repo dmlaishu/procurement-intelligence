@@ -1,0 +1,216 @@
+{
+ "contracts": 14613,
+ "tenders": 10403,
+ "tenders_with_cycle": 1068,
+ "tenders_censored": 122,
+ "tenders_outcome_unknown": 442,
+ "contract_tender_link_rate": 0.669,
+ "contract_tender_links_exact": 9600,
+ "contract_tender_links_fuzzy": 182,
+ "contract_project_link_rate": 1.0,
+ "projects": 179,
+ "documents_parsed": 131,
+ "chunks": 6187,
+ "lessons": 150,
+ "lessons_quote_verified": 147,
+ "rating_evidence": 301,
+ "supplier_raw_names": 7835,
+ "supplier_name_keys": 7634,
+ "supplier_suppliers": 7540,
+ "supplier_fuzzy_merges": 94,
+ "supplier_fuzzy_examples": [
+  [
+   "abb batmed services",
+   "abb batmed service",
+   0.973
+  ],
+  [
+   "aci asia cardiovascular interventions",
+   "aci asia cardiovascular interventions sia",
+   0.949
+  ],
+  [
+   "africa biosystem",
+   "africa biosystems",
+   0.97
+  ],
+  [
+   "africa medical supplier ams",
+   "africa medical supplier",
+   0.92
+  ],
+  [
+   "afrique conception distribution",
+   "afrique conception distribution sau",
+   0.939
+  ],
+  [
+   "alihamza advertisers",
+   "alihamza advertiser",
+   0.974
+  ],
+  [
+   "al faisaliyah healthcare systems",
+   "al faisaliah healthcare systems",
+   0.984
+  ],
+  [
+   "al nabiou prestation",
+   "al nabiyou prestation",
+   0.976
+  ]
+ ],
+ "kg_edges": 115327,
+ "kg_edge_types": {
+  "CONTRACT AWARDED_TO SUPPLIER": 14608,
+  "CONTRACT FINANCED_BY PROJECT": 14613,
+  "CONTRACT OF_TYPE ITEM_TYPE": 14613,
+  "COUNTRY IN_REGION REGION": 87,
+  "DOCUMENT DESCRIBES PROJECT": 131,
+  "LESSON ABOUT PROJECT": 150,
+  "LESSON AT_STAGE STAGE": 167,
+  "LESSON FROM CHUNK": 150,
+  "NOTICE ANNOUNCES TENDER": 14445,
+  "PROJECT IN_SECTOR SECTOR": 7540,
+  "PROJECT LOCATED_IN COUNTRY": 179,
+  "PROJECT LOCATED_IN STATE": 2,
+  "STATE PART_OF COUNTRY": 2,
+  "SUPPLIER BASED_IN COUNTRY": 7540,
+  "TENDER FINANCED_BY PROJECT": 10403,
+  "TENDER HAS_CONTEXT GOVERNANCE": 10403,
+  "TENDER IN_STATE STATE": 109,
+  "TENDER OF_TYPE ITEM_TYPE": 10403,
+  "TENDER RESULTED_IN CONTRACT": 9782
+ },
+ "docs_linked_to_contract_projects": 131,
+ "section_kinds": [
+  [
+   "other",
+   3436
+  ],
+  [
+   "design",
+   1121
+  ],
+  [
+   "results",
+   524
+  ],
+  [
+   "annex",
+   484
+  ],
+  [
+   "procurement_fiduciary",
+   228
+  ],
+  [
+   "risk",
+   221
+  ],
+  [
+   "key_factors",
+   80
+  ],
+  [
+   "lessons",
+   52
+  ],
+  [
+   "ratings",
+   41
+  ]
+ ],
+ "states": 2,
+ "tender_state_coverage": 0.01,
+ "tender_state_from_agency": 0.006,
+ "item_types": [
+  [
+   "Other goods",
+   6257
+  ],
+  [
+   "Other medical equipment",
+   2184
+  ],
+  [
+   "IT, furniture and vehicles",
+   1711
+  ],
+  [
+   "Medicines and vaccines",
+   1220
+  ],
+  [
+   "PPE and medical consumables",
+   1021
+  ],
+  [
+   "Molecular diagnostics (PCR, GeneXpert)",
+   498
+  ],
+  [
+   "Reagents and cartridges",
+   428
+  ],
+  [
+   "General laboratory and diagnostic equipment",
+   427
+  ],
+  [
+   "Diagnostic imaging",
+   292
+  ],
+  [
+   "Biosafety, sterilization and cold chain",
+   226
+  ],
+  [
+   "Rapid tests and test kits",
+   172
+  ],
+  [
+   "Laboratory analyzers",
+   119
+  ],
+  [
+   "Microscopy",
+   34
+  ],
+  [
+   "Mobile and modular laboratories",
+   15
+  ],
+  [
+   "Laboratory information systems",
+   9
+  ]
+ ],
+ "contracts_in_domain": 2220,
+ "tenders_in_domain": 1947,
+ "domain_usd": 1375387988.4,
+ "countries": 91,
+ "countries_in_domain": 91,
+ "doc_types": [
+  [
+   "ISR",
+   36
+  ],
+  [
+   "PP",
+   36
+  ],
+  [
+   "PAD",
+   30
+  ],
+  [
+   "ICR",
+   17
+  ],
+  [
+   "ICRR",
+   12
+  ]
+ ]
+}

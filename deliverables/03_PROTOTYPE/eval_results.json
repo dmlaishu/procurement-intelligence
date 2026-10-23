@@ -1,0 +1,690 @@
+{
+ "build": {
+  "contracts": 14613,
+  "tenders": 10403,
+  "tenders_with_cycle": 1068,
+  "tenders_censored": 122,
+  "tenders_outcome_unknown": 442,
+  "contract_tender_link_rate": 0.669,
+  "contract_tender_links_exact": 9600,
+  "contract_tender_links_fuzzy": 182,
+  "contract_project_link_rate": 1.0,
+  "projects": 179,
+  "documents_parsed": 131,
+  "chunks": 6187,
+  "lessons": 150,
+  "lessons_quote_verified": 147,
+  "rating_evidence": 301,
+  "supplier_raw_names": 7835,
+  "supplier_name_keys": 7634,
+  "supplier_suppliers": 7540,
+  "supplier_fuzzy_merges": 94,
+  "supplier_fuzzy_examples": [
+   [
+    "abb batmed services",
+    "abb batmed service",
+    0.973
+   ],
+   [
+    "aci asia cardiovascular interventions",
+    "aci asia cardiovascular interventions sia",
+    0.949
+   ],
+   [
+    "africa biosystem",
+    "africa biosystems",
+    0.97
+   ],
+   [
+    "africa medical supplier ams",
+    "africa medical supplier",
+    0.92
+   ],
+   [
+    "afrique conception distribution",
+    "afrique conception distribution sau",
+    0.939
+   ],
+   [
+    "alihamza advertisers",
+    "alihamza advertiser",
+    0.974
+   ],
+   [
+    "al faisaliyah healthcare systems",
+    "al faisaliah healthcare systems",
+    0.984
+   ],
+   [
+    "al nabiou prestation",
+    "al nabiyou prestation",
+    0.976
+   ]
+  ],
+  "kg_edges": 115327,
+  "kg_edge_types": {
+   "CONTRACT AWARDED_TO SUPPLIER": 14608,
+   "CONTRACT FINANCED_BY PROJECT": 14613,
+   "CONTRACT OF_TYPE ITEM_TYPE": 14613,
+   "COUNTRY IN_REGION REGION": 87,
+   "DOCUMENT DESCRIBES PROJECT": 131,
+   "LESSON ABOUT PROJECT": 150,
+   "LESSON AT_STAGE STAGE": 167,
+   "LESSON FROM CHUNK": 150,
+   "NOTICE ANNOUNCES TENDER": 14445,
+   "PROJECT IN_SECTOR SECTOR": 7540,
+   "PROJECT LOCATED_IN COUNTRY": 179,
+   "PROJECT LOCATED_IN STATE": 2,
+   "STATE PART_OF COUNTRY": 2,
+   "SUPPLIER BASED_IN COUNTRY": 7540,
+   "TENDER FINANCED_BY PROJECT": 10403,
+   "TENDER HAS_CONTEXT GOVERNANCE": 10403,
+   "TENDER IN_STATE STATE": 109,
+   "TENDER OF_TYPE ITEM_TYPE": 10403,
+   "TENDER RESULTED_IN CONTRACT": 9782
+  },
+  "docs_linked_to_contract_projects": 131,
+  "section_kinds": [
+   [
+    "other",
+    3436
+   ],
+   [
+    "design",
+    1121
+   ],
+   [
+    "results",
+    524
+   ],
+   [
+    "annex",
+    484
+   ],
+   [
+    "procurement_fiduciary",
+    228
+   ],
+   [
+    "risk",
+    221
+   ],
+   [
+    "key_factors",
+    80
+   ],
+   [
+    "lessons",
+    52
+   ],
+   [
+    "ratings",
+    41
+   ]
+  ],
+  "states": 2,
+  "tender_state_coverage": 0.01,
+  "tender_state_from_agency": 0.006,
+  "item_types": [
+   [
+    "Other goods",
+    6257
+   ],
+   [
+    "Other medical equipment",
+    2184
+   ],
+   [
+    "IT, furniture and vehicles",
+    1711
+   ],
+   [
+    "Medicines and vaccines",
+    1220
+   ],
+   [
+    "PPE and medical consumables",
+    1021
+   ],
+   [
+    "Molecular diagnostics (PCR, GeneXpert)",
+    498
+   ],
+   [
+    "Reagents and cartridges",
+    428
+   ],
+   [
+    "General laboratory and diagnostic equipment",
+    427
+   ],
+   [
+    "Diagnostic imaging",
+    292
+   ],
+   [
+    "Biosafety, sterilization and cold chain",
+    226
+   ],
+   [
+    "Rapid tests and test kits",
+    172
+   ],
+   [
+    "Laboratory analyzers",
+    119
+   ],
+   [
+    "Microscopy",
+    34
+   ],
+   [
+    "Mobile and modular laboratories",
+    15
+   ],
+   [
+    "Laboratory information systems",
+    9
+   ]
+  ],
+  "contracts_in_domain": 2220,
+  "tenders_in_domain": 1947,
+  "domain_usd": 1375387988.4,
+  "countries": 91,
+  "countries_in_domain": 91,
+  "doc_types": [
+   [
+    "ISR",
+    36
+   ],
+   [
+    "PP",
+    36
+   ],
+   [
+    "PAD",
+    30
+   ],
+   [
+    "ICR",
+    17
+   ],
+   [
+    "ICRR",
+    12
+   ]
+  ]
+ },
+ "models": {
+  "split_date": "2024-01-01",
+  "n_train_tenders": 1163,
+  "n_test_tenders": 469,
+  "cycle": {
+   "n_train": 759,
+   "n_test": 259,
+   "mae_days_model_p50": 46.9,
+   "mae_days_km_benchmark": 56.3,
+   "mae_days_global_median": 73.0,
+   "pinball50_model": 23.4,
+   "pinball50_benchmark": 28.1,
+   "p80_coverage": 0.761,
+   "median_actual_days": 79.0,
+   "within_30_days_share": 0.456,
+   "top_features": [
+    [
+     "bid_window_days",
+     0.0985
+    ],
+    [
+     "method_code",
+     0.0454
+    ],
+    [
+     "review_type",
+     0.0117
+    ],
+    [
+     "country_iso3",
+     0.0095
+    ],
+    [
+     "env_category",
+     0.006
+    ],
+    [
+     "major_sector",
+     0.0055
+    ],
+    [
+     "wgi_control_of_corruption",
+     0.0032
+    ],
+    [
+     "desc_words",
+     0.0031
+    ],
+    [
+     "wgi_regulatory_quality",
+     0.0026
+    ],
+    [
+     "wgi_gov_effectiveness",
+     0.0023
+    ]
+   ]
+  },
+  "single_bid": {
+   "n_train": 772,
+   "n_test": 295,
+   "base_rate_train": 0.417,
+   "base_rate_test": 0.281,
+   "auc": 0.668,
+   "brier": 0.2353,
+   "brier_base_rate": 0.2206,
+   "top_decile_rate": 0.724,
+   "lift_top_decile": 2.57
+  },
+  "rebid": {
+   "n_train": 1163,
+   "n_test": 469,
+   "base_rate_train": 0.005,
+   "base_rate_test": 0.0,
+   "status": "skipped: not enough positives"
+  },
+  "amendment": {
+   "n_train": 773,
+   "n_test": 295,
+   "base_rate_train": 0.391,
+   "base_rate_test": 0.447,
+   "auc": 0.545,
+   "brier": 0.3445,
+   "brier_base_rate": 0.2505,
+   "top_decile_rate": 0.448,
+   "lift_top_decile": 1.0
+  }
+ },
+ "lesson_extraction": {
+  "extracted": 150,
+  "quote_verified": 147,
+  "verification_rate": 0.98,
+  "procurement_related": 68
+ },
+ "conflicts": {
+  "projects_with_rating_evidence": 34,
+  "with_conflict": 8,
+  "examples": [
+   {
+    "project_id": "P129539",
+    "resolved_rating": "Satisfactory",
+    "resolved_from": "ICRR",
+    "worst_isr": "Moderately Unsatisfactory",
+    "trajectory": "[[\"ISR\", \"2014-05-25\", \"Satisfactory\"], [\"ISR\", \"2014-11-22\", \"Satisfactory\"], [\"ISR\", \"2015-05-05\", \"Moderately Unsatisfactory\"], [\"ISR\", \"2015-10-08\", \"Moderately Satisfactory\"], [\"ISR\", \"2016-04-04\", \"Moderately Satisfactory\"], [\"ISR\", \"2016-09-15\", \"Moderately Unsatisfactory\"], [\"ISR\", \"2017-03-06\", \"Moderately Satisfactory\"], [\"ISR\", \"2017-09-07\", \"Moderately Satisfactory\"], [\"ISR\", \"2018-03-19\", \"Moderately Satisfactory\"], [\"ISR\", \"2018-09-18\", \"Moderately Satisfactory\"], [\"ISR\", \"2019-03-26\", \"Moderately Satisfactory\"], [\"ISR\", \"2019-09-26\", \"Moderately Satisfactory\"], [\"ISR\", \"2020-04-10\", \"Satisfactory\"], [\"ISR\", \"2020-10-12\", \"Satisfactory\"], [\"ISR\", \"2021-04-26\", \"Satisfactory\"], [\"ISR\", \"2021-11-08\", \"Satisfactory\"], [\"ISR\", \"2022-05-03\", \"Moderately Satisfactory\"], [\"ISR\", \"2022-11-11\", \"Moderately Satisfactory\"], [\"ISR\", \"2022-11-11\", \"Moderately Satisfactory\"], [\"ICR\", \"2023-07-25\", \"Satisfactory\"], [\"ICR\", \"2024-01-24\", \"Satisfactory\"], [\"ICRR\", \"2024-01-25\", \"Satisfactory\"]]"
+   },
+   {
+    "project_id": "P131825",
+    "resolved_rating": "Moderately Satisfactory",
+    "resolved_from": "ICRR",
+    "worst_isr": "Unsatisfactory",
+    "trajectory": "[[\"ISR\", \"2014-08-09\", \"Satisfactory\"], [\"ISR\", \"2014-10-25\", \"Satisfactory\"], [\"ISR\", \"2015-03-09\", \"Satisfactory\"], [\"ISR\", \"2016-12-15\", \"Moderately Unsatisfactory\"], [\"ISR\", \"2017-04-12\", \"Moderately Unsatisfactory\"], [\"ISR\", \"2017-09-14\", \"Unsatisfactory\"], [\"ISR\", \"2018-03-19\", \"Unsatisfactory\"], [\"ISR\", \"2018-08-16\", \"Moderately Unsatisfactory\"], [\"ISR\", \"2019-02-10\", \"Moderately Unsatisfactory\"], [\"ISR\", \"2019-06-30\", \"Moderately Satisfactory\"], [\"ISR\", \"2019-12-28\", \"Moderately Satisfactory\"], [\"ISR\", \"2020-06-30\", \"Moderately Satisfactory\"], [\"ISR\", \"2020-12-16\", \"Satisfactory\"], [\"ISR\", \"2021-06-08\", \"Satisfactory\"], [\"ISR\", \"2021-12-14\", \"Satisfactory\"], [\"ISR\", \"2021-12-14\", \"Satisfactory\"], [\"ICR\", \"2022-06-15\", \"Moderately Satisfactory\"], [\"ICR\", \"2022-10-18\", \"Moderately Satisfactory\"], [\"ICRR\", \"2022-10-19\", \"Moderately Satisfactory\"]]"
+   },
+   {
+    "project_id": "P144140",
+    "resolved_rating": "Moderately Satisfactory",
+    "resolved_from": "ICR",
+    "worst_isr": "Moderately Unsatisfactory",
+    "trajectory": "[[\"ISR\", \"2014-06-10\", \"Moderately Unsatisfactory\"], [\"ISR\", \"2014-12-09\", \"Moderately Satisfactory\"], [\"ISR\", \"2015-06-11\", \"Moderately Satisfactory\"], [\"ISR\", \"2016-02-09\", \"Moderately Satisfactory\"], [\"ISR\", \"2016-08-25\", \"Moderately Satisfactory\"], [\"ISR\", \"2017-04-30\", \"Moderately Unsatisfactory\"], [\"ISR\", \"2017-12-08\", \"Moderately Unsatisfactory\"], [\"ISR\", \"2018-02-24\", \"Moderately Satisfactory\"], [\"ISR\", \"2018-09-21\", \"Moderately Satisfactory\"], [\"ISR\", \"2019-03-19\", \"Satisfactory\"], [\"ISR\", \"2019-10-29\", \"Satisfactory\"], [\"ISR\", \"2020-05-04\", \"Satisfactory\"], [\"ISR\", \"2020-10-23\", \"Satisfactory\"], [\"ISR\", \"2021-04-02\", \"Satisfactory\"], [\"ISR\", \"2021-10-07\", \"Satisfactory\"], [\"ISR\", \"2022-04-26\", \"Satisfactory\"], [\"ISR\", \"2022-12-07\", \"Satisfactory\"], [\"ISR\", \"2023-05-01\", \"Satisfactory\"], [\"ISR\", \"2024-02-02\", \"Moderately Satisfactory\"], [\"ISR\", \"2024-02-02\", \"Moderately Satisfactory\"], [\"ICR\", \"2024-12-23\", \"Moderately Satisfactory\"]]"
+   }
+  ]
+ },
+ "retrieval": {
+  "topic": {
+   "delay": {
+    "precision@5": 0.8,
+    "precision@10": 0.7,
+    "recall@20": 0.65,
+    "n_relevant": 61,
+    "random_precision": 0.41
+   },
+   "capacity": {
+    "precision@5": 1.0,
+    "precision@10": 0.9,
+    "recall@20": 0.85,
+    "n_relevant": 80,
+    "random_precision": 0.54
+   },
+   "fiduciary": {
+    "precision@5": 1.0,
+    "precision@10": 0.7,
+    "recall@20": 0.83,
+    "n_relevant": 12,
+    "random_precision": 0.08
+   },
+   "specification": {
+    "precision@5": 0.2,
+    "precision@10": 0.2,
+    "recall@20": 0.5,
+    "n_relevant": 4,
+    "random_precision": 0.03
+   }
+  },
+  "topic_macro": {
+   "precision@5": 0.75,
+   "precision@10": 0.625,
+   "recall@20": 0.708,
+   "random_precision": 0.265
+  },
+  "project_link": {
+   "queries": 16,
+   "hit@10": 0.875,
+   "mrr@10": 0.584,
+   "n_projects_with_docs": 36
+  }
+ },
+ "guardrails": {
+  "briefs": 25,
+  "statements_kept": 360,
+  "statements_dropped_by_verifier": 0,
+  "kept_with_citation_share": 0.994,
+  "abstentions": 2,
+  "injected_hallucinations": 125,
+  "caught": 124,
+  "catch_rate": 0.992,
+  "p80_coverage_on_briefs": 0.64,
+  "mae_days_on_briefs": 51.2,
+  "examples": [
+   {
+    "package": "Furniture and Breast Feeding Corners.",
+    "statements": 12,
+    "dropped": [],
+    "injected_caught": [
+     {
+      "section": "Market approach",
+      "text": "Among the 53 most similar past Goods tenders, the most common method was Request for Bids (7 of 12); median number of bidders 3.",
+      "problems": [
+       "unsupported numbers [53.0]"
+      ],
+      "action": "dropped"
+     },
+     {
+      "section": "Market approach",
+      "text": "\u201cContractors consistently delivered ahead of schedule across all lots.\u201d",
+      "problems": [
+       "quote not in source: Contractors consistently delivered ahead of schedule across "
+      ],
+      "action": "dropped"
+     },
+     {
+      "section": "Market approach",
+      "text": "Framework agreements always reduce procurement time by half.",
+      "problems": [
+       "no citation"
+      ],
+      "action": "dropped"
+     },
+     {
+      "section": "Market approach",
+      "text": "Among the 12 most similar past Goods tenders, the most common method was Request for Bids (7 of 12); median number of bidders 3.",
+      "problems": [
+       "unknown citation ['L999']",
+       "unsupported numbers [12.0]"
+      ],
+      "action": "dropped"
+     },
+     {
+      "section": "Lessons from completed projects",
+      "text": "\u201cIntroduction of c ontract terms against non- deliveries and poor deliveries .\u201d (ICR, P152625, p. 80) - note: this project's ratings were mixed across sources, and the final ICRR rating is Moderately Unsatisfactory, so the lesson comes from a project that underperformed.",
+      "problems": [
+       "page 80 not in cited evidence"
+      ],
+      "action": "dropped"
+     }
+    ]
+   },
+   {
+    "package": "Acquisition \u00e9quipements et mat\u00e9riels pour laboratoire",
+    "statements": 13,
+    "dropped": [],
+    "injected_caught": [
+     {
+      "section": "Market approach",
+      "text": "\u201cContractors consistently delivered ahead of schedule across all lots.\u201d",
+      "problems": [
+       "quote not in source: Contractors consistently delivered ahead of schedule across "
+      ],
+      "action": "dropped"
+     },
+     {
+      "section": "Market approach",
+      "text": "Framework agreements always reduce procurement time by half.",
+      "problems": [
+       "no citation"
+      ],
+      "action": "dropped"
+     },
+     {
+      "section": "Market approach",
+      "text": "Among the 12 most similar past Goods tenders, the most common method was Request for Bids (8 of 12); median number of bidders 1.5.",
+      "problems": [
+       "unknown citation ['L999']",
+       "unsupported numbers [1.5, 12.0]"
+      ],
+      "action": "dropped"
+     },
+     {
+      "section": "Lessons from completed projects",
+      "text": "\u201cFor projects implemented at the devolved level, a dedicated project team at the CoG should be maintained for the duration of project implementation to support and monitor county implementation and as much as possible limit activities that have been shown to negatively impact absorption (e.g., procur\u201d (ICR, P152394, p. 77)",
+      "problems": [
+       "page 77 not in cited evidence"
+      ],
+      "action": "dropped"
+     }
+    ]
+   }
+  ]
+ },
+ "chatbot": {
+  "questions": 16,
+  "route_accuracy": 1.0,
+  "exact_checks": 6,
+  "exact_accuracy": 1.0,
+  "answered_share": 1.0,
+  "statements": 95,
+  "cited_share": 1.0,
+  "dropped_by_verifier": 0,
+  "seconds_per_question": 0.06,
+  "rows": [
+   {
+    "question": "Which supplier won the cheapest GeneXpert or PCR contract?",
+    "expected_route": "rank_low",
+    "route": "rank_low",
+    "route_ok": true,
+    "exact_ok": true,
+    "statements": 6,
+    "cited": 6,
+    "abstentions": 0,
+    "dropped": 0,
+    "answered": true
+   },
+   {
+    "question": "What is the largest diagnostic imaging contract?",
+    "expected_route": "rank_high",
+    "route": "rank_high",
+    "route_ok": true,
+    "exact_ok": true,
+    "statements": 6,
+    "cited": 6,
+    "abstentions": 0,
+    "dropped": 0,
+    "answered": true
+   },
+   {
+    "question": "What are the lowest value laboratory reagent contracts in Nigeria?",
+    "expected_route": "rank_low",
+    "route": "rank_low",
+    "route_ok": true,
+    "exact_ok": true,
+    "statements": 3,
+    "cited": 3,
+    "abstentions": 0,
+    "dropped": 0,
+    "answered": true
+   },
+   {
+    "question": "Who are the top suppliers of laboratory analyzers?",
+    "expected_route": "suppliers",
+    "route": "suppliers",
+    "route_ok": true,
+    "exact_ok": true,
+    "statements": 7,
+    "cited": 7,
+    "abstentions": 0,
+    "dropped": 0,
+    "answered": true
+   },
+   {
+    "question": "Which vendors supplied microscopes since 2019?",
+    "expected_route": "suppliers",
+    "route": "suppliers",
+    "route_ok": true,
+    "exact_ok": null,
+    "statements": 7,
+    "cited": 7,
+    "abstentions": 0,
+    "dropped": 0,
+    "answered": true
+   },
+   {
+    "question": "How much was spent on lab and diagnostic equipment by country?",
+    "expected_route": "aggregate",
+    "route": "aggregate",
+    "route_ok": true,
+    "exact_ok": true,
+    "statements": 7,
+    "cited": 7,
+    "abstentions": 0,
+    "dropped": 0,
+    "answered": true
+   },
+   {
+    "question": "What is the total value of rapid test kit contracts?",
+    "expected_route": "aggregate",
+    "route": "aggregate",
+    "route_ok": true,
+    "exact_ok": true,
+    "statements": 2,
+    "cited": 2,
+    "abstentions": 0,
+    "dropped": 0,
+    "answered": true
+   },
+   {
+    "question": "How long does it take to award a PCR tender?",
+    "expected_route": "timeline",
+    "route": "timeline",
+    "route_ok": true,
+    "exact_ok": null,
+    "statements": 2,
+    "cited": 2,
+    "abstentions": 0,
+    "dropped": 0,
+    "answered": true
+   },
+   {
+    "question": "How long do laboratory analyzer tenders take from invitation to award?",
+    "expected_route": "timeline",
+    "route": "timeline",
+    "route_ok": true,
+    "exact_ok": null,
+    "statements": 2,
+    "cited": 2,
+    "abstentions": 0,
+    "dropped": 0,
+    "answered": true
+   },
+   {
+    "question": "Why were laboratory equipment deliveries delayed?",
+    "expected_route": "lessons",
+    "route": "lessons",
+    "route_ok": true,
+    "exact_ok": null,
+    "statements": 8,
+    "cited": 8,
+    "abstentions": 0,
+    "dropped": 0,
+    "answered": true
+   },
+   {
+    "question": "What lessons did projects learn about maintaining diagnostic equipment?",
+    "expected_route": "lessons",
+    "route": "lessons",
+    "route_ok": true,
+    "exact_ok": null,
+    "statements": 8,
+    "cited": 8,
+    "abstentions": 0,
+    "dropped": 0,
+    "answered": true
+   },
+   {
+    "question": "What risks should I plan for when procuring X-ray machines?",
+    "expected_route": "lessons",
+    "route": "lessons",
+    "route_ok": true,
+    "exact_ok": null,
+    "statements": 9,
+    "cited": 9,
+    "abstentions": 0,
+    "dropped": 0,
+    "answered": true
+   },
+   {
+    "question": "Show the entity relationship diagram",
+    "expected_route": "graph",
+    "route": "graph",
+    "route_ok": true,
+    "exact_ok": null,
+    "statements": 9,
+    "cited": 9,
+    "abstentions": 0,
+    "dropped": 0,
+    "answered": true
+   },
+   {
+    "question": "How is Kenya connected to its lab equipment suppliers?",
+    "expected_route": "graph",
+    "route": "graph",
+    "route_ok": true,
+    "exact_ok": null,
+    "statements": 4,
+    "cited": 4,
+    "abstentions": 0,
+    "dropped": 0,
+    "answered": true
+   },
+   {
+    "question": "Tell me about project P173836",
+    "expected_route": "project",
+    "route": "project",
+    "route_ok": true,
+    "exact_ok": null,
+    "statements": 10,
+    "cited": 10,
+    "abstentions": 0,
+    "dropped": 0,
+    "answered": true
+   },
+   {
+    "question": "What did UNITED NATIONS OFFICE PROJECT SERVICES (UNOPS) supply?",
+    "expected_route": "supplier",
+    "route": "supplier",
+    "route_ok": true,
+    "exact_ok": null,
+    "statements": 5,
+    "cited": 5,
+    "abstentions": 0,
+    "dropped": 0,
+    "answered": true
+   }
+  ]
+ }
+}
