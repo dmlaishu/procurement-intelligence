@@ -1,0 +1,136 @@
+<!doctype html><html><head><meta charset='utf-8'><title>Prototype</title><style>body{font-family:Segoe UI,Arial,sans-serif;max-width:980px;margin:32px auto;padding:0 16px;line-height:1.55;color:#1f2328}
+h1{border-bottom:2px solid #d0d7de;padding-bottom:6px}h2{border-bottom:1px solid #d0d7de;padding-bottom:4px;margin-top:36px}
+table{border-collapse:collapse;margin:12px 0;width:100%}th,td{border:1px solid #d0d7de;padding:6px 10px;vertical-align:top;text-align:left}
+th{background:#f6f8fa}code{background:#f6f8fa;padding:1px 4px;border-radius:4px;font-size:90%}
+pre{background:#f6f8fa;padding:12px;border-radius:6px;overflow-x:auto;font-size:72%;line-height:1.25}pre code{background:none;padding:0}
+blockquote{border-left:4px solid #0969da;margin:12px 0;padding:4px 14px;background:#f0f6ff}
+@media print{body{max-width:none;margin:0}h2{page-break-after:avoid}pre,table{page-break-inside:avoid}pre{font-size:62%}}</style></head><body><h1>Deliverable 3: Prototype</h1>
+<p>A working, end-to-end prototype of the Procurement Intelligence Platform for <strong>medical laboratory and diagnostic
+equipment in World Bank-financed health projects</strong>, on real public World Bank data from 91 countries.
+It includes a <strong>chatbot</strong> that answers questions with cited evidence.</p>
+<h2>What is in this folder</h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>prototype_report.html</code></td>
+<td>results page: data coverage, knowledge graph, models, retrieval, guardrails, an example brief</td>
+</tr>
+<tr>
+<td><code>demo_brief.md</code></td>
+<td>the copilot's brief for a new PCR / GeneXpert package (every line cited)</td>
+</tr>
+<tr>
+<td><code>eval_results.json</code></td>
+<td>every measured number used in the report and approach, including the chatbot evaluation</td>
+</tr>
+<tr>
+<td><code>prototype_source.zip</code></td>
+<td>source code: pipeline and chatbot (<code>procurement_demo/</code>), Databricks notebooks 20-29, tests, build scripts</td>
+</tr>
+</tbody>
+</table>
+<h2>The chatbot</h2>
+<pre><code class="language-bash">python -m streamlit run procurement_demo/app.py
+</code></pre>
+<p>Ask in plain English, for example:</p>
+<ul>
+<li><em>Which supplier won the cheapest GeneXpert or PCR contract?</em> → exact ranking over contract awards</li>
+<li><em>Who are the top suppliers of diagnostic imaging equipment in Sub-Saharan Africa?</em> → supplier market shares</li>
+<li><em>How much was spent on laboratory equipment by country?</em> → spend breakdown</li>
+<li><em>How long does it take to award a laboratory analyzer tender?</em> → censoring-aware benchmarks</li>
+<li><em>What problems did projects have with laboratory equipment maintenance?</em> → lessons and report passages, with pages</li>
+<li><em>Show the entity relationship diagram</em> / <em>How is Kenya connected to its lab equipment suppliers?</em> → graph diagrams</li>
+</ul>
+<p>Each answer shows its evidence (contract rows, benchmarks, report pages with links), the result table, and any
+sentence the verifier removed. On 16 labelled questions it chose the right tool for
+100% and matched an independent query in 6 of
+6 exactness checks. Optional: <code>pip install anthropic</code>, set credentials and
+<code>PROC_CHAT_LLM=1</code> to have an LLM rephrase verified answers. Its text is discarded if it adds any number.</p>
+<h2>What the pipeline does</h2>
+<pre><code>World Bank APIs ──▶ ingest.py ──▶ build.py ──────────────────────▶ models.py ──────▶ copilot.py / chatbot.py
+ health Goods awards,  contract-   equipment taxonomy, entity        KM benchmarks      retrieval.py (BM25 +
+ notices, projects,    first       resolution, Gold tables, graph,   by equipment type, filters + RRF)
+ PDFs, CPIA / WGI      selection   PDF chunking, lessons, ratings    GBM P50/P80, risk   └─▶ verifier ─▶ answer
+                                                                                         app.py (Streamlit UI)
+                                         evaluate.py ──▶ eval_results.json ──▶ report.py ──▶ prototype_report.html
+</code></pre>
+<h2>How to run it</h2>
+<p>Needs Python 3.11+. The first run downloads about 150 MB and parses about 130 PDFs (20-30 minutes); later runs reuse
+the cache.</p>
+<ol>
+<li>Unzip <code>prototype_source.zip</code> into an empty folder and open a terminal there.</li>
+<li>Install the packages:</li>
+</ol>
+<p><code>bash
+   pip install -r requirements_procurement.txt</code></p>
+<ol>
+<li>Check the shared library (it should end with <code>ALL PASSED</code>):</li>
+</ol>
+<p><code>bash
+   python src/test_proc_lib.py</code></p>
+<ol>
+<li>Build everything:</li>
+</ol>
+<p><code>bash
+   python -m procurement_demo.run_all</code></p>
+<ol>
+<li>Start the chatbot:</li>
+</ol>
+<p><code>bash
+   python -m streamlit run procurement_demo/app.py</code></p>
+<p><strong>Point it at another domain:</strong> the scope is one configuration block in <code>procurement_demo/common.py</code>. Set
+<code>PROC_SCOPE=india_roads</code> (PowerShell: <code>$env:PROC_SCOPE = "india_roads"</code>) to run the same pipeline on Indian rural
+and inter-urban roads, or <code>three_country</code> for Kenya, Nigeria and Bangladesh across all sectors.</p>
+<h2>Two implementations, one core</h2>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Local prototype (run and verified)</th>
+<th>Databricks production path (written, not yet run)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ingestion</td>
+<td><code>procurement_demo/ingest.py</code></td>
+<td><code>notebooks/21_ingest_procurement</code>, <code>22_ingest_project_docs</code></td>
+</tr>
+<tr>
+<td>Gold tables, entity resolution, graph</td>
+<td><code>build.py</code></td>
+<td><code>23_proc_silver_gold</code></td>
+</tr>
+<tr>
+<td>Documents, lessons, ratings</td>
+<td><code>build.py</code> (rules + quote check)</td>
+<td><code>24_proc_docs_lessons</code> (LLM + quote check)</td>
+</tr>
+<tr>
+<td>Vector index</td>
+<td><code>retrieval.py</code> (BM25 + filters + RRF)</td>
+<td><code>25_proc_vector_index</code> (hybrid Vector Search)</td>
+</tr>
+<tr>
+<td>Models</td>
+<td><code>models.py</code></td>
+<td><code>26_proc_risk_models</code> (MLflow, Unity Catalog registry)</td>
+</tr>
+<tr>
+<td>Copilot and chatbot</td>
+<td><code>copilot.py</code>, <code>chatbot.py</code>, <code>app.py</code></td>
+<td><code>27_proc_tools</code>, <code>28_proc_copilot</code></td>
+</tr>
+<tr>
+<td>Monitoring / learning loop</td>
+<td><code>evaluate.py</code></td>
+<td><code>29_proc_monitor_job</code> (Lakeflow Job, retrain gate)</td>
+</tr>
+</tbody>
+</table></body></html>

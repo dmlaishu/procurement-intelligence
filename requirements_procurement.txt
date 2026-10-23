@@ -1,0 +1,9 @@
+pandas
+pyarrow
+scikit-learn
+pypdf
+requests
+joblib
+markdown
+streamlit
+# optional: anthropic (LLM wording)

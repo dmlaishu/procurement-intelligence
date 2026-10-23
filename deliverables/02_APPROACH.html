@@ -1,0 +1,1342 @@
+<!doctype html><html><head><meta charset='utf-8'><title>Procurement Intelligence Platform: Technical Proposal</title><style>body{font-family:Segoe UI,Arial,sans-serif;max-width:980px;margin:32px auto;padding:0 16px;line-height:1.55;color:#1f2328}
+h1{border-bottom:2px solid #d0d7de;padding-bottom:6px}h2{border-bottom:1px solid #d0d7de;padding-bottom:4px;margin-top:36px}
+table{border-collapse:collapse;margin:12px 0;width:100%}th,td{border:1px solid #d0d7de;padding:6px 10px;vertical-align:top;text-align:left}
+th{background:#f6f8fa}code{background:#f6f8fa;padding:1px 4px;border-radius:4px;font-size:90%}
+pre{background:#f6f8fa;padding:12px;border-radius:6px;overflow-x:auto;font-size:72%;line-height:1.25}pre code{background:none;padding:0}
+blockquote{border-left:4px solid #0969da;margin:12px 0;padding:4px 14px;background:#f0f6ff}
+@media print{body{max-width:none;margin:0}h2{page-break-after:avoid}pre,table{page-break-inside:avoid}pre{font-size:62%}}</style></head><body><h1>Procurement Intelligence Platform: Technical Proposal</h1>
+<p><strong>Evidence-backed decision support for buying medical laboratory and diagnostic equipment in World Bank-financed
+health projects, built on public World Bank data</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Domain</td>
+<td>Medical laboratory and diagnostic equipment (PCR and GeneXpert systems, imaging, analyzers, reagents and cartridges, rapid tests, microscopy, biosafety and cold chain, lab IT) in World Bank-financed health projects, all countries</td>
+</tr>
+<tr>
+<td>Scope</td>
+<td>Modules 1-4 of the assessment: ingestion and knowledge representation, predictive and retrieval engines, guardrails, continuous learning and rollout</td>
+</tr>
+<tr>
+<td>Platform</td>
+<td>Databricks lakehouse (Delta, Unity Catalog, Vector Search, MLflow, Model Serving, Lakeflow Jobs), extending an existing World Bank assistant built on the same platform</td>
+</tr>
+<tr>
+<td>Evidence</td>
+<td>A working prototype, including a chatbot, on real public data: 2,220 laboratory and diagnostic equipment contracts in 91 countries. The results quoted in this document are measured, not projected (§7)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>0. Executive summary</h2>
+<p>Procurement teams plan each new package with three kinds of knowledge that are kept apart: <strong>what happened</strong> (contract
+awards, notices, disbursements), <strong>how it was done</strong> (procurement plans, bidding documents, supervision reports) and
+<strong>why it worked or failed</strong> (completion reports, IEG evaluations). The platform joins the three around a shared spine
+of identifiers (Project ID, bid reference, supplier, equipment type, country-year).</p>
+<p><strong>Why laboratory and diagnostic equipment.</strong> It is one of the hardest things health projects buy. Specifications are
+technical and easy to write around one brand. Analyzers and PCR platforms are often <em>closed systems</em>, so the
+equipment choice locks in years of reagent and cartridge purchases. Value depends on installation, training,
+maintenance and a cold chain, not just delivery. COVID-19 then turned it into an emergency market. The Bank's public
+data already holds thousands of these contracts across more than 80 countries, plus the appraisal, supervision and
+completion reports that explain what went wrong. But nothing connects a GeneXpert contract in one country to the
+lesson about cartridge stock-outs in another.</p>
+<p>The platform answers one practical question for any new package, through a brief or a chat:</p>
+<blockquote>
+<p><em>"Given everything the Bank has seen on comparable equipment, who supplies it, what does it cost, how long will the
+tender take, what could go wrong, and what did past projects learn? Show me the evidence."</em></p>
+</blockquote>
+<p><strong>Design in five points</strong></p>
+<ol>
+<li><strong>Medallion lakehouse with a knowledge graph on top.</strong> Raw API records and PDFs land unchanged in Bronze. Typed,
+   de-duplicated tables go to Silver. Gold holds resolved entities (tender, contract, supplier, project, document,
+   lesson) plus an <strong>edge table</strong> that records how each link was made (<code>exact_key</code>, <code>fuzzy_desc</code>, <code>temporal</code>,
+   <code>llm_extracted</code>) and with what confidence.</li>
+<li><strong>Structure-aware document processing.</strong> 100+ page reports are split along their own heading hierarchy. Running
+   headers are removed, tables and annexes are typed separately, and the data sheets (ISR rating history, key dates)
+   are parsed deterministically. Retrieval can therefore target <em>Lessons</em> or <em>Key factors</em> sections and cite the
+   exact page.</li>
+<li><strong>Censoring-aware timeline benchmarks plus gradient-boosted risk models.</strong> Tenders still open are kept as censored
+   observations (Kaplan-Meier) rather than dropped. Quantile models give a P50 and P80 per package. Classifiers score
+   single-bid and re-tender risk. All models are validated out-of-time.</li>
+<li><strong>Evidence-first agentic retrieval.</strong> Every tool result is registered as citable evidence before any text is
+   written. Statements are composed from that evidence, and a verifier drops any statement whose numbers, quotes or
+   citations are not backed by what it cites. An LLM may rephrase, but cannot add facts.</li>
+<li><strong>Closed loop.</strong> New notices, awards and evaluations flow in incrementally through Change Data Feed. The vector
+   index re-embeds only what changed, and realised award dates score the models' past predictions. Retraining is
+   triggered by data volume, drift or coverage decay, behind a quality gate.</li>
+<li><strong>A domain layer and a chatbot on top.</strong> An equipment taxonomy (14 classes, patterns in four languages) turns
+   free-text contract descriptions into a navigable hierarchy: Region → Country → Project → Tender → Contract →
+   Supplier → Equipment type. A chatbot routes each question to the tool that can answer it exactly: SQL for
+   prices, suppliers and spend; survival benchmarks for timelines; retrieval for lessons; the graph for
+   relationships. The same verifier then checks every sentence.</li>
+</ol>
+<p><strong>What the prototype shows on real data</strong> (§7 has the details)</p>
+<ul>
+<li><strong>Data spine:</strong> 14,613 contract rows, 15,158 notices, 179 projects and 131 project reports (ICR, ISR, PAD, PPAR) were joined into a 115,327-edge knowledge graph. <strong>67%</strong> of contracts link to their tender, <strong>100%</strong> to their project.</li>
+<li><strong>Timeline forecasts:</strong> out-of-time, the package-level model's median error is <strong>47 days</strong>, against 56 for cohort benchmarks (17% better) and 73 for a single median. P80 coverage is 0.76.</li>
+<li><strong>Domain coverage:</strong> <strong>2,220 laboratory and diagnostic equipment contracts worth US$1,375M</strong> in 91 countries and 179 projects, from 1,277 resolved suppliers.</li>
+<li><strong>Censoring matters:</strong> for Goods / RFB tenders, ignoring still-open tenders understates the median cycle by <strong>8%</strong> (140 vs 153 days).</li>
+<li><strong>Chatbot:</strong> on 16 labelled questions it chose the right tool for <strong>100%</strong>, ranked and aggregate answers matched an independent query in <strong>6 of 6</strong> checks, and 100% of its statements are cited.</li>
+<li><strong>Retrieval:</strong> risk-topic precision@5 <strong>0.75</strong> (random 0.27). A project's own procurement history retrieves its own evaluation reports in the top 10 for <strong>88%</strong> of projects.</li>
+<li><strong>Faithfulness:</strong> 360 statements across 25 generated briefs, <strong>100% with valid citations</strong>. The verifier caught <strong>124 of 125</strong> injected hallucinations (fake numbers, quotes, pages, citations); 98% of extracted lessons have quotes verified against source.</li>
+</ul>
+<p><strong>Rubric map</strong></p>
+<table>
+<thead>
+<tr>
+<th>Rubric dimension (points)</th>
+<th>Where it is addressed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>System and knowledge architecture (30)</td>
+<td>§1 architecture, §2 ingestion, entity resolution, graph topology, document hierarchy</td>
+</tr>
+<tr>
+<td>Analytical and AI methodology (30)</td>
+<td>§3 risk models and agentic RAG, §4 guardrails and conflict resolution</td>
+</tr>
+<tr>
+<td>Domain alignment and data utilisation (25)</td>
+<td>§2.1 source inventory, §2.3 key reconciliation, §3.1 procurement-stage targets, §2.6 missing data</td>
+</tr>
+<tr>
+<td>Operationalisation and scalability (15)</td>
+<td>§5 continuous learning, rollout phases, KPIs, §6 risks</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>1. Architecture overview</h2>
+<pre><code> SOURCES (public World Bank APIs)                         REFRESH
+ Major Contract Awards (FinancesOne DS00005) ──────────── daily
+ Procurement notices: IFB / REOI / Contract Award ─────── daily
+ Projects &amp; Operations ─────────────────────────────────── weekly
+ Documents &amp; Reports PDFs: PAD · Proc. Plan · ISR · ICR · IEG PPAR ── weekly
+ CPIA + WGI governance indicators ─────────────────────── quarterly
+            │
+            ▼
+ LAKEHOUSE  (Delta + Unity Catalog: grants · lineage · audit on tables, PDFs, functions, index, models)
+ ┌─ BRONZE ── raw JSON per record (replayable) · PDFs in a governed Volume · MERGE on natural keys · CDF on
+ ├─ SILVER ── contracts · notices (award HTML → bidders, prices, rejections) · projects · governance
+ │            · document pages (line breaks kept)
+ └─ GOLD ──── fact_tender · fact_contract · dim_supplier · dim_project · country_governance_year
+              proj_doc_chunks (section-aware) · lessons (quote-verified) · rating_evidence · ratings_resolved
+              kg_edges  (every link with method + confidence)
+            │
+            ▼
+ AI LAYER
+   Vector Search (hybrid, filtered by section_kind / country / doc type)
+   MLflow models @champion: Kaplan-Meier benchmarks · P50/P80 cycle · single-bid · re-tender
+   Unity Catalog function tools: benchmark · similar tenders · lessons · passages · project evidence · context
+   Procurement Copilot: plan → tools → evidence registry → compose → VERIFY → brief with citations
+            │
+            ▼
+ USERS: procurement specialists and task teams (chatbot, briefs) · managers (KPI and risk dashboards)
+            │  feedback, realised award dates
+            ▼
+ LOOP: Lakeflow Job  ingest → graph → docs &amp; lessons → index sync → monitor → [retrain gate] → retrain → @champion
+</code></pre>
+<p><strong>Why a lakehouse plus an edge table, and not a graph database alone?</strong> Most questions are analytical (benchmarks,
+cohorts, model features) and run best as SQL over columnar Delta tables. The graph questions ("which lessons apply
+to contracts like this one?") are 2-4 hop traversals that SQL joins over <code>kg_edges</code> handle at this scale. The edge
+table can be exported to a graph engine (GraphFrames, Neo4j) unchanged if multi-hop analytics grow. Everything sits
+under one governance model: Unity Catalog grants, lineage and audit cover tables, PDFs, functions, the vector index
+and the models.</p>
+<hr />
+<h2>2. Module 1: Ingestion pipeline and multimodal knowledge representation</h2>
+<h3>2.1 Source inventory</h3>
+<table>
+<thead>
+<tr>
+<th>Source (public API)</th>
+<th>Layer</th>
+<th>Grain / natural key</th>
+<th>Refresh</th>
+<th>Used for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Major Contract Awards: FinancesOne <code>DS00005</code></td>
+<td>Bronze <code>contract_awards_raw</code></td>
+<td>contract × supplier (<code>wb_contract_number</code>, <code>supplier_id</code>)</td>
+<td>daily</td>
+<td>signed value, supplier, method, review type, signing date</td>
+</tr>
+<tr>
+<td>Procurement notices: <code>/v2/procnotices</code></td>
+<td>Bronze <code>proc_notices_raw</code></td>
+<td>notice (<code>id</code>)</td>
+<td>daily</td>
+<td><strong>tender start</strong> (IFB/REOI date, deadline) and <strong>award</strong> (notification date, every bidder, evaluated prices, rejection reasons)</td>
+</tr>
+<tr>
+<td>Projects &amp; Operations: <code>/v2/projects</code></td>
+<td>Bronze <code>projects_raw</code></td>
+<td>project (<code>P-code</code>)</td>
+<td>weekly</td>
+<td>approval and closing dates, commitment, E&amp;S category, sector, implementing agency</td>
+</tr>
+<tr>
+<td>Documents &amp; Reports: <code>/v2/wds</code> + PDFs</td>
+<td>Bronze volume + <code>project_docs_meta</code></td>
+<td>document (<code>id</code>), linked to 1..n projects</td>
+<td>weekly</td>
+<td>PAD, Procurement Plan, ISR, ICR, IEG PPAR/ICRR</td>
+</tr>
+<tr>
+<td>CPIA (WDI source 2) and WGI (source 3)</td>
+<td>Bronze <code>governance_raw</code></td>
+<td>country × indicator × year</td>
+<td>quarterly</td>
+<td>institutional context features</td>
+</tr>
+<tr>
+<td>Finances (disbursements, IDA/IBRD statements)</td>
+<td>Phase 2</td>
+<td>loan × month</td>
+<td>monthly</td>
+<td>disbursement-lag early warning (§3.6)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Domain-first selection.</strong> The domain is defined by <em>what was bought</em>, not by sector codes. Ingestion pulls every
+Goods contract in Health-practice projects, classifies each item (§2.7), keeps the projects that bought laboratory or
+diagnostic equipment, then pulls those projects' notices and documents. The same code can be pointed at another
+domain (the pipeline also has an India roads scope and a three-country scope) by changing one configuration block.</p>
+<p>Prototype volumes (FY2015 onwards): 14,613 contract-supplier rows; 10,403 tenders built from notices; 179 projects; 131 project documents (ICR 17, ISR 36, PAD 30, PPAR 0).</p>
+<h3>2.2 ETL pattern</h3>
+<ul>
+<li><strong>Bronze is immutable and replayable.</strong> Each record keeps the exact JSON as returned (<code>raw_json</code>), plus the
+  ingestion key and timestamp. Parsing rules can change later without calling the APIs again, and any Gold value can
+  be traced back to its source record.</li>
+<li><strong>Idempotent and incremental.</strong> Every write is a <code>MERGE</code> on the natural key, updating only when <code>raw_json</code> changed.
+  Change Data Feed is on, so downstream steps (chunking, embedding, lesson extraction) process only new or changed
+  rows. PDFs are downloaded once into a governed Volume.</li>
+<li><strong>Resilient API access.</strong> Rate-limited sources get backoff that honours the server's retry-after (FinancesOne
+  allows only a few calls per minute). Pages are fetched newest-first with a stopping date. Partial failures are
+  logged to <code>ops.app_logs</code> and picked up by the next run.</li>
+<li><strong>Data contracts.</strong> Expectations on Silver (Lakeflow Declarative Pipelines in production) cover:</li>
+<li>dates parse;</li>
+<li>amounts ≥ 0;</li>
+<li>the procurement category is in the controlled list;</li>
+<li>project IDs match <code>^P\d{6}$</code>;</li>
+<li>reference keys are ≥ 5 characters after normalisation.</li>
+</ul>
+<p>Violations are quarantined, not dropped silently.
+- <strong>Semi-structured HTML is parsed into structure.</strong> Contract Award notices carry a rich HTML body. It is parsed into
+  notification date, contract duration, signed price, and awarded / evaluated / rejected bidders with WB supplier IDs
+  and rejection reasons. This is the only public source of <strong>bidder counts and rejection reasons</strong>, which are the
+  competition signals the models use.</p>
+<h3>2.3 Reconciling disjoint keys (entity resolution)</h3>
+<table>
+<thead>
+<tr>
+<th>Link</th>
+<th>Rule (in order)</th>
+<th>Method tag / confidence</th>
+<th>Prototype result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Notice → Tender</td>
+<td>normalised bid reference (<code>KE-MOWASCO-16771-CW-RFB</code> ≡ <code>ke mowasco 16771 cw/rfb</code>)</td>
+<td><code>exact_key</code> / 1.0</td>
+<td>10,403 tenders</td>
+</tr>
+<tr>
+<td>Contract → Tender</td>
+<td>(1) normalised <code>borrower_contract_reference_number</code> = bid reference; (2) else same project + same category + signed within 18 months of the invitation + description token Jaccard ≥ 0.5</td>
+<td><code>exact_key</code> 1.0; <code>fuzzy_desc</code> = similarity</td>
+<td>9,600 exact + 182 fuzzy → <strong>67%</strong> of contracts linked</td>
+</tr>
+<tr>
+<td>Contract → Supplier</td>
+<td>(1) normalised name key (drops M/S, legal forms, punctuation; JV partner order made irrelevant); (2) within blocks of the same supplier country and first token, similarity ≥ 0.92 → union-find merge</td>
+<td><code>exact_key</code> / <code>fuzzy_name</code> 0.92</td>
+<td>7,835 raw names → 7,634 keys → <strong>7,540</strong> suppliers (94 fuzzy merges, e.g. <em>abiss associate</em> ≡ <em>abiss associates</em>)</td>
+</tr>
+<tr>
+<td>Contract / Tender / Document → Project</td>
+<td>Project ID (P-code); PPARs covering several projects fan out to each</td>
+<td><code>exact_key</code></td>
+<td><strong>100%</strong> of contracts; 131 of 131 documents belong to projects with contracts</td>
+</tr>
+<tr>
+<td>Contract / Tender → Equipment type</td>
+<td>description classified by an ordered taxonomy (§2.7) in English, French, Spanish and Portuguese, tolerant of garbled accents; generic classes blocked for vehicles, CCTV, printing</td>
+<td><code>keyword</code> / 0.7</td>
+<td>2,220 of 14,613 health-goods contracts (15%) are laboratory or diagnostic equipment</td>
+</tr>
+<tr>
+<td>Tender → Governance context</td>
+<td>country + year of invitation; scores forward-filled up to 3 years (they are annual and published with a lag)</td>
+<td><code>temporal</code></td>
+<td>all tenders</td>
+</tr>
+<tr>
+<td>Lesson → Chunk → Document → Project</td>
+<td>lesson keeps its source chunk and page; chunk keeps document; document keeps projects</td>
+<td><code>llm_extracted</code> (Databricks) / <code>rule_numbered_paragraph</code> (local)</td>
+<td>150 lessons, 147 quote-verified</td>
+</tr>
+<tr>
+<td>Country identifiers</td>
+<td>ISO-2 (awards, projects, documents) ↔ ISO-3 (indicators) ↔ names in notices, including two spellings ("Viet Nam" / "Vietnam")</td>
+<td>alias table</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<p>Matches between 0.6 and 0.9 go to a <strong>review queue</strong> (a small table plus a Databricks App form). Confirmed decisions
+are written back as <code>method = 'human_confirmed'</code> and reused, so the resolver improves with use. The WB <code>supplier_id</code>
+is kept as evidence but not trusted alone, because the same firm appears under several IDs across years.</p>
+<h3>2.4 Knowledge-graph topology</h3>
+<pre><code> NOTICE ─ANNOUNCES─▶ TENDER ─RESULTED_IN─▶ CONTRACT ─AWARDED_TO─▶ SUPPLIER ─BASED_IN─▶ COUNTRY
+                        │  └──OF_TYPE──┐      │  └──OF_TYPE──▶ EQUIPMENT TYPE (PCR, imaging, analyzers …)
+                        └────FINANCED_BY──────┴─────▶ PROJECT ─LOCATED_IN─▶ COUNTRY ─IN_REGION─▶ REGION
+                        │                               │  └─IN_SECTOR─▶ SECTOR
+                        └─HAS_CONTEXT(year)─▶ GOVERNANCE│
+                                                        ◀─DESCRIBES─ DOCUMENT (PAD/PP/ISR/ICR/PPAR) ◀─PART_OF─ CHUNK
+                                                        ◀─ABOUT───── LESSON ─FROM─▶ CHUNK
+                                                                       ├─AT_STAGE─▶ STAGE (planning … contract mgmt)
+                                                                       └─APPLIES_TO─▶ CATEGORY (Works/Goods/CS/NCS)
+</code></pre>
+<p>Every edge row is <code>(src_type, src_id, rel, dst_type, dst_id, method, confidence, valid_from, evidence)</code>. <code>valid_from</code>
+supports temporal questions such as "what did we know when this tender opened?", which the models need to avoid
+leakage. <strong>Worked example:</strong> a supplier's contract links to a specific ICR lesson in three hops.</p>
+<pre><code class="language-sql">-- Lessons from the reports of projects where this supplier delivered PCR / GeneXpert equipment
+SELECT l.lesson, l.evidence_quote, l.title, l.page_start
+FROM gold.kg_edges a                                   -- CONTRACT -AWARDED_TO-&gt; SUPPLIER
+JOIN gold.kg_edges f ON f.src_id = a.src_id AND f.rel = 'FINANCED_BY'          -- CONTRACT -&gt; PROJECT
+JOIN gold.lessons  l ON l.project_id = f.dst_id AND l.quote_verified
+JOIN gold.fact_contract c ON c.wb_contract_number = a.src_id
+                         AND c.item_type = 'Molecular diagnostics (PCR, GeneXpert)'
+WHERE a.rel = 'AWARDED_TO' AND a.dst_id = :supplier_key;
+</code></pre>
+<p>In the prototype the graph holds 115,327 edges.</p>
+<p><strong>Scalability.</strong> The full public corpus is about 300k contract rows, about 425k notices, about 22k projects and tens
+of thousands of project documents. That is small for Delta. Tables are clustered by <code>country_iso3</code> and year (liquid
+clustering), and the edge table by <code>(rel, dst_id)</code> for reverse lookups. Supplier resolution uses blocking, so it is
+near-linear. Chunk embedding is the only heavy step, and CDF keeps it incremental.</p>
+<h3>2.5 Long-document parsing, chunking and embedding</h3>
+<p>ICRs and PADs run to 60-150 pages. The procurement signal is concentrated in a few sections (<em>Key factors that
+affected implementation</em>, <em>Lessons</em>, <em>Fiduciary compliance</em>, procurement annexes), and every page repeats a header.
+The pipeline:</p>
+<ol>
+<li><strong>Text extraction.</strong> Text-layer PDFs (most WB documents since about 2010) use <code>pypdf</code>, keeping line breaks.
+   Scanned or table-heavy pages use layout-aware parsing (<code>ai_parse_document</code> on Databricks) and OCR. They are
+   detected by a words-per-page threshold.</li>
+<li><strong>Running header and footer removal.</strong> Short lines that repeat on ≥ 30% of pages, with digits normalised ("Page 16")
+   are removed.</li>
+<li><strong>Heading hierarchy.</strong> Report numbering is detected: Roman for level 1 (<code>V. LESSONS AND RECOMMENDATIONS</code>), letters
+   for level 2 (<code>B. KEY FACTORS DURING IMPLEMENTATION</code>), and <code>ANNEX n</code>. Each chunk carries its <strong>section path</strong>.</li>
+<li><strong>Typed, bounded chunks.</strong></li>
+<li>Chunks never cross a section boundary and hold ≤ 450 words with 60 words of overlap.</li>
+<li>Each is typed <code>narrative</code>, <code>table</code> (number-dense lines) or <code>annex</code>.</li>
+<li>Each is classified into a <code>section_kind</code>: lessons, key_factors, procurement_fiduciary, risk, ratings, results,
+     design, annex, other.</li>
+<li><strong>Structured extraction for data sheets.</strong> The ICR data sheet holds the complete <strong>ISR rating history</strong>, key dates
+   (planned vs actual closing, restructurings) and final ratings. ISRs hold current and previous DO/IP ratings. These
+   are parsed with deterministic rules, not an LLM, because they are tables with known layouts and exact values matter.</li>
+<li><strong>Contextual embedding text.</strong> Each chunk is embedded as <code>doc type | project | country | sector | date | section
+   path</code> + text. A passage that never names the country or sector still matches queries about them.</li>
+<li><strong>Embedding and index.</strong> <code>databricks-gte-large-en</code> (1024-d) runs in a Delta Sync index on the chunk table. Filter
+   columns are synced (<code>section_kind</code>, <code>content_type</code>, <code>doc_type_code</code>, <code>country_iso3</code>, <code>project_id</code>, <code>major_sector</code>)
+   and queries run <strong>hybrid</strong> (semantic + keyword), so P-codes and terms like "re-tender" match exactly.</li>
+<li><strong>Small-to-big context.</strong> Retrieval returns chunks. The copilot can expand a hit to its whole section for the LLM,
+   which also gives the reader the section path.</li>
+</ol>
+<p>Prototype: 131 reports → 6,187 chunks. ISR rating histories were parsed from ICR data sheets (34 projects with dated rating evidence), and 150 lessons were extracted from <em>Lessons</em> / <em>Key factors</em> sections, 98% with verified quotes.</p>
+<h3>2.6 Missing and incomplete reporting</h3>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Handling</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CPIA not published for non-IDA countries (e.g. India)</td>
+<td>kept NULL plus a <code>cpia_missing</code> flag; WGI covers all countries; gradient boosting handles NULL natively</td>
+</tr>
+<tr>
+<td>Governance scores published with a lag</td>
+<td>forward-filled ≤ 3 years, never back-filled (that would leak the future)</td>
+</tr>
+<tr>
+<td>Tenders with no award yet</td>
+<td><strong>right-censored</strong>, not dropped (Kaplan-Meier); dropping them would make benchmarks too optimistic. A tender with no award notice after 2 years is not "still open" (most likely cancelled, or the award was never published), so it is excluded as <em>unknown outcome</em> and counted, rather than censored at a multi-year age. Prototype: 1,068 tenders with invitation and award, 122 still open (censored), 442 with no award after 2 years (excluded as unknown outcome). For Goods / RFB the censoring-aware median is 153 days against 140 counting completed tenders only</td>
+</tr>
+<tr>
+<td>Awards without an invitation notice (RFQ, direct selection, individual consultants)</td>
+<td>contribute to supplier and competition statistics, excluded from cycle-time targets</td>
+</tr>
+<tr>
+<td>Award notices published late or amended</td>
+<td>earliest <em>notification</em> date used; amended notices flagged (<code>award_amended_flag</code>)</td>
+</tr>
+<tr>
+<td>Documents only partly machine-readable</td>
+<td>words-per-page check routes them to OCR / layout parsing; a chunk without a verified quote is never served as a lesson</td>
+</tr>
+<tr>
+<td>Thin cells (e.g. microscopes in one country)</td>
+<td>benchmark fallback hierarchy: country + category + method → equipment type + method → equipment type → category + method → category, with <code>n</code> always shown; abstain under 15</td>
+</tr>
+<tr>
+<td>Descriptions in several languages, garbled accents, or with no content ("Lot 3")</td>
+<td>multilingual, accent-tolerant patterns; contracts that cannot be classified stay "Other goods" and are counted, never guessed</td>
+</tr>
+</tbody>
+</table>
+<h3>2.7 Domain layer: laboratory and diagnostic equipment</h3>
+<p>The equipment taxonomy is ordered: specific classes are tested before the generic "General laboratory" class, and
+non-domain classes (medicines, PPE, other medical equipment, IT and vehicles) are kept so that market context and the
+models see the whole health-goods picture. Measured on the prototype data:</p>
+<table>
+<thead>
+<tr>
+<th>Equipment type</th>
+<th>In domain</th>
+<th>Contracts</th>
+<th>Value</th>
+<th>Countries</th>
+<th>Suppliers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Diagnostic imaging</td>
+<td>yes</td>
+<td>281.0</td>
+<td>US$451.6M</td>
+<td>61.0</td>
+<td>216.0</td>
+</tr>
+<tr>
+<td>General laboratory and diagnostic equipment</td>
+<td>yes</td>
+<td>424.0</td>
+<td>US$264.1M</td>
+<td>66.0</td>
+<td>342.0</td>
+</tr>
+<tr>
+<td>Molecular diagnostics (PCR, GeneXpert)</td>
+<td>yes</td>
+<td>497.0</td>
+<td>US$212.2M</td>
+<td>60.0</td>
+<td>227.0</td>
+</tr>
+<tr>
+<td>Reagents and cartridges</td>
+<td>yes</td>
+<td>426.0</td>
+<td>US$151.2M</td>
+<td>52.0</td>
+<td>291.0</td>
+</tr>
+<tr>
+<td>Biosafety, sterilization and cold chain</td>
+<td>yes</td>
+<td>222.0</td>
+<td>US$126.2M</td>
+<td>55.0</td>
+<td>189.0</td>
+</tr>
+<tr>
+<td>Rapid tests and test kits</td>
+<td>yes</td>
+<td>169.0</td>
+<td>US$117.1M</td>
+<td>46.0</td>
+<td>107.0</td>
+</tr>
+<tr>
+<td>Laboratory analyzers</td>
+<td>yes</td>
+<td>117.0</td>
+<td>US$35.4M</td>
+<td>32.0</td>
+<td>99.0</td>
+</tr>
+<tr>
+<td>Microscopy</td>
+<td>yes</td>
+<td>34.0</td>
+<td>US$10.0M</td>
+<td>17.0</td>
+<td>28.0</td>
+</tr>
+<tr>
+<td>Mobile and modular laboratories</td>
+<td>yes</td>
+<td>14.0</td>
+<td>US$6.9M</td>
+<td>5.0</td>
+<td>13.0</td>
+</tr>
+<tr>
+<td>Laboratory information systems</td>
+<td>yes</td>
+<td>9.0</td>
+<td>US$0.7M</td>
+<td>3.0</td>
+<td>8.0</td>
+</tr>
+<tr>
+<td>Medicines and vaccines</td>
+<td>context</td>
+<td>1,212.0</td>
+<td>US$5,163.6M</td>
+<td>80.0</td>
+<td>658.0</td>
+</tr>
+<tr>
+<td>Other goods</td>
+<td>context</td>
+<td>6,213.0</td>
+<td>US$2,039.2M</td>
+<td>89.0</td>
+<td>3,665.0</td>
+</tr>
+<tr>
+<td>Other medical equipment</td>
+<td>context</td>
+<td>2,156.0</td>
+<td>US$1,123.5M</td>
+<td>82.0</td>
+<td>1,490.0</td>
+</tr>
+<tr>
+<td>PPE and medical consumables</td>
+<td>context</td>
+<td>1,018.0</td>
+<td>US$745.2M</td>
+<td>66.0</td>
+<td>728.0</td>
+</tr>
+<tr>
+<td>IT, furniture and vehicles</td>
+<td>context</td>
+<td>1,696.0</td>
+<td>US$348.7M</td>
+<td>83.0</td>
+<td>1,280.0</td>
+</tr>
+</tbody>
+</table>
+<p>A manual check of a random sample of domain-classified descriptions found the specific classes accurate (PCR kits,
+viral transport media, autoclaves, ultrasound). The remaining errors were in the generic class, for example vehicles
+"for the national laboratory". Those are now blocked. In production a small labelled set (about 500 descriptions)
+replaces the manual check, and an LLM classifier handles the residual "Other goods".</p>
+<p><strong>Domain-specific risks the platform watches</strong>, each a retrieval topic and, where public data allows, a feature:</p>
+<table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Why it matters for lab and diagnostic equipment</th>
+<th>Evidence the platform uses</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Closed-system lock-in</td>
+<td>the platform choice fixes reagent and cartridge suppliers for years</td>
+<td>supplier concentration by equipment type; repeat awards to the same supplier for reagents after equipment</td>
+</tr>
+<tr>
+<td>Specification bias</td>
+<td>technical specs can be written around one brand, giving one responsive bid</td>
+<td>single-bid risk model; bidder counts and rejection reasons from award notices</td>
+</tr>
+<tr>
+<td>Installation and site readiness</td>
+<td>equipment arrives before the lab has power, space or trained staff</td>
+<td>lessons and ISR passages on installation, utilities and training</td>
+</tr>
+<tr>
+<td>Maintenance and service</td>
+<td>no service contract means idle equipment within a year</td>
+<td>lessons on maintenance and after-sales; share of contracts bundling service</td>
+</tr>
+<tr>
+<td>Cold chain and logistics</td>
+<td>reagents and kits expire in transit or storage</td>
+<td>lessons and passages on storage, stock-outs and expiry</td>
+</tr>
+<tr>
+<td>Emergency procurement</td>
+<td>COVID-19 shifted buying to direct contracting and UN agencies</td>
+<td>method mix by year; direct-selection share; award times by method</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>3. Module 2: Predictive and prescriptive engines</h2>
+<h3>3.1 Targets, aligned to procurement stages</h3>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Target</th>
+<th>Definition from public data</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Planning</td>
+<td><strong>Tender cycle time</strong></td>
+<td>invitation (IFB/REOI) date → notification of award; open tenders censored</td>
+</tr>
+<tr>
+<td>Tender design</td>
+<td><strong>Competition risk</strong></td>
+<td>single responsive bid (competitive methods only), from award notice bidder lists</td>
+</tr>
+<tr>
+<td>Evaluation and award</td>
+<td><strong>Re-tender risk</strong></td>
+<td>same reference re-advertised, or "re-bid / re-tender / re-advertisement" in the notice</td>
+</tr>
+<tr>
+<td>Contract management</td>
+<td><strong>Amendment risk</strong></td>
+<td>award notice re-issued (version &gt; 0). Public data has no contract amendments; in an internal deployment the procurement tracking system (STEP) amendment records replace this proxy</td>
+</tr>
+<tr>
+<td>Execution (project level)</td>
+<td>Restructuring and closing extension</td>
+<td>ICR key dates (planned vs actual closing, number of restructurings)</td>
+</tr>
+</tbody>
+</table>
+<h3>3.2 Features (planning-time only, leakage-controlled)</h3>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>Features</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Package</td>
+<td>category, <strong>equipment type</strong>, method, review type (prior/post), estimated amount (log), bid window days, invitation month, description keywords (supply, consulting, IT, vehicles, lots), description length</td>
+</tr>
+<tr>
+<td>Project</td>
+<td>commitment (log), project age at invitation, environmental category, E&amp;S risk rating, major sector, region</td>
+</tr>
+<tr>
+<td>Institutional</td>
+<td>CPIA public-sector management, transparency, budget and financial management; WGI government effectiveness, regulatory quality, control of corruption; missing flags</td>
+</tr>
+<tr>
+<td>History (as of invitation date)</td>
+<td>median cycle of tenders <strong>awarded before</strong> this one opened in the same country × category and in the same project; number of prior tenders in the project</td>
+</tr>
+</tbody>
+</table>
+<p>History features are computed with a strict as-of cut (only tenders awarded before the invitation date), so the
+backtest is honest.</p>
+<h3>3.3 Models</h3>
+<ul>
+<li><strong>Benchmarks: Kaplan-Meier survival curves</strong> per cohort, reporting the median and P80 with <code>n</code> and the number
+  censored. This is the transparent, explainable baseline planners see first.</li>
+<li><strong>Package forecast: gradient-boosted quantile regression</strong> (P50 and P80 of log-days). Quantiles answer the
+  planner's question directly ("what date can I commit to?") and are robust to the heavy right tail.</li>
+<li><strong>Risk scores: gradient-boosted classifiers</strong> for single-bid, re-tender and award-amendment risk. Training uses class-balanced
+  weights, then probabilities are prior-corrected so they read as calibrated probabilities against the historical
+  base rate.</li>
+<li><strong>Extension:</strong> for in-flight monitoring, a discrete-time hazard model (or Cox with time-varying covariates) updates
+  the probability of award in the next 30 days as the tender ages (§3.6). For packaging decisions, a Bayesian
+  hierarchical model pools thin country × category cells toward the regional mean.</li>
+</ul>
+<h3>3.4 Validation (out-of-time)</h3>
+<p>Training uses tenders opened before 2024-01-01; testing uses tenders opened afterwards. The test set is restricted to
+tenders that had at least a year to complete, so it is not biased toward fast tenders.</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Out-of-time result</th>
+<th>Comparison</th>
+<th>Train / test</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cycle time P50</td>
+<td>MAE <strong>47 days</strong></td>
+<td>Kaplan-Meier cohort benchmark 56; single median 73</td>
+<td>759 / 259</td>
+</tr>
+<tr>
+<td>Cycle time P80</td>
+<td>coverage <strong>0.76</strong></td>
+<td>target 0.75-0.85 (recalibrate with a conformal adjustment when outside)</td>
+<td></td>
+</tr>
+<tr>
+<td>Single responsive bid</td>
+<td>AUC <strong>0.67</strong>, top-decile lift 2.6×</td>
+<td>base rate 0.42 → 0.28; base rate shifted between periods: real drift, which the monitoring loop (§5) is designed to catch</td>
+<td>772 / 295</td>
+</tr>
+<tr>
+<td>Re-tender</td>
+<td>not trained: skipped: not enough positives</td>
+<td>base rate 0.005</td>
+<td>1,163 / 469</td>
+</tr>
+<tr>
+<td>Award amendment (proxy)</td>
+<td>AUC <strong>0.55</strong>, top-decile lift 1.0×</td>
+<td>base rate 0.39 → 0.45; public proxy only: award notice re-issued; STEP amendment records replace it internally</td>
+<td>773 / 295</td>
+</tr>
+</tbody>
+</table>
+<p>Top cycle-time drivers (permutation importance): <code>bid_window_days</code>, <code>method_code</code>, <code>review_type</code>, <code>country_iso3</code>, <code>env_category</code>, <code>major_sector</code>.</p>
+<p><strong>Reading the results honestly:</strong> the timeline model clearly adds value over benchmarks. The risk classifiers are only weakly to moderately predictive on public data and are shown as indicators, not decisions. Their base-rate shifts between periods are exactly the drift the retraining triggers are for. Re-tender and amendment need internal records (STEP) to become reliable.</p>
+<h3>3.5 Explainability</h3>
+<p>Global drivers come from permutation importance on the test period. Per-package drivers use SHAP in production. Each
+brief shows the benchmark beside the model estimate, so a planner can see when and why the model departs from history.</p>
+<h3>3.6 Execution monitoring and early warning (design)</h3>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Source</th>
+<th>Trigger</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tender overdue</td>
+<td>open tender age vs cohort KM curve</td>
+<td>age &gt; cohort P80 → amber; P90 → red</td>
+</tr>
+<tr>
+<td>Supervision deterioration</td>
+<td>ISR DO/IP ratings trajectory</td>
+<td>two-step drop or MU and below</td>
+</tr>
+<tr>
+<td>Disbursement lag</td>
+<td>disbursement feed vs approved S-curve</td>
+<td>lag &gt; 25% at mid-term</td>
+</tr>
+<tr>
+<td>Competition stress</td>
+<td>rising single-bid share in the country × category</td>
+<td>rolling 12-month rate &gt; 1.5× base rate</td>
+</tr>
+<tr>
+<td>Restructuring risk</td>
+<td>ICR key-dates history for similar projects</td>
+<td>predicted extension &gt; 12 months</td>
+</tr>
+</tbody>
+</table>
+<h3>3.7 Agentic retrieval (RAG) for a new procurement package</h3>
+<pre><code> package (country, category, method, estimate, description, planned dates)
+   │
+   ├─ PLAN      sub-queries: package description; one per elevated risk (single bid / re-tender / delay);
+   │            country-specific variant; stage-specific variant (planning, tender design …)
+   ├─ ACT       tools (Unity Catalog functions + models):
+   │              proc_benchmark          → B  Kaplan-Meier cohort with fallback and n
+   │              @champion models        → M  P50 / P80, risk probabilities vs base rates
+   │              proc_similar_tenders    → T  what comparable packages did (method, days, bidders, re-tender)
+   │              proc_search_lessons     → L  quote-verified lessons (hybrid vector search, section_kind filter)
+   │              proc_search_passages    → P  supporting passages from PAD/ISR/ICR/PPAR
+   │              proc_project_evidence   → R  conflict-resolved rating trajectory of the lesson's project
+   │              proc_country_context    → G  CPIA / WGI context
+   ├─ FUSE      reciprocal-rank fusion across sub-queries; boosts for same country / sector / procurement relevance;
+   │            diversity cap (≤ 2 items per report); (production) cross-encoder rerank
+   ├─ REGISTER  every row becomes evidence with an id, its source, page and URL
+   ├─ COMPOSE   statements built only from registered evidence; derived numbers (e.g. date = invitation + P80)
+   │            become their own evidence item (D) showing the calculation
+   ├─ VERIFY    §4 gate → statements that fail are dropped and logged
+   └─ OUTPUT    brief: Schedule · Market approach · Risks · Lessons · Supporting evidence · Evidence list
+</code></pre>
+<p>Prototype brief for a new package, <em>Supply, installation and commissioning of automated real-time PCR systems and GeneXpert analyzers for regional public health laboratories, Lot 2</em> (Goods, RFB, KEN, est. US$2,500,000) (abridged):</p>
+<blockquote>
+<p><strong>Schedule</strong>
+- Historical benchmark (Molecular diagnostics (PCR, GeneXpert) tenders using RFB (all countries)): half of tenders reach award within 124 days of the invitation and 80% within 240 days. <code>B1</code>
+- Counting only completed tenders would understate the median by 6 days, because slow tenders are still open. <code>B1 D1</code>
+- For this package the model estimates 155 days to award (P50) and 252 days at the 80th percentile. <code>M1</code>
+- Plan the award milestone for 08 Nov 2027 or later (planned invitation 01 Mar 2027 plus the P80 estimate) rather than the median. <code>D2 M1</code>
+<strong>Risks</strong>
+- Expected cycle is longer than the benchmark median (155 vs 124 days). <code>M1 B1</code>
+<strong>Market approach</strong>
+- Among the 12 most similar past Goods tenders, the most common method was Request for Bids (7 of 12); median number of bidders 1.5. <code>T1 T2 T3 T4 T5 T6 D3</code>
+<strong>Lessons from completed projects</strong>
+- “In addition to the change in the MoH leadership in mid -June 2020, the COVID -19 pandemic also slowed down and adversely affected implementation progress and delays were also encountered for the project restructuring, for the initiation of the agreed procurement processes and subsequent partial canc” (ICR, P152625, p. 31) - note: this project's ratings were mixed across sources, and the final ICRR rating is Moderately Unsatisfactory, so the lesson comes from a project that underperformed. <code>L1 R1</code>
+- “Introduction of c ontract terms against non- deliveries and poor deliveries .” (ICR, P152625, p. 39) - note: this project's ratings were mixed across sources, and the final ICRR rating is Moderately Unsatisfactory, so the lesson comes from a project that underperformed. <code>L2 R2</code>
+- “The COVID -19 pandemic disrupted and delayed project activities.” (ICR, P149340, p. 19) - note: this project's supervision ratings fell to Moderately Unsatisfactory before the final ICR rating of Satisfactory, so the lesson reflects a recovery. <code>L3 R3</code>
+- “The COVID-19 pandemic significantly diverted resources and attention, delaying some project activities and necessitating adjustments to Project priorities.” (ICR, P152799, p. 31) - note: this project's supervision ratings fell to Moderately Unsatisfactory before the final ICRR rating of Moderately Satisfactory, so the lesson reflects a recovery. <code>L4 R4</code>
+- “At the Government’s request, the WB activated the CERC and reallocated USS$14 million to expedite implementation of the Master Plan.” (ICR, P157291, p. 27) <code>L5</code>
+- “Future similar health projects should consider the lessons learned from this project regarding timely disbursement of county allocations.” (ICR, P152394, p. 37) <code>L6</code></p>
+<p><strong>Evidence (excerpt)</strong>
+- <code>B1</code> gold.tender_benchmarks: Kaplan-Meier benchmark for Molecular diagnostics (PCR, GeneXpert) tenders using RFB (all countries): median 124 days, P80 240 days (80% of tenders awarded within it) from invitation to award; n=27 tenders, 24 awarded, 3 …
+- <code>D1</code> : Derived: censoring-aware median 124 - awarded-only median 118 = 6 days.…
+- <code>M1</code> models: cycle_p50, cycle_p80, single_bid, rebid (out-of-time validated): Model scores for this package: cycle P50 155 days, P80 252 days; single-bid probability 13% (base rate 42%); re-tender probability nan% (base rate nan%).…
+- <code>L1</code> ICR Kazakhstan - Social Health Insurance Project : Improving Access, Quality, Efficiency and Financial Protection Project p. 31: In addition to the change in the MoH leadership in mid -June 2020, the COVID -19 pandemic also slowed down and adversely affected implementation progress and delays were also encountered for the project restructuring, fo…
+- <code>R1</code> gold.project_ratings_resolved: Rating evidence for P152625: ISR 2016-07-25: Satisfactory; ISR 2017-01-12: Satisfactory; ISR 2017-07-11: Satisfactory; ISR 2018-07-06: Moderately Unsatisfactory; ISR 2018-12-26: Moderately Unsatisfactory; ISR 2019-04-26:…</p>
+</blockquote>
+<p>Retrieval quality: on six procurement risk topics, precision@5 = <strong>0.75</strong> and precision@10 = 0.62 (random 0.27). Strong on delay, capacity, fiduciary and safeguards; weak on the two topics with only 5 labelled lessons (cost overrun, specification). Labels are keyword-derived proxies; a curator-labelled set replaces them in Phase 0. A project's tender descriptions retrieve that project's own reports in the top 10 for <strong>88%</strong> of 16 projects (MRR 0.58), which shows the structured and unstructured sides are actually connected.</p>
+<h3>3.8 Conversational access: the procurement chatbot</h3>
+<p>Most users will not start from a package form. They will ask questions. The chatbot is a thin, auditable router over
+the same tools, not a free-form LLM:</p>
+<table>
+<thead>
+<tr>
+<th>Question type</th>
+<th>Example</th>
+<th>Tool</th>
+<th>Why this tool</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ranking</td>
+<td>"Which supplier won the cheapest GeneXpert contract?"</td>
+<td>pandas / SQL over <code>fact_contract</code></td>
+<td>a minimum is a calculation; an LLM should never do it</td>
+</tr>
+<tr>
+<td>Suppliers and market</td>
+<td>"Top suppliers of imaging equipment in Sub-Saharan Africa?"</td>
+<td>group-by over resolved suppliers</td>
+<td>supplier spellings are already merged (§2.3)</td>
+</tr>
+<tr>
+<td>Spend</td>
+<td>"How much was spent on lab equipment by country?"</td>
+<td>aggregation with region / country / year</td>
+<td>exact totals with the filters shown</td>
+</tr>
+<tr>
+<td>Timelines</td>
+<td>"How long does a PCR tender take?"</td>
+<td>Kaplan-Meier benchmarks by equipment type</td>
+<td>censoring-aware medians and P80</td>
+</tr>
+<tr>
+<td>Why / lessons / risks</td>
+<td>"What went wrong with lab equipment maintenance?"</td>
+<td>hybrid retrieval over lessons and passages</td>
+<td>quotes with document, project and page</td>
+</tr>
+<tr>
+<td>Relationships</td>
+<td>"How is Kenya connected to its lab suppliers?", "Show the ER diagram"</td>
+<td><code>kg_edges</code> neighbourhood → diagram</td>
+<td>every link carries its method and confidence</td>
+</tr>
+<tr>
+<td>Entities</td>
+<td>"Tell me about project P…", "What did <supplier> supply?"</td>
+<td>profile across all tables</td>
+<td>one view of contracts, documents and ratings</td>
+</tr>
+</tbody>
+</table>
+<p>Understanding is deterministic: entity extraction for country, region, equipment type, supplier (against resolved
+names), project and years, then intent rules. Every answer is a list of statements citing evidence ids. It passes the
+§4 verifier, and the page shows the evidence, the result table and, for relationship questions, the graph. An LLM
+(optional) may rephrase the verified statements. Its text is discarded if it contains any number not in the
+evidence. Measured on a labelled question set: <strong>100%</strong> of 16 questions routed to the right tool; ranked and aggregate answers matched an independent pandas query in <strong>6 of 6</strong> checks; 100% of questions answered with cited evidence; 100% of statements cited; 0.06 s per question on a laptop.</p>
+<blockquote>
+<p><strong>Q: Which supplier won the cheapest GeneXpert or PCR contract?</strong><br />
+<em>route: rank_low · 6 verified statements · 6 evidence items</em>
+- The lowest-value contract for Molecular diagnostics (PCR, GeneXpert) went to SCI-FI BIOLOGICALS (India): contract 1696951, US$34, for “Primers and Probes [5 nos]”. <code>C1</code>
+- AVON PHARMO CHEM (PRIVATE) LIMITED: US$126 (contract 1697389, Sri Lanka). <code>C2</code>
+- M.M. SUPPLIERS: US$131 (contract 1696989, India). <code>C3</code>
+- LABSERVICE: US$176 (contract 1665197, Kyrgyz Republic). <code>C4</code></p>
+<p><strong>Q: Who are the top suppliers of diagnostic imaging equipment in Sub-Saharan Africa?</strong><br />
+<em>route: suppliers · 7 verified statements · 2 evidence items</em>
+- 71 suppliers won 84 contracts worth US$104,305,138 for Diagnostic imaging in Sub-Saharan Africa. <code>D1</code>
+- AFRIMED MEDICAL SUPPLIES LIMITED ACCRA GHANA (Ghana): 1 contract, US$9,382,558 (9% of value), 1 country. <code>D1</code>
+- ELSMED (Cote d'Ivoire): 1 contract, US$8,169,922 (8% of value), 1 country. <code>D1</code>
+- EXP-MEDICAL SYSTEMS AFRICA LIMITED (Ghana): 1 contract, US$6,999,643 (7% of value), 1 country. <code>D1</code></p>
+<p><strong>Q: What problems did projects have with laboratory equipment maintenance?</strong><br />
+<em>route: lessons · 9 verified statements · 12 evidence items</em>
+- “These conditions were the adoption of the: (a) Cancer Control Improvement Program with Action Plan by the Government in July 2020; (b) rulebook for the establishment of a Medical Equipment Maintenance Unit within the MoH by the Government in October 2019 , and (c) issuance of a Decree to adopt the H” (ICR, P129539, p. 30) - note: this project's supervision ratings fell to Moderately Unsatisfactory before the final ICRR rating of Satisfactory, so the lesson reflects a recovery. <code>L1 R1</code>
+- “In addition to the change in the MoH leadership in mid -June 2020, the COVID -19 pandemic also slowed down and adversely affected implementation progress and delays were also encountered for the project restructuring, for the initiation of the agreed procurement processes and subsequent partial canc” (ICR, P152625, p. 31) - note: this project's ratings were mixed across sources, and the final ICRR rating is Moderately Unsatisfactory, so the lesson comes from a project that underperformed. <code>L2 R2</code>
+- “At the Government’s request, the WB activated the CERC and reallocated USS$14 million to expedite implementation of the Master Plan.” (ICR, P157291, p. 27) <code>L3</code>
+- “Notwithstanding the cancellations, the project was still able to achieve the objectives.” (ICR, P131825, p. 36) - note: this project's supervision ratings fell to Unsatisfactory before the final ICRR rating of Moderately Satisfactory, so the lesson reflects a recovery. <code>L4 R3</code></p>
+</blockquote>
+<hr />
+<h2>4. Module 3: Guardrails, faithfulness and source attribution</h2>
+<h3>4.1 Layered controls</h3>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Control</th>
+<th>Prototype status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ingestion</td>
+<td>Lessons enter the knowledge base only with a <strong>verbatim evidence quote</strong> checked against the source chunk (<code>quote_in_source</code>: exact after normalisation, else a ≥ 0.9 fuzzy window to tolerate PDF noise). Unverified lessons are stored but never served</td>
+<td>147 / 150 lessons verified (98%)</td>
+</tr>
+<tr>
+<td>Ingestion</td>
+<td>Data sheets (ratings, key dates) are parsed deterministically, never by an LLM</td>
+<td>ISR histories parsed from every ICR</td>
+</tr>
+<tr>
+<td>Retrieval</td>
+<td>Only governed sources: UC functions over Gold tables and the index, with metadata filters (<code>section_kind</code>, <code>content_type</code>); no open web</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Composition</td>
+<td><strong>Evidence registry.</strong> Statements are built from registered items, and derived numbers are registered with their inputs</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Generation (optional LLM)</td>
+<td>The LLM may only rephrase a statement; temperature 0; output must keep the citations</td>
+<td>Databricks notebook 28</td>
+</tr>
+<tr>
+<td>Verification</td>
+<td>Every statement must (1) cite ≥ 1 existing evidence id, (2) contain only numbers present in the cited evidence (rounding tolerance 2%), (3) quote only text found verbatim in the cited source. Failing statements are <strong>dropped and logged</strong>, never shown</td>
+<td>360 statements in 25 briefs, 100% cited</td>
+</tr>
+<tr>
+<td>Abstention</td>
+<td>Below the evidence threshold (benchmark n &lt; 15, no verified lesson), the brief says so instead of guessing</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Prompt injection</td>
+<td>Retrieved text is data inside a delimited block; tools are read-only functions; the agent cannot write or call the web</td>
+<td>inherited from the existing assistant (red-teamed)</td>
+</tr>
+<tr>
+<td>Monitoring</td>
+<td>MLflow traces of every tool call; groundedness and correctness judges on a growing evaluation set; verifier drop rate and user "wrong" flags on the dashboard</td>
+<td>§5</td>
+</tr>
+<tr>
+<td>Presentation</td>
+<td>Each statement shows clickable citations (document, section, page); model numbers are labelled as estimates with their validation coverage</td>
+<td>yes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Red-team result:</strong> for 25 briefs generated for real held-out packages, we injected five kinds of hallucination: an altered number, a fabricated quote, an uncited claim, a non-existent citation and a wrong page number. The verifier blocked <strong>124 of 125 (99.2%)</strong>. The miss was a fabricated number that happened to appear elsewhere in the cited evidence. The production fix is number-unit binding ('245 days' must match '245 days') plus an NLI entailment judge for paraphrased statements.</p>
+<h3>4.2 Resolving conflicting institutional evidence</h3>
+<p>Supervision ratings (ISR, every six months) and completion evaluations (ICR, IEG) often disagree. That is expected:
+they are measured at different times with different information. The rules:</p>
+<ol>
+<li><strong>Same dimension only.</strong> Compare like with like: DO rating vs outcome rating; IP rating vs implementation
+   performance. Different dimensions are shown side by side, never "resolved".</li>
+<li><strong>Authority hierarchy for the final judgement.</strong> Independent ex-post (IEG PPAR) &gt; independent validation (IEG ICRR)<blockquote>
+<p>self-evaluation at completion (ICR) &gt; in-flight supervision (ISR) &gt; appraisal expectation (PAD). Completed and
+   independent evaluations see the whole outcome; mid-term ratings are snapshots.</p>
+</blockquote>
+</li>
+<li><strong>Recency within the same authority.</strong></li>
+<li><strong>Never discard the loser.</strong> The resolved record keeps the <strong>full dated trajectory</strong> and a <code>conflict</code> flag (evidence
+   on both sides of the satisfactory line). A mid-term crisis followed by recovery is itself a lesson about what
+   turned it around.</li>
+<li><strong>Field-level source of record for transactional conflicts.</strong> Signed amount and supplier come from the contract
+   awards dataset. Bidder list and notification date come from the award notice. Dates disagreeing by more than 30
+   days are flagged for review rather than averaged.</li>
+<li><strong>Show it to the user.</strong> When a lesson's project had conflicting ratings, the brief says so (e.g. "supervision
+   ratings fell to Moderately Unsatisfactory before the final ICR rating of Satisfactory"), with both sources cited.</li>
+</ol>
+<p>Prototype: 34 projects have dated rating evidence from several sources. In <strong>8</strong> the supervision ratings and the final rating fall on opposite sides of the satisfactory line. All are resolved with their trajectory kept, and briefs cite both sides when such a project's lesson is used.</p>
+<hr />
+<h2>5. Module 4: Continuous learning and implementation strategy</h2>
+<h3>5.1 Closed feedback loop</h3>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Latency</th>
+<th>What updates</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>New IFB / REOI / award notice</td>
+<td>daily</td>
+<td><code>fact_tender</code> (new tender or award), censoring status, KG edges; open tenders' ages for early warning</td>
+</tr>
+<tr>
+<td>New contract award row</td>
+<td>daily</td>
+<td><code>fact_contract</code>, supplier resolution, tender link</td>
+</tr>
+<tr>
+<td>New ISR / ICR / PPAR</td>
+<td>weekly</td>
+<td>chunks → index sync (CDF, only changed chunks re-embedded) → lesson extraction → rating evidence → conflict resolution</td>
+</tr>
+<tr>
+<td>Realised award of a package that received a brief</td>
+<td>on award</td>
+<td><code>ops.proc_feedback.realised_award_date</code>, so live P80 coverage and MAE are measured on the copilot's own predictions</td>
+</tr>
+<tr>
+<td>User feedback on an evidence item (useful / not relevant / wrong)</td>
+<td>immediate</td>
+<td>retrieval evaluation set; "wrong" items go to curator review; repeat offenders are down-weighted</td>
+</tr>
+<tr>
+<td>Retraining trigger: ≥ 200 newly completed tenders, PSI &gt; 0.2 on a key feature, or live P80 coverage outside [0.70, 0.90]</td>
+<td>weekly check</td>
+<td><code>26_proc_risk_models</code> retrains; quality gate (beats benchmark MAE and P80 coverage in range) → <code>@champion</code> alias</td>
+</tr>
+</tbody>
+</table>
+<p>The Lakeflow Job runs: ingest → build graph → docs and lessons → index sync → monitor → <em>(condition)</em> retrain →
+gate. This is the same pattern as the existing assistant's job, where deployment happens only if evaluation passes.</p>
+<h3>5.2 Phased pilot rollout</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Duration</th>
+<th>Scope</th>
+<th>Exit criteria</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0 Data foundation</td>
+<td>4-6 weeks</td>
+<td>all public sources for one region; entity resolution review queue; benchmarks dashboard</td>
+<td>link rates at targets (§5.3); data contracts green for 4 weeks</td>
+</tr>
+<tr>
+<td>1 Pilot</td>
+<td>8-10 weeks</td>
+<td>2-3 country health programmes buying laboratory and diagnostic equipment, about 20 procurement specialists, TTLs and biomedical engineers; chatbot and briefs in the planning step (procurement plan review, specification drafting)</td>
+<td>faithfulness ≥ 99%; P80 coverage 0.75-0.85; ≥ 60% weekly active; usefulness ≥ 70%</td>
+</tr>
+<tr>
+<td>2 Scale</td>
+<td>3-4 months</td>
+<td>all health goods, then other domains through the same scope configuration; internal sources (STEP procurement tracking, contract amendments, internal ISR notes); early-warning alerts</td>
+<td>KPI improvements vs matched control units (below)</td>
+</tr>
+<tr>
+<td>3 Institutionalise</td>
+<td>ongoing</td>
+<td>integrate into the operations portal and procurement plan workflow; IEG thematic studies feed lessons; quarterly model review</td>
+<td>governance sign-off; cost per brief within budget</td>
+</tr>
+</tbody>
+</table>
+<p>Evaluation design: pilot units are compared with <strong>matched control units</strong> (same region, similar portfolio) on the
+same KPIs, before and after, which gives a difference-in-differences estimate of impact.</p>
+<h3>5.3 KPIs</h3>
+<table>
+<thead>
+<tr>
+<th>Family</th>
+<th>KPI</th>
+<th>Target (pilot)</th>
+<th>Prototype baseline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Decision impact</td>
+<td>Procurement-plan preparation time per package</td>
+<td>-30%</td>
+<td>measure in Phase 0 (time-and-motion)</td>
+</tr>
+<tr>
+<td>Decision impact</td>
+<td>Share of packages awarded by their planned date (schedule realism)</td>
+<td>+20 pp</td>
+<td>P80 coverage on held-out briefs 0.64</td>
+</tr>
+<tr>
+<td>Decision impact</td>
+<td>Re-tender rate in pilot units</td>
+<td>-15%</td>
+<td>0.1% of tenders (demo countries)</td>
+</tr>
+<tr>
+<td>Decision impact</td>
+<td>Single-bid rate (competitive methods)</td>
+<td>-10%</td>
+<td>28% in the latest period</td>
+</tr>
+<tr>
+<td>AI quality</td>
+<td>Retrieval precision@5 / recall@20 on the labelled risk-factor set</td>
+<td>≥ 0.7 / ≥ 0.6</td>
+<td>0.75 / 0.71 (proxy labels)</td>
+</tr>
+<tr>
+<td>AI quality</td>
+<td>Statements shown with valid citations</td>
+<td>100%</td>
+<td>99%</td>
+</tr>
+<tr>
+<td>AI quality</td>
+<td>Injected-hallucination catch rate (red team)</td>
+<td>≥ 99%</td>
+<td>99.2%</td>
+</tr>
+<tr>
+<td>AI quality</td>
+<td>P80 coverage on realised awards</td>
+<td>0.75-0.85</td>
+<td>0.76 (backtest) · 0.64 (briefs)</td>
+</tr>
+<tr>
+<td>AI quality</td>
+<td>Cycle-time MAE vs benchmark-only</td>
+<td>≥ 10% better</td>
+<td>17% better (47 vs 56 days)</td>
+</tr>
+<tr>
+<td>Data</td>
+<td>Contract → tender link rate; documents linked to transacting projects</td>
+<td>≥ 80% (with internal data); 100%</td>
+<td>67% (public data only); 100%</td>
+</tr>
+<tr>
+<td>Adoption</td>
+<td>Weekly active users / pilot users; briefs per new package; evidence usefulness rate</td>
+<td>≥ 60%; ≥ 1; ≥ 70%</td>
+<td>-</td>
+</tr>
+<tr>
+<td>Operations</td>
+<td>Data freshness (notice → available); p95 brief latency; cost per brief</td>
+<td>&lt; 24 h; &lt; 20 s; tracked</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>6. Risks and mitigations</h2>
+<table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Public data gaps (no amendments, partial notices, no internal notes)</td>
+<td>proxies flagged as such; Phase 2 adds internal systems through the same Bronze contracts</td>
+</tr>
+<tr>
+<td>Over-reliance on a model number</td>
+<td>the brief always shows the benchmark, <code>n</code>, the P80 and validation coverage; abstains when evidence is thin</td>
+</tr>
+<tr>
+<td>Bias toward data-rich countries</td>
+<td>hierarchical fallback with <code>n</code> shown; per-country error monitoring; pooled priors for thin cells</td>
+</tr>
+<tr>
+<td>Confidential documents (Official Use Only)</td>
+<td>Unity Catalog grants per document classification; the copilot runs as a service principal with least privilege; audit of every access</td>
+</tr>
+<tr>
+<td>Supplier name resolution errors</td>
+<td>confidence on every edge; review queue; human-confirmed decisions reused</td>
+</tr>
+<tr>
+<td>LLM drift or provider change</td>
+<td>the LLM only rephrases; facts come from tools and the verifier; endpoints are swappable</td>
+</tr>
+<tr>
+<td>Cost of embedding large corpora</td>
+<td>CDF-incremental sync; embed narrative chunks only; tables summarised</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>7. Prototype: what was built and measured</h2>
+<p>All figures below come from <code>procurement_demo/output/eval_results.json</code>, produced by
+<code>python -m procurement_demo.run_all</code> on public World Bank data downloaded on 22 October 2026.</p>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scope</td>
+<td>Medical laboratory and diagnostic equipment in World Bank-financed health projects; FY2015+; 14,613 health-goods contract rows (2,220 lab and diagnostic) in 91 countries; 10,403 tenders; 179 projects; 131 reports</td>
+</tr>
+<tr>
+<td>Chatbot</td>
+<td>route accuracy 100%; exact answers 6/6; 100% cited; 0.06 s per question</td>
+</tr>
+<tr>
+<td>Entity resolution</td>
+<td>contract→tender 67%; contract→project 100%; 7,835 supplier names → 7,540 suppliers</td>
+</tr>
+<tr>
+<td>Knowledge graph</td>
+<td>115,327 typed edges with method and confidence</td>
+</tr>
+<tr>
+<td>Documents</td>
+<td>6,187 section-aware chunks; 150 lessons (98% quote-verified); 34 projects with rating trajectories, 8 conflicts resolved</td>
+</tr>
+<tr>
+<td>Timeline</td>
+<td>MAE 47 d vs 56 d benchmark; P80 coverage 0.76</td>
+</tr>
+<tr>
+<td>Risk</td>
+<td>single-bid AUC 0.67; re-tender not trained (too few positive cases); amendment proxy AUC 0.55</td>
+</tr>
+<tr>
+<td>Retrieval</td>
+<td>precision@5 0.75; project self-retrieval hit@10 88%</td>
+</tr>
+<tr>
+<td>Guardrails</td>
+<td>100% cited; 124/125 injected hallucinations blocked</td>
+</tr>
+</tbody>
+</table>
+<p>The full results page with the example brief and its evidence is <code>procurement_demo/output/prototype_report.html</code>.</p>
+<p><strong>Not yet demonstrated:</strong> LLM-based lesson extraction and LLM rewriting run only in the Databricks notebooks (24, 28), which are written but could not be executed here because new job runs on the trial workspace were disabled. The local prototype uses rule-based extraction and a deterministic composer, which the same verifier gates. Supplier performance, disbursement-lag warnings and contract amendments need non-public or Phase 2 data.</p>
+<p><strong>Two implementations, one core.</strong> The parsing, entity-resolution, censoring-aware benchmark, conflict-resolution and
+verifier code lives in <code>notebooks/20_proc_lib.py</code>. The Databricks notebooks (<code>%run ./20_proc_lib</code>) and the local
+prototype (<code>procurement_demo/</code>) both use it, and it is unit-tested against real notices, an ISR and an ICR
+(<code>python src/test_proc_lib.py</code>).</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Databricks (production path)</th>
+<th>Local prototype (verified)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ingestion</td>
+<td><code>21_ingest_procurement</code>, <code>22_ingest_project_docs</code></td>
+<td><code>procurement_demo/ingest.py</code></td>
+</tr>
+<tr>
+<td>Silver / Gold, entity resolution, graph</td>
+<td><code>23_proc_silver_gold</code></td>
+<td><code>build.py</code></td>
+</tr>
+<tr>
+<td>Document structure, lessons, ratings</td>
+<td><code>24_proc_docs_lessons</code> (LLM extraction + quote check)</td>
+<td><code>build.py</code> (rule-based extraction + quote check)</td>
+</tr>
+<tr>
+<td>Vector index</td>
+<td><code>25_proc_vector_index</code> (hybrid Vector Search)</td>
+<td><code>retrieval.py</code> (BM25 + filters + RRF)</td>
+</tr>
+<tr>
+<td>Models</td>
+<td><code>26_proc_risk_models</code> (MLflow, UC registry, champion gate)</td>
+<td><code>models.py</code></td>
+</tr>
+<tr>
+<td>Tools / copilot</td>
+<td><code>27_proc_tools</code>, <code>28_proc_copilot</code></td>
+<td><code>copilot.py</code></td>
+</tr>
+<tr>
+<td>Chatbot</td>
+<td>Databricks App over the same UC functions</td>
+<td><code>chatbot.py</code> + <code>app.py</code> (Streamlit)</td>
+</tr>
+<tr>
+<td>Monitoring, job</td>
+<td><code>29_proc_monitor_job</code></td>
+<td><code>evaluate.py</code></td>
+</tr>
+</tbody>
+</table>
+<h2>Appendix A: Glossary</h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IFB / REOI</td>
+<td>Invitation for Bids / Request for Expressions of Interest: the notice that starts a tender</td>
+</tr>
+<tr>
+<td>RFB, RFQ, QCBS, CQS, INDV</td>
+<td>Request for Bids, Request for Quotations, Quality- and Cost-Based Selection, Consultant Qualification Selection, Individual consultant</td>
+</tr>
+<tr>
+<td>Prior / post review</td>
+<td>Bank reviews the procurement before (prior) or after (post) the award, depending on thresholds and risk</td>
+</tr>
+<tr>
+<td>PAD, ISR, ICR, PPAR, ICRR</td>
+<td>Project Appraisal Document; Implementation Status and Results Report; Implementation Completion and Results Report; IEG Project Performance Assessment Report; IEG ICR Review</td>
+</tr>
+<tr>
+<td>DO / IP rating</td>
+<td>Development Objective / Implementation Progress rating (Highly Satisfactory … Highly Unsatisfactory)</td>
+</tr>
+<tr>
+<td>CPIA / WGI</td>
+<td>Country Policy and Institutional Assessment (1-6) / Worldwide Governance Indicators (about -2.5 to 2.5)</td>
+</tr>
+<tr>
+<td>Censored observation</td>
+<td>a tender still open at the data cut: its duration is at least its current age</td>
+</tr>
+<tr>
+<td>P50 / P80</td>
+<td>the duration within which 50% / 80% of comparable tenders are awarded</td>
+</tr>
+<tr>
+<td>PCR, GeneXpert</td>
+<td>polymerase chain reaction (molecular testing); a cartridge-based molecular platform widely used for TB and COVID-19</td>
+</tr>
+<tr>
+<td>Closed system</td>
+<td>an analyzer that only runs its manufacturer's reagents or cartridges</td>
+</tr>
+<tr>
+<td>LIMS, BSL</td>
+<td>laboratory information management system; biosafety level of a laboratory</td>
+</tr>
+</tbody>
+</table></body></html>

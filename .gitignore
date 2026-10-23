@@ -1,0 +1,33 @@
+# Personal presentation notes (kept local)
+docs/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+
+# Local MLflow runs and environment files
+mlruns/
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# local tool settings (machine-specific paths)
+.claude/
+
+# procurement prototype data: keep the processed lab-diagnostics tables and the country list; the raw downloads,
+# PDFs and the other scopes are rebuilt by `python -m procurement_demo.run_all`
+procurement_demo/data/*
+!procurement_demo/data/countries.json
+!procurement_demo/data/health_lab/
+procurement_demo/data/health_lab/*
+!procurement_demo/data/health_lab/gold/
+procurement_demo/output/*
+!procurement_demo/output/health_lab/
