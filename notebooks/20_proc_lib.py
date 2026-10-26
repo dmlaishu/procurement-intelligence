@@ -653,3 +653,103 @@ def parse_ppar_rating(text):
     """IEG Project Performance Assessment Report: the outcome rating from its ratings table, or None."""
     m = _re.search(rf"\bOutcome\b[^\n]{{0,40}}?\b{_RATING_WORDS}", (text or "")[:30000])
     return m.group(1) if m else None
+
+
+# ── Document Q&A (RAG): categories and answer sentences ───────────────────────────────────────────
+# Shared by procurement_rag/ (local, ChromaDB) and notebooks 30-34 (Databricks, Vector Search).
+# Passage categories: the ten lab and diagnostic types plus the procurement process. Report text is noisier than
+# contract descriptions ("CT" is also HIV counselling and testing; PDF extraction splits words, "proje ct"), so CT and
+# C-arm must appear as imaging terms.
+RAG_CATEGORIES = {name: pat for name, pat in ITEM_TYPES_LAB[:10]}
+RAG_CATEGORIES["Diagnostic imaging"] = (RAG_CATEGORIES["Diagnostic imaging"]
+                                        .replace(r"\bCT\b", r"\bCT[- ]?(scan|scanner|machine)s?\b")
+                                        .replace(r"c-?arm", r"\bC-arm\b"))
+RAG_CATEGORIES["Procurement process and contracts"] = (r"procure|tender|bidding|bidder|contract award|contract(s|or)? |"
+                                                        r"supplier|request for (bids|quotations|proposals)|no objection")
+
+
+def rag_category_key(name):
+    """Column / metadata name for a category: 'Molecular diagnostics (PCR, GeneXpert)' → 'cat_molecular_diagnostics_pcr_genexpert'."""
+    return "cat_" + _re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+
+
+def rag_tags(text):
+    """{category column: 1/0} for one passage."""
+    return {rag_category_key(n): int(bool(_re.search(p, text or "", _re.I))) for n, p in RAG_CATEGORIES.items()}
+
+
+_RAG_SENT = _re.compile(r"(?<=[.!?])\s+(?=[A-Z(\"“])")
+_RAG_NOT_SENTENCE = _re.compile(r"^(annex|table|figure|section|chapter|page|source|note)\b|et al\.|\(\d{4}\)|\bdoi\b|"
+                                r"journal|plos|health affairs|lancet", _re.I)       # headings and bibliography entries
+_RAG_STOP = set("a an and are as at be by for from has have in is it its of on or that the this to was were will with which "
+                "their there been not but they into than these those also such other more most only over under per any all "
+                "each project projects bank world what how does did do why when where who".split())
+
+
+def rag_tokens(text):
+    out = []
+    for w in _re.findall(r"[a-z][a-z0-9\-]{1,}", (text or "").lower()):
+        if w in _RAG_STOP:
+            continue
+        for suf, rep in (("ies", "y"), ("ing", ""), ("ed", ""), ("es", ""), ("s", "")):
+            if len(w) > len(suf) + 3 and w.endswith(suf):
+                w = w[: -len(suf)] + rep
+                break
+        out.append(w)
+    return out
+
+
+def rag_clean_sentence(sent):
+    sent = sent.replace("\ufffd", " ").strip()
+    sent = _re.sub(r"^\(?[0-9ivx]{1,4}[.)]\s+", "", sent)          # leading paragraph number "12. " / "(iii) "
+    sent = _re.sub(r"\s+\d{1,3}\.$", ".", sent)                      # trailing number of the next paragraph
+    return " ".join(sent.split())
+
+
+def rag_candidate_sentences(sources, category=None, max_sources=6):
+    """[(source id, sentence)] that can stand alone as an answer sentence: complete, not a heading, table row,
+    bibliography entry or fragment, and (with a category selected) mentioning that category."""
+    cat_re = _re.compile(RAG_CATEGORIES[category], _re.I) if category else None
+    out = []
+    for s in sources[:max_sources]:
+        for sent in _RAG_SENT.split(s["text"]):
+            sent = rag_clean_sentence(sent)
+            words = sent.split()
+            digits = sum(ch.isdigit() for ch in sent)
+            numbers = sum(bool(_re.fullmatch(r"[\d.,%()-]+", w)) for w in words)
+            if (8 <= len(words) <= 70 and digits < len(sent) * 0.15 and numbers <= 3
+                    and not _RAG_NOT_SENTENCE.search(sent) and not _re.match(r"^[a-z]", sent)
+                    and _re.search(r"[.!?)\"”]$", sent) and (cat_re is None or cat_re.search(sent))):
+                out.append((s["id"], sent))
+    return out
+
+
+def _unit(v):
+    n = _math.sqrt(sum(x * x for x in v)) or 1.0
+    return [x / n for x in v]
+
+
+def rag_pick_sentences(question, question_vec, cands, cand_vecs, max_sentences=4, min_sim=0.55,
+                       min_sim_no_overlap=0.70, max_duplicate=0.90, per_source=2):
+    """Choose the answer sentences: closest in meaning to the question (cosine of the embeddings), a higher bar for
+    sentences sharing no content word with the question, at most two per source, near-duplicates dropped
+    (the same statement repeated in an original and an additional-financing document)."""
+    q = _unit(question_vec)
+    units = [_unit(v) for v in cand_vecs]
+    qt = set(rag_tokens(question))
+    sims = [sum(a * b for a, b in zip(u, q)) for u in units]
+    overlap = [len(qt & set(rag_tokens(c[1]))) for c in cands]
+    order = sorted(range(len(cands)), key=lambda i: -(sims[i] + 0.01 * overlap[i]))
+    out, per, chosen = [], {}, []
+    for i in order:
+        sid, sent = cands[i]
+        if sims[i] < (min_sim if overlap[i] else min_sim_no_overlap) or per.get(sid, 0) >= per_source:
+            continue
+        if any(sum(a * b for a, b in zip(units[i], units[j])) > max_duplicate for j in chosen):
+            continue
+        per[sid] = per.get(sid, 0) + 1
+        chosen.append(i)
+        out.append({"text": sent, "source": sid, "similarity": round(sims[i], 3)})
+        if len(out) >= max_sentences:
+            break
+    return out

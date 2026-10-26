@@ -58,6 +58,26 @@ PROC_DEMO_PACKAGE = {
     "contract_usd": 2_500_000,
 }
 
+# ── Document Q&A by country (notebooks 30-34) ──
+# Countries live in the table ops.rag_countries (notebook 30); these defaults apply to every country.
+RAG_DEFAULTS = {
+    "min_approval_year": 2005,
+    "project_keywords": ["laboratory", "diagnostic", "disease surveillance", "tuberculosis", "pandemic preparedness"],
+    "health_pattern": r"health|disease|tuberculosis|covid|pandemic|laborator|diagnost|hiv|aids|malaria|immuni|surveillance|medical|hospital",
+    "doc_types": {"Project Appraisal Document": ("PAD", 1), "Project Paper": ("PPR", 1), "Procurement Plan": ("PP", 2),
+                  "Implementation Status and Results Report": ("ISR", 1),
+                  "Implementation Completion and Results Report": ("ICR", 1),
+                  "Implementation Completion Report Review": ("ICRR", 1),
+                  "Project Performance Assessment Report": ("PPAR", 1)},       # docty → (code, newest N per project)
+    "max_projects": 12,
+    "max_docs": 60,
+}
+RAG_SEED_COUNTRIES = [("KEN", "KE", "Kenya", ["P111556"]), ("IND", "IN", "India", [])]   # iso3, iso2, name, pinned projects
+# Answer sentences must be at least this close in meaning to the question (cosine of databricks-gte-large-en
+# embeddings). Starting values: check them with the evaluation cell in 34_rag_ask on the first run.
+RAG_MIN_SIM = 0.70
+RAG_MIN_SIM_NO_OVERLAP = 0.80
+
 # ── Models, search and serving (Databricks-hosted Foundation Model APIs) ──
 LLM_ENDPOINT = "databricks-meta-llama-3-3-70b-instruct"   # replaced by an available chat endpoint if missing
 EMBEDDING_ENDPOINT = "databricks-gte-large-en"
@@ -80,12 +100,15 @@ CATALOG = _ensure_catalog()
 for _s, _c in SCHEMAS.items():
     spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{_s} COMMENT '{_c}'")
 spark.sql(f"CREATE VOLUME IF NOT EXISTS {CATALOG}.bronze.raw_docs COMMENT 'Project PDFs (PAD, ISR, ICR, ICR Review, PPAR, procurement plans)'")
+spark.sql(f"CREATE VOLUME IF NOT EXISTS {CATALOG}.bronze.rag_docs COMMENT 'Document Q&A PDFs, organised as <country>/<doc type>/<doc id>.pdf'")
 spark.sql(f"""CREATE TABLE IF NOT EXISTS {CATALOG}.ops.app_logs (event_ts TIMESTAMP, run_id STRING, component STRING,
               level STRING, event STRING, details STRING) COMMENT 'Structured run events from every procurement notebook'""")
 spark.sql(f"USE CATALOG {CATALOG}")
 
 RAW_DOCS_PATH = f"/Volumes/{CATALOG}/bronze/raw_docs"
 PROC_VS_INDEX = f"{CATALOG}.ai.proj_doc_chunks_index"
+RAG_DOCS_PATH = f"/Volumes/{CATALOG}/bronze/rag_docs"
+RAG_INDEX = f"{CATALOG}.ai.rag_chunks_index"
 PROC_MODEL_PREFIX = f"{CATALOG}.ai.proc_"          # proc_cycle_p50, proc_cycle_p80, proc_single_bid, proc_rebid, proc_amendment
 
 

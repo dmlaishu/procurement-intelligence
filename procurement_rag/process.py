@@ -9,7 +9,7 @@ import re
 
 import pandas as pd
 
-from .config import CATEGORIES, category_key, country_dir, lib
+from .config import country_dir, lib
 
 _SURROGATES = re.compile(r"[\ud800-\udfff]")
 
@@ -28,7 +28,7 @@ def extract_pages(pdf_path):
 
 
 def tag(text):
-    return {category_key(name): bool(re.search(pat, text, re.I)) for name, pat in CATEGORIES.items()}
+    return {k: bool(v) for k, v in lib.rag_tags(text).items()}
 
 
 def process_country(iso3):

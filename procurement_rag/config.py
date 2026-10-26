@@ -7,7 +7,6 @@ documents, how many) comes from the shared defaults, so a new country is one ent
 """
 import importlib.util
 import json
-import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -22,21 +21,10 @@ _spec = importlib.util.spec_from_file_location("proc_lib", ROOT / "notebooks" / 
 lib = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(lib)
 
-# Categories for the dropdown: the ten lab and diagnostic equipment types from the shared taxonomy, plus the
-# procurement process itself (plans, bidding, contracts). A chunk can belong to several.
-CATEGORIES = {name: pat for name, pat in lib.ITEM_TYPES_LAB[:10]}
-# Report text is noisier than contract descriptions: "CT" also means HIV counselling and testing, and PDF extraction
-# splits words ("proje ct"), so for passages CT and C-arm must appear as imaging terms.
-CATEGORIES["Diagnostic imaging"] = (CATEGORIES["Diagnostic imaging"]
-                                    .replace(r"\bCT\b", r"\bCT[- ]?(scan|scanner|machine)s?\b")
-                                    .replace(r"c-?arm", r"\bC-arm\b"))
-CATEGORIES["Procurement process and contracts"] = (r"procure|tender|bidding|bidder|contract award|contract(s|or)? |"
-                                                    r"supplier|request for (bids|quotations|proposals)|no objection")
-
-
-def category_key(name):
-    """Metadata field for a category, e.g. 'Molecular diagnostics (PCR, GeneXpert)' → 'cat_molecular_diagnostics_pcr_genexpert'."""
-    return "cat_" + re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+# Categories for the dropdown (ten lab and diagnostic equipment types + the procurement process) and their metadata
+# column names live in 20_proc_lib, so the Databricks notebooks tag passages exactly the same way.
+CATEGORIES = lib.RAG_CATEGORIES
+category_key = lib.rag_category_key
 
 
 def load_registry():

@@ -61,6 +61,25 @@ python -m procurement_rag.pipeline --countries NGA        # builds Nigeria only
 
 To pin extra projects, or change how many documents per type are kept, edit `countries.json`.
 
+## On Databricks (notebooks 30-34)
+
+The same pipeline as notebooks, with Databricks storage and search. The category rules and the answer-sentence rules
+are shared through `notebooks/20_proc_lib.py`, so both versions tag and answer the same way.
+
+| Notebook | Local equivalent | Databricks |
+|---|---|---|
+| `30_rag_registry` | `countries.json`, `--add-country` | table `ops.rag_countries`; widget `add_country` (ISO-3) and `pin_projects` |
+| `31_rag_fetch` | `fetch.py` | PDFs in the volume `bronze/rag_docs/<country>/<doc type>/<doc id>.pdf`; manifest `bronze.rag_documents` |
+| `32_rag_process` | `process.py` | `silver.rag_pages` (text per page, parsed once), `gold.rag_chunks` (Delta, Change Data Feed, 1/0 category columns) |
+| `33_rag_index` | `index.py` | Vector Search Delta Sync index `ai.rag_chunks_index` (managed `databricks-gte-large-en` embeddings, incremental), job `proc_rag_pipeline` with a `countries` parameter |
+| `34_rag_ask` | `search.py` + the app tab | dropdown widgets for country, category and answer style, a question box, the answer with its sources, and the evaluation questions |
+
+Run order: `00_proc_config`, then 30, then 31, 32 and 33 with `countries = KEN,IND`, then 34. New country: 30 with
+`add_country = NGA`, then the `proc_rag_pipeline` job with `countries = NGA`.
+
+The similarity thresholds in `00_proc_config` (`RAG_MIN_SIM`) are starting values for the `databricks-gte-large-en`
+embeddings, which score differently from the local model; check them with the evaluation cell in 34 on the first run.
+
 ## Current index
 
 | Country | Projects | Documents | Passages |

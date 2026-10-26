@@ -16,18 +16,14 @@ import numpy as np
 import pandas as pd
 import requests
 
-from procurement_demo.retrieval import BM25, rrf, tokens
+from procurement_demo.retrieval import BM25, rrf
 
-from .config import CATEGORIES, category_key, country_dir, lib, load_registry
+from .config import category_key, country_dir, lib, load_registry
 from .index import collection, embed_passages, embed_query
 
-_SENT = re.compile(r"(?<=[.!?])\s+(?=[A-Z(\"“])")
-_NOT_A_SENTENCE = re.compile(r"^(annex|table|figure|section|chapter|page|source|note)\b|et al\.|\(\d{4}\)|\bdoi\b|"
-                             r"journal|plos|health affairs|lancet", re.I)       # headings and bibliography entries
-_FRAGMENT = re.compile(r"^[a-z]")          # starts mid-sentence (a chunk boundary)
-MIN_SIMILARITY = 0.55          # sentence shares words with the question
-MIN_SIMILARITY_NO_OVERLAP = 0.70   # sentence shares no content word with the question: must be much closer in meaning
-MAX_DUPLICATE_SIMILARITY = 0.90
+# Thresholds calibrated for BAAI/bge-small-en-v1.5 on the Kenya / India evaluation set
+MIN_SIMILARITY = 0.55              # sentence shares a content word with the question
+MIN_SIMILARITY_NO_OVERLAP = 0.70   # shares none: must be much closer in meaning
 
 
 class DocSearch:
@@ -97,50 +93,15 @@ class DocSearch:
         return extractive(question, qv, sources, name, max_sentences, category)
 
 
-def clean_sentence(sent):
-    sent = sent.replace("\ufffd", " ").strip()
-    sent = re.sub(r"^\(?[0-9ivx]{1,4}[.)]\s+", "", sent)          # leading paragraph number "12. " / "(iii) "
-    sent = re.sub(r"\s+\d{1,3}\.$", ".", sent)                      # trailing paragraph number of the next paragraph
-    return " ".join(sent.split())
-
-
 def extractive(question, qv, sources, country_name, max_sentences=4, category=None):
     """The sentences from the retrieved passages that are closest in meaning to the question, each with its source.
-    With a category selected, a sentence must itself mention that category."""
-    cat_re = re.compile(CATEGORIES[category], re.I) if category else None
-    cands = []
-    for s in sources[:6]:
-        for sent in _SENT.split(s["text"]):
-            sent = clean_sentence(sent)
-            words = sent.split()
-            digits = sum(ch.isdigit() for ch in sent)
-            numbers = sum(bool(re.fullmatch(r"[\d.,%()-]+", w)) for w in words)      # table rows read as text
-            if (8 <= len(words) <= 70 and digits < len(sent) * 0.15 and numbers <= 3
-                    and not _NOT_A_SENTENCE.search(sent) and not _FRAGMENT.match(sent)
-                    and re.search(r"[.!?)\"”]$", sent)                      # cut at a passage boundary otherwise
-                    and (cat_re is None or cat_re.search(sent))):
-                cands.append((s["id"], sent))
+    With a category selected, a sentence must itself mention that category. Rules: 20_proc_lib (rag_*)."""
+    cands = lib.rag_candidate_sentences(sources, category)
     if not cands:
-        return {"answer": [], "sources": sources, "note": "The closest passages are below."}
+        return {"answer": [], "sources": sources, "note": "The closest passages are below.", "method": "extractive"}
     vecs = embed_passages([c[1] for c in cands])
-    sims = vecs @ qv / (np.linalg.norm(vecs, axis=1) * np.linalg.norm(qv) + 1e-9)
-    qt = set(tokens(question))
-    overlap = np.array([len(qt & set(tokens(c[1]))) for c in cands])
-    score = sims + 0.01 * overlap
-    unit = vecs / (np.linalg.norm(vecs, axis=1, keepdims=True) + 1e-9)
-    out, per, chosen = [], {}, []
-    for i in np.argsort(-score):
-        sid, sent = cands[i]
-        floor = MIN_SIMILARITY if overlap[i] else MIN_SIMILARITY_NO_OVERLAP
-        if sims[i] < floor or per.get(sid, 0) >= 2:
-            continue
-        if chosen and max(float(unit[i] @ unit[j]) for j in chosen) > MAX_DUPLICATE_SIMILARITY:
-            continue                       # same statement repeated in another document (e.g. original and additional financing)
-        per[sid] = per.get(sid, 0) + 1
-        chosen.append(i)
-        out.append({"text": sent, "source": sid, "similarity": round(float(sims[i]), 3)})
-        if len(out) >= max_sentences:
-            break
+    out = lib.rag_pick_sentences(question, qv.tolist(), cands, vecs.tolist(), max_sentences,
+                                 MIN_SIMILARITY, MIN_SIMILARITY_NO_OVERLAP)
     note = None if out else (f"The {country_name} documents don't answer this directly"
                              + (f" for {category}" if category else "") + ". The closest passages are below.")
     used = {o["source"] for o in out}

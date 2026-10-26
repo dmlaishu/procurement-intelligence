@@ -83,6 +83,12 @@ notebooks/26_proc_risk_models      Kaplan-Meier benchmarks, quantile + risk mode
 notebooks/27_proc_tools            UC function tools for the copilot
 notebooks/28_proc_copilot          evidence registry → compose → verify → brief; briefs and feedback logged
 notebooks/29_proc_monitor_job      drift / retrain triggers, KPI view, Lakeflow Job
+notebooks/30_rag_registry          document Q&A: country registry (ops.rag_countries), add a country
+notebooks/31_rag_fetch             document Q&A: per-country PDFs → volume rag_docs/<country>/<doc type>/, manifest table
+notebooks/32_rag_process           document Q&A: pages → section-aware passages with category columns (gold.rag_chunks)
+notebooks/33_rag_index             document Q&A: Vector Search index ai.rag_chunks_index, job proc_rag_pipeline
+notebooks/34_rag_ask               document Q&A: country / category dropdowns, question, cited answer, evaluation
+procurement_rag/                   document Q&A, local version (ChromaDB), used by the chatbot's "Ask the documents" tab
 src/                               document builders, chatbot web page (src/web_chatbot/), tests
 deliverables/                      the four deliverables, the chatbot website and its source data
 ```
@@ -113,6 +119,14 @@ Works on Databricks Free Edition (serverless). Everything is created in its own 
    | `27_proc_tools` | UC function tools | 1 min |
    | `28_proc_copilot` | a cited brief for a PCR / GeneXpert tender in Kenya | 2 min |
    | `29_proc_monitor_job` | monitoring views and the `proc_lab_pipeline` job (schedule paused) | 1 min |
+   | `30_rag_registry` | document Q&A: countries table, seeded with Kenya and India | 1 min |
+   | `31_rag_fetch` | about 85 PDFs for Kenya and India into the `rag_docs` volume | 5-10 min |
+   | `32_rag_process` | page text and tagged passages (`gold.rag_chunks`) | 5 min |
+   | `33_rag_index` | Vector Search index on the passages, and the `proc_rag_pipeline` job | 10-20 min |
+   | `34_rag_ask` | dropdowns for country and category, ask a question, see the answer and sources | 1 min |
+
+   The document Q&A (30-34) can also run on its own after `00_proc_config`: without Step 23 it selects projects by
+   keyword and pinned ids only.
 
 4. Query the results in the SQL editor, for example:
 
