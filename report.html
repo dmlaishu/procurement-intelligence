@@ -1,0 +1,1538 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>html{-webkit-text-size-adjust:100%}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Lab Diagnostics Procurement Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&family=Spectral:wght@500;600&display=swap">
+<style>
+/* Layout: one reading column (about 72ch) with full-width bands for the figures strip, chart and diagram. */
+:root {
+  --paper: #f5f7f8; --sheet: #ffffff; --ink: #18232b; --muted: #55656f; --line: #d6dee2;
+  --accent: #0b6e69; --accent-soft: #dcefed; --flag: #9a5b00; --code: #eef2f4;
+  --display: "Spectral", Georgia, "Times New Roman", serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #10171b; --sheet: #172127; --ink: #e3eaee; --muted: #9aaab3; --line: #2b3a42;
+  --accent: #4fc2b8; --accent-soft: #173733; --flag: #e3a84a; --code: #1d2a31; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #10171b; --sheet: #172127; --ink: #e3eaee; --muted: #9aaab3; --line: #2b3a42;
+  --accent: #4fc2b8; --accent-soft: #173733; --flag: #e3a84a; --code: #1d2a31; color-scheme: dark }
+body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.page { max-width: 980px; margin: 0 auto; padding-block: 40px 64px; }
+.col { max-width: 72ch; }
+header.top { display: grid; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--display); font-weight: 600; font-size: clamp(30px, 5vw, 46px); line-height: 1.1; margin: 0; text-wrap: balance; }
+.lede { font-size: 18px; color: var(--muted); margin: 0; max-width: 64ch; }
+.figures { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line);
+  border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin: 28px 0 8px; }
+.figures div { background: var(--sheet); padding: 14px 16px; display: grid; gap: 2px; }
+.figures b { font-family: var(--mono); font-size: 24px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.figures span { font-size: 13px; color: var(--muted); }
+@media (max-width: 640px) { .figures { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+nav.toc { margin: 28px 0 8px; display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 14px; }
+nav.toc a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+nav.toc a:hover, nav.toc a:focus-visible { border-bottom-color: var(--accent); outline: none; }
+.deliv { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+.deliv div { border: 1px solid var(--line); background: var(--sheet); border-radius: 6px; padding: 14px 16px; min-width: 0; }
+.deliv b { display: block; font-family: var(--display); font-size: 19px; margin-bottom: 4px; }
+.deliv p { margin: 0; font-size: 14px; color: var(--muted); }
+.deliv code { font-size: 12px; }
+@media (max-width: 640px) { .deliv { grid-template-columns: 1fr; } }
+main h2 { font-family: var(--display); font-weight: 600; font-size: 28px; line-height: 1.2; margin: 48px 0 12px;
+  padding-top: 16px; border-top: 1px solid var(--line); text-wrap: balance; }
+main h3 { font-family: var(--display); font-weight: 600; font-size: 21px; margin: 32px 0 8px; }
+main h4 { font-size: 15px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 22px 0 6px; }
+main p, main ul, main ol { max-width: 72ch; }
+main li { margin: 4px 0; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 13px; background: var(--code); padding: 1px 5px; border-radius: 3px; }
+pre { background: var(--code); padding: 12px 14px; border-radius: 6px; overflow-x: auto; }
+pre code { padding: 0; background: none; }
+.tbl { overflow-x: auto; margin: 14px 0; border: 1px solid var(--line); border-radius: 6px; background: var(--sheet); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; vertical-align: top; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; background: var(--code); }
+tr:last-child td { border-bottom: 0; }
+blockquote { margin: 14px 0; padding: 10px 16px; border-left: 3px solid var(--accent); background: var(--accent-soft);
+  border-radius: 0 6px 6px 0; max-width: 80ch; }
+blockquote p { margin: 6px 0; }
+.chart { display: grid; gap: 8px; margin: 18px 0 6px; }
+.bar { display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr) 6.5rem; gap: 12px; align-items: center; font-size: 14px; }
+.bar .lab { overflow-wrap: anywhere; }
+.bar .track { height: 12px; background: var(--code); border-radius: 2px; }
+.bar .fill { height: 100%; background: var(--accent); border-radius: 2px; }
+.bar .val { font-family: var(--mono); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) { .bar { grid-template-columns: minmax(0, 1fr) 5.5rem; } .bar .track { grid-column: 1 / -1; order: 3; } }
+.caption { font-size: 13px; color: var(--muted); }
+.diagram { overflow-x: auto; background: #ffffff; border: 1px solid var(--line); border-radius: 6px; padding: 12px; margin: 14px 0; }
+.diagram svg { min-width: 760px; width: 100%; height: auto; display: block; }
+footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
+@media (prefers-reduced-motion: no-preference) { nav.toc a { transition: border-color .15s; } }
+</style><style>.sitenav{max-width:980px;margin:0 auto;padding-top:14px;font:14px 'IBM Plex Sans',system-ui,sans-serif}.sitenav a{color:var(--accent)}</style>
+</head>
+<body>
+<div class="page"><nav class="sitenav"><a href="index.html">&larr; Ask the procurement assistant</a></nav>
+  <header class="top">
+    <span class="eyebrow">Technical assessment · AI-powered procurement intelligence</span>
+    <h1>Procurement intelligence for laboratory and diagnostic equipment</h1>
+    <p class="lede">Medical laboratory and diagnostic equipment in World Bank-financed health projects: what was built, what the World Bank's public data shows, and what comes next.
+    Report generated 25 October 2026 from a working prototype run on public World Bank data.</p>
+  </header>
+  <div class="figures"><div><b>2,220</b><span>lab and diagnostic contracts</span></div><div><b>US$1.38B</b><span>contract value</span></div><div><b>91</b><span>countries</span></div><div><b>16/16</b><span>chatbot questions routed correctly</span></div></div>
+  <section class="col" aria-labelledby="deliverables">
+    <h2 id="deliverables" style="font-family:var(--display);font-size:24px;margin:32px 0 4px">The four deliverables</h2>
+  </section>
+  <div class="deliv">
+    <div><b>1 · Data model</b><p>How contracts, notices, projects, suppliers, equipment types, governance and evaluation
+      reports connect. The diagram is below; the full dictionary and table definitions are in <code>01_DATA_MODEL.pdf</code>.</p></div>
+    <div><b>2 · Approach</b><p>The technical design for the four assessment modules, the equipment taxonomy and the
+      chatbot, in <code>02_APPROACH.pdf</code>.</p></div>
+    <div><b>3 · Prototype</b><p>The working pipeline and a chatbot that answers with cited evidence. It runs locally:
+      <code>python -m streamlit run procurement_demo/app.py</code></p></div>
+    <div><b>4 · Report</b><p>This page: findings, measured results, limitations and next steps
+      (also as <code>04_REPORT.pdf</code>).</p></div>
+  </div>
+  <nav class="toc" aria-label="Contents"><a href="#1-summary">Summary</a><a href="#2-what-was-built">What was built</a><a href="#3-data-how-the-domain-was-assembled">Data: how the domain was assembled</a><a href="#4-what-the-data-shows-about-laboratory-a">What the data shows about laboratory and diagnostic procurement</a><a href="#5-results-by-module">Results by module</a><a href="#6-the-chatbot">The chatbot</a><a href="#7-example-output-a-brief-for-a-new-packa">Example output: a brief for a new package</a><a href="#8-limitations">Limitations</a><a href="#9-recommendations-and-next-steps">Recommendations and next steps</a><a href="#10-reproducing-these-numbers">Reproducing these numbers</a><a href="#data-model">Data model diagram</a></nav>
+  <main>
+    <div class="tbl"><table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Run date</td>
+<td>22 October 2026</td>
+</tr>
+<tr>
+<td>Domain</td>
+<td>Medical laboratory and diagnostic equipment in World Bank-financed health projects</td>
+</tr>
+<tr>
+<td>Data</td>
+<td>public World Bank APIs only: Major Contract Awards, Procurement Notices, Projects, Documents &amp; Reports, WDI (CPIA, WGI)</td>
+</tr>
+<tr>
+<td>Coverage</td>
+<td>2,220 lab and diagnostic contracts (US$1,375.4M), 91 countries, 179 projects, FY2015 onwards</td>
+</tr>
+<tr>
+<td>Companion deliverables</td>
+<td>1 Data Model · 2 Approach (technical proposal) · 3 Prototype (pipeline + chatbot)</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="1-summary">1. Summary</h2>
+<p>World Bank health projects buy a large amount of laboratory and diagnostic equipment, but the records of what was
+bought, how and why it worked sit in separate places: contract award data, procurement notices, and PDF reports. We
+built a working prototype that connects them for this one domain, across every country. It turns them into answers a
+procurement team can use, through a cited chatbot and package briefs.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Answer from the prototype</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>How big is the domain in public data?</td>
+<td><strong>2,220 contracts worth US$1,375.4M</strong> across 91 countries, 179 projects and 1,277 suppliers, found by classifying 17,058 health-goods contract descriptions in four languages</td>
+</tr>
+<tr>
+<td>Can the silos be joined?</td>
+<td>Yes. <strong>100%</strong> of contracts link to their project and <strong>67%</strong> to their tender; 131 project reports connect through Project ID (115,327 graph links)</td>
+</tr>
+<tr>
+<td>What does the market look like?</td>
+<td>Diagnostic imaging is the largest category (US$451.6M). 53% of value was signed in 2020-2022 (COVID-19). Domestic suppliers took 58% of value; 16 suppliers won in two or more countries</td>
+</tr>
+<tr>
+<td>How long do tenders take?</td>
+<td>Medians from invitation to award range from 90 days (Laboratory analyzers) to 183 days (Biosafety, sterilization and cold chain), censoring-aware</td>
+</tr>
+<tr>
+<td>Is the forecast better than a benchmark?</td>
+<td>Yes. Out-of-time median error <strong>47 days</strong> vs 56 for cohort benchmarks (<strong>17% better</strong>)</td>
+</tr>
+<tr>
+<td>Does the chatbot answer correctly?</td>
+<td>It routed <strong>100%</strong> of 16 labelled questions to the right tool; ranked and aggregate answers matched an independent query in <strong>6 of 6</strong> checks; 100% of statements cited</td>
+</tr>
+<tr>
+<td>Can hallucination be controlled?</td>
+<td>Yes, by design. 100% of 360 brief statements cite evidence; the verifier blocked <strong>124 of 125</strong> deliberately injected false statements</td>
+</tr>
+<tr>
+<td>Are the risk models ready to drive decisions?</td>
+<td>Not yet. Single-bid AUC 0.67; re-tender skipped: not enough positives; award amendment AUC 0.55. Use as indicators only</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="2-what-was-built">2. What was built</h2>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Module (assessment §4)</th>
+<th>Prototype component</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. Ingestion and knowledge representation</td>
+<td>contract-first domain selection, multilingual equipment taxonomy, entity resolution, Gold star schema, knowledge-graph edge table, section-aware PDF chunking</td>
+<td>built and run</td>
+</tr>
+<tr>
+<td>2. Predictive and prescriptive engines</td>
+<td>Kaplan-Meier benchmarks by equipment type, gradient-boosted P50/P80 model, single-bid / re-tender / amendment classifiers, hybrid retrieval, package briefs</td>
+<td>built and run</td>
+</tr>
+<tr>
+<td>2. Retrieval for users</td>
+<td><strong>chatbot</strong> (<code>python -m streamlit run procurement_demo/app.py</code>): SQL for prices, suppliers and spend; benchmarks for timelines; retrieval for lessons; graph diagrams for relationships</td>
+<td>built, run and evaluated</td>
+</tr>
+<tr>
+<td>3. Guardrails and attribution</td>
+<td>evidence registry, verifier (citations, numbers, quotes, pages), rating-conflict resolver incl. IEG reviews</td>
+<td>built, run and red-teamed</td>
+</tr>
+<tr>
+<td>4. Continuous learning and rollout</td>
+<td>incremental ingestion, monitoring and retrain gate, feedback tables, KPI view</td>
+<td>designed and written as Databricks notebooks 21-29; <strong>not yet executed</strong> (trial workspace blocked job runs)</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="3-data-how-the-domain-was-assembled">3. Data: how the domain was assembled</h2>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Health-practice Goods contracts pulled (FY2015+)</td>
+<td>17,058</td>
+</tr>
+<tr>
+<td>Classified as laboratory or diagnostic equipment</td>
+<td>2,220 contracts, US$1,375.4M</td>
+</tr>
+<tr>
+<td>Projects that bought such equipment</td>
+<td>179 (all their 14,613 health-goods contracts kept as market context)</td>
+</tr>
+<tr>
+<td>Procurement notices of those projects (Goods)</td>
+<td>15,158 → 10,403 tenders (1,947 for lab and diagnostic items)</td>
+</tr>
+<tr>
+<td>Project documents parsed (PAD, ISR, ICR, IEG review, procurement plan)</td>
+<td>131 → 6,187 section-aware passages</td>
+</tr>
+<tr>
+<td>Suppliers</td>
+<td>7,835 raw names → 7,540 resolved (94 fuzzy merges)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Data quality found along the way.</strong></p>
+<ul>
+<li><strong>Language and encoding.</strong> Descriptions come in English, French, Spanish and Portuguese, and accents often arrive
+  garbled ("r?actifs"). Patterns therefore tolerate a wildcard in place of accents.</li>
+<li><strong>Uninformative descriptions.</strong> Some contracts are described only as "Lot 3", "Item 42" or "no contract". They stay
+  unclassified rather than being guessed.</li>
+<li><strong>Missing invitation notices.</strong> Many emergency purchases (direct contracting, UN agencies) have no invitation notice.
+  They count in market statistics but cannot give a tender duration. Only 1,068 tenders have both
+  an invitation and an award; 122 are still open (censored) and 442
+  had no award after two years.</li>
+<li><strong>No completion reports yet.</strong> Most COVID-era projects are still active, so lessons come mainly from older, closed
+  health projects (150 lessons extracted).</li>
+</ul>
+<h2 id="4-what-the-data-shows-about-laboratory-a">4. What the data shows about laboratory and diagnostic procurement</h2>
+<h3>4.1 Spend by equipment type</h3><div class="chart" role="img" aria-label="Contract value by equipment type"><div class="bar"><span class="lab">Diagnostic imaging</span><span class="track"><span class="fill" style="display:block;width:100.0%"></span></span><span class="val">US$451.6M</span></div><div class="bar"><span class="lab">General laboratory and diagnostic equipment</span><span class="track"><span class="fill" style="display:block;width:58.5%"></span></span><span class="val">US$264.1M</span></div><div class="bar"><span class="lab">Molecular diagnostics (PCR, GeneXpert)</span><span class="track"><span class="fill" style="display:block;width:47.0%"></span></span><span class="val">US$212.2M</span></div><div class="bar"><span class="lab">Reagents and cartridges</span><span class="track"><span class="fill" style="display:block;width:33.5%"></span></span><span class="val">US$151.2M</span></div><div class="bar"><span class="lab">Biosafety, sterilization and cold chain</span><span class="track"><span class="fill" style="display:block;width:27.9%"></span></span><span class="val">US$126.2M</span></div><div class="bar"><span class="lab">Rapid tests and test kits</span><span class="track"><span class="fill" style="display:block;width:25.9%"></span></span><span class="val">US$117.1M</span></div><div class="bar"><span class="lab">Laboratory analyzers</span><span class="track"><span class="fill" style="display:block;width:7.8%"></span></span><span class="val">US$35.4M</span></div><div class="bar"><span class="lab">Microscopy</span><span class="track"><span class="fill" style="display:block;width:2.2%"></span></span><span class="val">US$10.0M</span></div><div class="bar"><span class="lab">Mobile and modular laboratories</span><span class="track"><span class="fill" style="display:block;width:1.5%"></span></span><span class="val">US$6.9M</span></div><div class="bar"><span class="lab">Laboratory information systems</span><span class="track"><span class="fill" style="display:block;width:0.1%"></span></span><span class="val">US$0.7M</span></div></div><p class="caption">Contract value by equipment type, all countries, FY2015 onwards. Source: World Bank Major Contract Awards, classified by the prototype.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Equipment type</th>
+<th>Contracts</th>
+<th>Value</th>
+<th>Share</th>
+<th>Median contract</th>
+<th>Countries</th>
+<th>Suppliers</th>
+<th>Top-5 supplier share</th>
+<th>Domestic supplier share</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Diagnostic imaging</td>
+<td>292</td>
+<td>US$451.6M</td>
+<td>33%</td>
+<td>US$565,485</td>
+<td>61</td>
+<td>216</td>
+<td>27%</td>
+<td>62%</td>
+</tr>
+<tr>
+<td>General laboratory and diagnostic equipment</td>
+<td>427</td>
+<td>US$264.1M</td>
+<td>19%</td>
+<td>US$150,000</td>
+<td>66</td>
+<td>342</td>
+<td>44%</td>
+<td>44%</td>
+</tr>
+<tr>
+<td>Molecular diagnostics (PCR, GeneXpert)</td>
+<td>498</td>
+<td>US$212.2M</td>
+<td>15%</td>
+<td>US$77,380</td>
+<td>60</td>
+<td>227</td>
+<td>23%</td>
+<td>70%</td>
+</tr>
+<tr>
+<td>Reagents and cartridges</td>
+<td>428</td>
+<td>US$151.2M</td>
+<td>11%</td>
+<td>US$84,248</td>
+<td>52</td>
+<td>291</td>
+<td>31%</td>
+<td>45%</td>
+</tr>
+<tr>
+<td>Biosafety, sterilization and cold chain</td>
+<td>226</td>
+<td>US$126.2M</td>
+<td>9%</td>
+<td>US$68,136</td>
+<td>55</td>
+<td>189</td>
+<td>53%</td>
+<td>57%</td>
+</tr>
+<tr>
+<td>Rapid tests and test kits</td>
+<td>172</td>
+<td>US$117.1M</td>
+<td>9%</td>
+<td>US$340,175</td>
+<td>46</td>
+<td>107</td>
+<td>57%</td>
+<td>62%</td>
+</tr>
+<tr>
+<td>Laboratory analyzers</td>
+<td>119</td>
+<td>US$35.4M</td>
+<td>3%</td>
+<td>US$132,000</td>
+<td>32</td>
+<td>99</td>
+<td>40%</td>
+<td>81%</td>
+</tr>
+<tr>
+<td>Microscopy</td>
+<td>34</td>
+<td>US$10.0M</td>
+<td>1%</td>
+<td>US$116,964</td>
+<td>17</td>
+<td>28</td>
+<td>72%</td>
+<td>97%</td>
+</tr>
+<tr>
+<td>Mobile and modular laboratories</td>
+<td>15</td>
+<td>US$6.9M</td>
+<td>1%</td>
+<td>US$174,374</td>
+<td>5</td>
+<td>13</td>
+<td>83%</td>
+<td>68%</td>
+</tr>
+<tr>
+<td>Laboratory information systems</td>
+<td>9</td>
+<td>US$0.7M</td>
+<td>0%</td>
+<td>US$39,124</td>
+<td>3</td>
+<td>8</td>
+<td>95%</td>
+<td>54%</td>
+</tr>
+</tbody>
+</table></div>
+<p><em>Top-5 supplier share</em> is the share of the type's value won by its five largest suppliers; a high value points to a
+concentrated market or closed systems. <em>Domestic</em> means the supplier is registered in the borrower country.</p>
+<h3>4.2 Where and when</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Region</th>
+<th>Contracts</th>
+<th>Value</th>
+<th>Share</th>
+<th>Countries</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sub-Saharan Africa</td>
+<td>868</td>
+<td>US$503.0M</td>
+<td>37%</td>
+<td>35</td>
+</tr>
+<tr>
+<td>Europe &amp; Central Asia</td>
+<td>289</td>
+<td>US$319.6M</td>
+<td>23%</td>
+<td>17</td>
+</tr>
+<tr>
+<td>South Asia</td>
+<td>566</td>
+<td>US$210.9M</td>
+<td>15%</td>
+<td>5</td>
+</tr>
+<tr>
+<td>Middle East, North Africa, Afghanistan &amp; Pakistan</td>
+<td>138</td>
+<td>US$119.0M</td>
+<td>9%</td>
+<td>7</td>
+</tr>
+<tr>
+<td>East Asia &amp; Pacific</td>
+<td>115</td>
+<td>US$103.2M</td>
+<td>8%</td>
+<td>12</td>
+</tr>
+<tr>
+<td>Latin America &amp; Caribbean</td>
+<td>178</td>
+<td>US$101.3M</td>
+<td>7%</td>
+<td>15</td>
+</tr>
+</tbody>
+</table></div>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Top countries</th>
+<th>Value</th>
+<th>Share</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>India</td>
+<td>US$166.3M</td>
+<td>12%</td>
+</tr>
+<tr>
+<td>Turkiye</td>
+<td>US$75.6M</td>
+<td>5%</td>
+</tr>
+<tr>
+<td>Madagascar</td>
+<td>US$66.4M</td>
+<td>5%</td>
+</tr>
+<tr>
+<td>Serbia</td>
+<td>US$64.6M</td>
+<td>5%</td>
+</tr>
+<tr>
+<td>Uzbekistan</td>
+<td>US$56.2M</td>
+<td>4%</td>
+</tr>
+<tr>
+<td>Ukraine</td>
+<td>US$44.5M</td>
+<td>3%</td>
+</tr>
+<tr>
+<td>Ghana</td>
+<td>US$42.5M</td>
+<td>3%</td>
+</tr>
+<tr>
+<td>Iraq</td>
+<td>US$42.0M</td>
+<td>3%</td>
+</tr>
+<tr>
+<td>El Salvador</td>
+<td>US$34.9M</td>
+<td>3%</td>
+</tr>
+<tr>
+<td>Senegal</td>
+<td>US$31.2M</td>
+<td>2%</td>
+</tr>
+</tbody>
+</table></div>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Signing year</th>
+<th>Contracts</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2019</td>
+<td>38</td>
+<td>US$39.4M</td>
+</tr>
+<tr>
+<td>2020</td>
+<td>805</td>
+<td>US$381.7M</td>
+</tr>
+<tr>
+<td>2021</td>
+<td>310</td>
+<td>US$177.1M</td>
+</tr>
+<tr>
+<td>2022</td>
+<td>212</td>
+<td>US$166.0M</td>
+</tr>
+<tr>
+<td>2023</td>
+<td>326</td>
+<td>US$262.0M</td>
+</tr>
+<tr>
+<td>2024</td>
+<td>251</td>
+<td>US$192.1M</td>
+</tr>
+<tr>
+<td>2025</td>
+<td>184</td>
+<td>US$111.9M</td>
+</tr>
+<tr>
+<td>2026</td>
+<td>67</td>
+<td>US$45.1M</td>
+</tr>
+</tbody>
+</table></div>
+<p>Spending peaked in 2020; 53% of all value was signed in 2020-2022.</p>
+<h3>4.3 Who supplies</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Supplier</th>
+<th>Based in</th>
+<th>Contracts</th>
+<th>Value</th>
+<th>Share</th>
+<th>Countries</th>
+<th>Main equipment types</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UNITED NATIONS OFFICE PROJECT SERVICES (UNOPS</td>
+<td>World</td>
+<td>23</td>
+<td>US$146.0M</td>
+<td>11%</td>
+<td>9</td>
+<td>General laboratory and diagnostic equipment, Molecular diagnostics (PCR, GeneXpert)</td>
+</tr>
+<tr>
+<td>MAGNA PHARMACIA</td>
+<td>Serbia</td>
+<td>3</td>
+<td>US$37.3M</td>
+<td>3%</td>
+<td>1</td>
+<td>Diagnostic imaging</td>
+</tr>
+<tr>
+<td>UNITED NATIONS DEVELOPMENT PROGRAMME (UNDP)</td>
+<td>World</td>
+<td>8</td>
+<td>US$36.0M</td>
+<td>3%</td>
+<td>3</td>
+<td>General laboratory and diagnostic equipment, Reagents and cartridges</td>
+</tr>
+<tr>
+<td>BIOSENSOR HEALTHCARE</td>
+<td>India</td>
+<td>38</td>
+<td>US$32.1M</td>
+<td>2%</td>
+<td>1</td>
+<td>Rapid tests and test kits</td>
+</tr>
+<tr>
+<td>UNITED NATIONS CHILDREN'S FUND (UNICEF)</td>
+<td>World</td>
+<td>12</td>
+<td>US$27.9M</td>
+<td>2%</td>
+<td>9</td>
+<td>Rapid tests and test kits, Reagents and cartridges</td>
+</tr>
+<tr>
+<td>WORLD HEALTH ORGANIZATION (WHO)</td>
+<td>World</td>
+<td>6</td>
+<td>US$25.7M</td>
+<td>2%</td>
+<td>4</td>
+<td>General laboratory and diagnostic equipment, Molecular diagnostics (PCR, GeneXpert)</td>
+</tr>
+<tr>
+<td>Philips Medical Systems Nederland B.V.</td>
+<td>Netherlands</td>
+<td>5</td>
+<td>US$23.0M</td>
+<td>2%</td>
+<td>2</td>
+<td>Diagnostic imaging</td>
+</tr>
+<tr>
+<td>GE MEDICAL SYSTEMS</td>
+<td>France</td>
+<td>8</td>
+<td>US$23.0M</td>
+<td>2%</td>
+<td>3</td>
+<td>Diagnostic imaging</td>
+</tr>
+<tr>
+<td>MEDICOM D.O.O. ŠABAC</td>
+<td>Serbia</td>
+<td>3</td>
+<td>US$17.9M</td>
+<td>1%</td>
+<td>1</td>
+<td>Diagnostic imaging</td>
+</tr>
+<tr>
+<td>VIMA (VISION MADA)</td>
+<td>Madagascar</td>
+<td>1</td>
+<td>US$12.7M</td>
+<td>1%</td>
+<td>1</td>
+<td>Biosafety, sterilization and cold chain</td>
+</tr>
+<tr>
+<td>APELEM</td>
+<td>France</td>
+<td>3</td>
+<td>US$12.5M</td>
+<td>1%</td>
+<td>2</td>
+<td>Diagnostic imaging</td>
+</tr>
+<tr>
+<td>SIEMENS HEALTHCARE PVT. LTD.</td>
+<td>India</td>
+<td>11</td>
+<td>US$11.8M</td>
+<td>1%</td>
+<td>1</td>
+<td>Molecular diagnostics (PCR, GeneXpert), Reagents and cartridges</td>
+</tr>
+</tbody>
+</table></div>
+<p>16 suppliers won lab or diagnostic contracts in two or more countries. They are the firms where cross-country
+evidence (price, delivery, after-sales) is most useful.</p>
+<h3>4.4 How it was bought</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Procurement method</th>
+<th>Contracts</th>
+<th>Value</th>
+<th>Share</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Direct Selection</td>
+<td>737</td>
+<td>US$574.4M</td>
+<td>42%</td>
+</tr>
+<tr>
+<td>Request for Bids</td>
+<td>730</td>
+<td>US$540.6M</td>
+<td>39%</td>
+</tr>
+<tr>
+<td>Request for Quotations</td>
+<td>733</td>
+<td>US$218.4M</td>
+<td>16%</td>
+</tr>
+<tr>
+<td>UN Agencies (Direct)</td>
+<td>20</td>
+<td>US$41.9M</td>
+<td>3%</td>
+</tr>
+</tbody>
+</table></div>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Year</th>
+<th>Direct / single-source share of value</th>
+<th>UN agency share of value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2019</td>
+<td>24%</td>
+<td>0%</td>
+</tr>
+<tr>
+<td>2020</td>
+<td>64%</td>
+<td>11%</td>
+</tr>
+<tr>
+<td>2021</td>
+<td>57%</td>
+<td>18%</td>
+</tr>
+<tr>
+<td>2022</td>
+<td>26%</td>
+<td>18%</td>
+</tr>
+<tr>
+<td>2023</td>
+<td>44%</td>
+<td>29%</td>
+</tr>
+<tr>
+<td>2024</td>
+<td>33%</td>
+<td>17%</td>
+</tr>
+<tr>
+<td>2025</td>
+<td>28%</td>
+<td>21%</td>
+</tr>
+<tr>
+<td>2026</td>
+<td>26%</td>
+<td>0%</td>
+</tr>
+</tbody>
+</table></div>
+<h3>4.5 How long tenders take</h3>
+<p>Kaplan-Meier estimates of days from invitation to award, by equipment type (all countries; still-open tenders
+counted as censored):</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Equipment type</th>
+<th>Tenders</th>
+<th>Awarded</th>
+<th>Median days</th>
+<th>P80 days</th>
+<th>Median if open tenders ignored</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Laboratory analyzers</td>
+<td>13</td>
+<td>13</td>
+<td>90</td>
+<td>141</td>
+<td>90</td>
+</tr>
+<tr>
+<td>Molecular diagnostics (PCR, GeneXpert)</td>
+<td>32</td>
+<td>29</td>
+<td>122</td>
+<td>222</td>
+<td>114</td>
+</tr>
+<tr>
+<td>Rapid tests and test kits</td>
+<td>14</td>
+<td>13</td>
+<td>123</td>
+<td>180</td>
+<td>110</td>
+</tr>
+<tr>
+<td>Diagnostic imaging</td>
+<td>70</td>
+<td>64</td>
+<td>134</td>
+<td>247</td>
+<td>124</td>
+</tr>
+<tr>
+<td>General laboratory and diagnostic equipment</td>
+<td>84</td>
+<td>70</td>
+<td>145</td>
+<td>288</td>
+<td>112</td>
+</tr>
+<tr>
+<td>Reagents and cartridges</td>
+<td>30</td>
+<td>27</td>
+<td>150</td>
+<td>253</td>
+<td>149</td>
+</tr>
+<tr>
+<td>Biosafety, sterilization and cold chain</td>
+<td>30</td>
+<td>27</td>
+<td>183</td>
+<td>261</td>
+<td>179</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="5-results-by-module">5. Results by module</h2>
+<h3>5.1 Module 1: one connected knowledge base</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Measure</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Contract → project link rate</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>Contract → tender link rate</td>
+<td>67% (9,600 exact + 182 fuzzy)</td>
+</tr>
+<tr>
+<td>Supplier resolution</td>
+<td>7,835 names → 7,540 suppliers</td>
+</tr>
+<tr>
+<td>Lessons extracted</td>
+<td>150 (68 procurement-related), 98.0% quote-verified</td>
+</tr>
+<tr>
+<td>Knowledge-graph edges</td>
+<td>115,327</td>
+</tr>
+</tbody>
+</table></div>
+<h3>5.2 Module 2: models</h3>
+<p>Out-of-time validation: trained on tenders opened before 2024-01-01, tested on later ones. All health-goods
+tenders of the domain projects are used for training, with equipment type as a feature.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Result</th>
+<th>Baseline</th>
+<th>Train / test</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Days to award, P50</td>
+<td>MAE <strong>47 days</strong></td>
+<td>KM benchmark 56; single median 73</td>
+<td>759 / 259</td>
+</tr>
+<tr>
+<td>Days to award, P80</td>
+<td>coverage <strong>0.76</strong></td>
+<td>target 0.80</td>
+<td></td>
+</tr>
+<tr>
+<td>Single responsive bid</td>
+<td>AUC <strong>0.67</strong>, top-decile lift 2.6×</td>
+<td>base rate 0.417 → 0.281</td>
+<td>772 / 295</td>
+</tr>
+<tr>
+<td>Re-tender</td>
+<td>skipped: not enough positives</td>
+<td>base rate 0.005</td>
+<td>1,163 / 469</td>
+</tr>
+<tr>
+<td>Award amendment (proxy)</td>
+<td>AUC <strong>0.55</strong>, top-decile lift 1.0×</td>
+<td>base rate 0.391 → 0.447</td>
+<td>773 / 295</td>
+</tr>
+</tbody>
+</table></div>
+<p>Main drivers of tender duration: <code>bid_window_days</code>, <code>method_code</code>, <code>review_type</code>, <code>country_iso3</code>, <code>env_category</code>, <code>major_sector</code>, <code>wgi_control_of_corruption</code>.</p>
+<h3>5.3 Module 2: retrieval</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Risk topic</th>
+<th>Relevant lessons</th>
+<th>Precision@5</th>
+<th>Precision@10</th>
+<th>Recall@20</th>
+<th>Random</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>delay</td>
+<td>61</td>
+<td>0.80</td>
+<td>0.70</td>
+<td>0.65</td>
+<td>0.41</td>
+</tr>
+<tr>
+<td>capacity</td>
+<td>80</td>
+<td>1.00</td>
+<td>0.90</td>
+<td>0.85</td>
+<td>0.54</td>
+</tr>
+<tr>
+<td>fiduciary</td>
+<td>12</td>
+<td>1.00</td>
+<td>0.70</td>
+<td>0.83</td>
+<td>0.08</td>
+</tr>
+<tr>
+<td>specification</td>
+<td>4</td>
+<td>0.20</td>
+<td>0.20</td>
+<td>0.50</td>
+<td>0.03</td>
+</tr>
+</tbody>
+</table></div>
+<p>Structured-to-unstructured check: a project's own tender descriptions retrieve its own reports in the top 10 for
+<strong>88%</strong> of 16 projects (MRR 0.58).</p>
+<h3>5.4 Module 3: guardrails and conflicting evidence</h3>
+<p>Over 25 briefs for real held-out packages, 360 statements were produced, <strong>100%</strong> with
+valid citations. Five kinds of false statement were injected into every brief; the verifier blocked <strong>124 of
+125 (99.2%)</strong>.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Injected statement</th>
+<th>Why it was blocked</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Among the 53 most similar past Goods tenders, the most common method was Request for Bids (7 of 12); median nu…</td>
+<td>unsupported numbers [53.0]</td>
+</tr>
+<tr>
+<td>“Contractors consistently delivered ahead of schedule across all lots.”</td>
+<td>quote not in source: Contractors consistently delivered ahead of schedule across</td>
+</tr>
+<tr>
+<td>Framework agreements always reduce procurement time by half.</td>
+<td>no citation</td>
+</tr>
+<tr>
+<td>Among the 12 most similar past Goods tenders, the most common method was Request for Bids (7 of 12); median nu…</td>
+<td>unknown citation ['L999']; unsupported numbers [12.0]</td>
+</tr>
+<tr>
+<td>“Introduction of c ontract terms against non- deliveries and poor deliveries .” (ICR, P152625, p. 80) - note: …</td>
+<td>page 80 not in cited evidence</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Conflicting evidence.</strong> 34 projects have dated ratings from several sources (ISR
+supervision, the Bank's ICR, IEG's independent review). In <strong>8</strong> of them the sources fall on
+opposite sides of the satisfactory line. Example: P129539 reached <em>Moderately Unsatisfactory</em> during
+supervision; the final rating, from the ICRR, is <em>Satisfactory</em>.
+The resolver keeps the most authoritative source as the headline (IEG PPAR &gt; IEG ICR Review &gt; ICR &gt; latest ISR),
+stores the full trajectory, and the chatbot and briefs cite both sides.</p>
+<h2 id="6-the-chatbot">6. The chatbot</h2>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Expected tool</th>
+<th>Chosen</th>
+<th>Route ok</th>
+<th>Exact</th>
+<th>Statements</th>
+<th>Dropped by verifier</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Which supplier won the cheapest GeneXpert or PCR contract?</td>
+<td>rank_low</td>
+<td>rank_low</td>
+<td>yes</td>
+<td>yes</td>
+<td>6</td>
+<td>0</td>
+</tr>
+<tr>
+<td>What is the largest diagnostic imaging contract?</td>
+<td>rank_high</td>
+<td>rank_high</td>
+<td>yes</td>
+<td>yes</td>
+<td>6</td>
+<td>0</td>
+</tr>
+<tr>
+<td>What are the lowest value laboratory reagent contracts in Nigeria?</td>
+<td>rank_low</td>
+<td>rank_low</td>
+<td>yes</td>
+<td>yes</td>
+<td>3</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Who are the top suppliers of laboratory analyzers?</td>
+<td>suppliers</td>
+<td>suppliers</td>
+<td>yes</td>
+<td>yes</td>
+<td>7</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Which vendors supplied microscopes since 2019?</td>
+<td>suppliers</td>
+<td>suppliers</td>
+<td>yes</td>
+<td>-</td>
+<td>7</td>
+<td>0</td>
+</tr>
+<tr>
+<td>How much was spent on lab and diagnostic equipment by country?</td>
+<td>aggregate</td>
+<td>aggregate</td>
+<td>yes</td>
+<td>yes</td>
+<td>7</td>
+<td>0</td>
+</tr>
+<tr>
+<td>What is the total value of rapid test kit contracts?</td>
+<td>aggregate</td>
+<td>aggregate</td>
+<td>yes</td>
+<td>yes</td>
+<td>2</td>
+<td>0</td>
+</tr>
+<tr>
+<td>How long does it take to award a PCR tender?</td>
+<td>timeline</td>
+<td>timeline</td>
+<td>yes</td>
+<td>-</td>
+<td>2</td>
+<td>0</td>
+</tr>
+<tr>
+<td>How long do laboratory analyzer tenders take from invitation to award?</td>
+<td>timeline</td>
+<td>timeline</td>
+<td>yes</td>
+<td>-</td>
+<td>2</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Why were laboratory equipment deliveries delayed?</td>
+<td>lessons</td>
+<td>lessons</td>
+<td>yes</td>
+<td>-</td>
+<td>8</td>
+<td>0</td>
+</tr>
+<tr>
+<td>What lessons did projects learn about maintaining diagnostic equipment?</td>
+<td>lessons</td>
+<td>lessons</td>
+<td>yes</td>
+<td>-</td>
+<td>8</td>
+<td>0</td>
+</tr>
+<tr>
+<td>What risks should I plan for when procuring X-ray machines?</td>
+<td>lessons</td>
+<td>lessons</td>
+<td>yes</td>
+<td>-</td>
+<td>9</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Show the entity relationship diagram</td>
+<td>graph</td>
+<td>graph</td>
+<td>yes</td>
+<td>-</td>
+<td>9</td>
+<td>0</td>
+</tr>
+<tr>
+<td>How is Kenya connected to its lab equipment suppliers?</td>
+<td>graph</td>
+<td>graph</td>
+<td>yes</td>
+<td>-</td>
+<td>4</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Tell me about project P173836</td>
+<td>project</td>
+<td>project</td>
+<td>yes</td>
+<td>-</td>
+<td>10</td>
+<td>0</td>
+</tr>
+<tr>
+<td>What did UNITED NATIONS OFFICE PROJECT SERVICES (UNOPS) supply?</td>
+<td>supplier</td>
+<td>supplier</td>
+<td>yes</td>
+<td>-</td>
+<td>5</td>
+<td>0</td>
+</tr>
+</tbody>
+</table></div>
+<p>Route accuracy <strong>100%</strong>, exact answers <strong>6/6</strong>,
+0.06 s per question on a laptop. Sample answers (verbatim from the run):</p>
+<blockquote>
+<p><strong>Q: Which supplier won the cheapest GeneXpert or PCR contract?</strong><br />
+<em>tool: rank_low · 6 evidence items</em></p>
+<ul>
+<li>The lowest-value contract for Molecular diagnostics (PCR, GeneXpert) went to SCI-FI BIOLOGICALS (India): contract 1696951, US$34, for “Primers and Probes [5 nos]”. <code>C1</code></li>
+<li>AVON PHARMO CHEM (PRIVATE) LIMITED: US$126 (contract 1697389, Sri Lanka). <code>C2</code></li>
+<li>M.M. SUPPLIERS: US$131 (contract 1696989, India). <code>C3</code></li>
+<li>LABSERVICE: US$176 (contract 1665197, Kyrgyz Republic). <code>C4</code></li>
+</ul>
+<p><strong>Q: Who are the top suppliers of diagnostic imaging equipment in Sub-Saharan Africa?</strong><br />
+<em>tool: suppliers · 2 evidence items</em></p>
+<ul>
+<li>71 suppliers won 84 contracts worth US$104,305,138 for Diagnostic imaging in Sub-Saharan Africa. <code>D1</code></li>
+<li>AFRIMED MEDICAL SUPPLIES LIMITED ACCRA GHANA (Ghana): 1 contract, US$9,382,558 (9% of value), 1 country. <code>D1</code></li>
+<li>ELSMED (Cote d'Ivoire): 1 contract, US$8,169,922 (8% of value), 1 country. <code>D1</code></li>
+<li>EXP-MEDICAL SYSTEMS AFRICA LIMITED (Ghana): 1 contract, US$6,999,643 (7% of value), 1 country. <code>D1</code></li>
+</ul>
+<p><strong>Q: How long does it take to award a laboratory analyzer tender?</strong><br />
+<em>tool: timeline · 1 evidence items</em></p>
+<ul>
+<li>Laboratory analyzers: half of tenders are awarded within 90 days; 80% within 141 days (n=13). <code>B1</code></li>
+<li>Medians are censoring-aware: tenders still open count as at least their current age, so slow tenders are not silently dropped. Plan milestones on the P80, not the median. <code>B1</code></li>
+</ul>
+<p><strong>Q: What problems did projects have with laboratory equipment maintenance?</strong><br />
+<em>tool: lessons · 12 evidence items</em></p>
+<ul>
+<li>“These conditions were the adoption of the: (a) Cancer Control Improvement Program with Action Plan by the Government in July 2020; (b) rulebook for the establishment of a Medical Equipment Maintenance Unit within the MoH by the Government in October 2019 , and (c) issuance of a Decree to adopt the H” (ICR, P129539, p. 30) - note: this project's supervision ratings fell to Moderately Unsatisfactory before the final ICRR rating of Satisfactory, so the lesson reflects a recovery. <code>L1 R1</code></li>
+<li>“In addition to the change in the MoH leadership in mid -June 2020, the COVID -19 pandemic also slowed down and adversely affected implementation progress and delays were also encountered for the project restructuring, for the initiation of the agreed procurement processes and subsequent partial canc” (ICR, P152625, p. 31) - note: this project's ratings were mixed across sources, and the final ICRR rating is Moderately Unsatisfactory, so the lesson comes from a project that underperformed. <code>L2 R2</code></li>
+<li>“At the Government’s request, the WB activated the CERC and reallocated USS$14 million to expedite implementation of the Master Plan.” (ICR, P157291, p. 27) <code>L3</code></li>
+<li>“Notwithstanding the cancellations, the project was still able to achieve the objectives.” (ICR, P131825, p. 36) - note: this project's supervision ratings fell to Unsatisfactory before the final ICRR rating of Moderately Satisfactory, so the lesson reflects a recovery. <code>L4 R3</code></li>
+</ul>
+</blockquote>
+<h2 id="7-example-output-a-brief-for-a-new-packa">7. Example output: a brief for a new package</h2>
+<p>Input: <em>Supply, installation and commissioning of automated real-time PCR systems and GeneXpert analyzers for regional public health laboratories, Lot 2</em> (Goods, RFB, KEN,
+est. US$2,500,000).</p>
+<h4>Schedule</h4>
+<ul>
+<li>Historical benchmark (Molecular diagnostics (PCR, GeneXpert) tenders using RFB (all countries)): half of tenders reach award within 124 days of the invitation and 80% within 240 days. [B1]</li>
+<li>Counting only completed tenders would understate the median by 6 days, because slow tenders are still open. [B1] [D1]</li>
+<li>For this package the model estimates 155 days to award (P50) and 252 days at the 80th percentile. [M1]</li>
+<li>Plan the award milestone for 08 Nov 2027 or later (planned invitation 01 Mar 2027 plus the P80 estimate) rather than the median. [D2] [M1]</li>
+</ul>
+<h4>Risks</h4>
+<ul>
+<li>Expected cycle is longer than the benchmark median (155 vs 124 days). [M1] [B1]</li>
+</ul>
+<h4>Market approach</h4>
+<ul>
+<li>Among the 12 most similar past Goods tenders, the most common method was Request for Bids (7 of 12); median number of bidders 1.5. [T1] [T2] [T3] [T4] [T5] [T6] [D3]</li>
+</ul>
+<h4>Lessons from completed projects</h4>
+<ul>
+<li>“In addition to the change in the MoH leadership in mid -June 2020, the COVID -19 pandemic also slowed down and adversely affected implementation progress and delays were also encountered for the project restructuring, for the initiation of the agreed procurement processes and subsequent partial canc” (ICR, P152625, p. 31) - note: this project's ratings were mixed across sources, and the final ICRR rating is Moderately Unsatisfactory, so the lesson comes from a project that underperformed. [L1] [R1]</li>
+<li>“Introduction of c ontract terms against non- deliveries and poor deliveries .” (ICR, P152625, p. 39) - note: this project's ratings were mixed across sources, and the final ICRR rating is Moderately Unsatisfactory, so the lesson comes from a project that underperformed. [L2] [R2]</li>
+<li>“The COVID -19 pandemic disrupted and delayed project activities.” (ICR, P149340, p. 19) - note: this project's supervision ratings fell to Moderately Unsatisfactory before the final ICR rating of Satisfactory, so the lesson reflects a recovery. [L3] [R3]</li>
+<li>“The COVID-19 pandemic significantly diverted resources and attention, delaying some project activities and necessitating adjustments to Project priorities.” (ICR, P152799, p. 31) - note: this project's supervision ratings fell to Moderately Unsatisfactory before the final ICRR rating of Moderately Satisfactory, so the lesson reflects a recovery. [L4] [R4]</li>
+<li>“At the Government’s request, the WB activated the CERC and reallocated USS$14 million to expedite implementation of the Master Plan.” (ICR, P157291, p. 27) [L5]</li>
+<li>“Future similar health projects should consider the lessons learned from this project regarding timely disbursement of county allocations.” (ICR, P152394, p. 37) [L6]</li>
+</ul>
+<h4>Supporting evidence</h4>
+<ul>
+<li>“For each contract to be financed by the loan, for the different procurement methods or consultant selection methods, the need for prequalification, estimated costs, prior review requirements, and time frame will be approved by the Bank with the No Objection to the Procurement Plan.” (PAD, Procurement, p. 68) [P1]</li>
+<li>“For effective real-time monitoring and follow up of contract management plans for key high -value contracts under the project, the Bank team advised the PMU/MoH to establish and use a basic contract management tool.” (ICR, B. Environmental, Social, And Fiduciary Compliance, p. 34) [P2]</li>
+<li>“These delays did not leave time for the related procurement and, finally resulted in a decision to cancel US$34.4 million from the loan.” (ICR, B. Key Factors During Implementation, p. 32) [P3]</li>
+<li>“Performance on procurement arrangements and compliance was hindered by difficulties and delays encountered by the countries and regional institutions.” (ICR, B. Environmental, Social, And Fiduciary Compliance, p. 36) [P4]</li>
+</ul>
+<h2 id="8-limitations">8. Limitations</h2>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Limitation</th>
+<th>Effect</th>
+<th>What would fix it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Public data only</td>
+<td>no bid prices per unit, technical evaluation reports, service contracts or equipment downtime</td>
+<td>Phase 2: STEP procurement records, asset registers, maintenance logs</td>
+</tr>
+<tr>
+<td>Keyword taxonomy</td>
+<td>a residue of contracts stays "Other goods"; a few generic items are misclassified</td>
+<td>labelled set of about 500 descriptions; LLM classifier for the residue</td>
+</tr>
+<tr>
+<td>Few completion reports for COVID-era projects</td>
+<td>lessons skew to older projects</td>
+<td>add IEG thematic evaluations and the next ICR cohort as they publish</td>
+</tr>
+<tr>
+<td>Rule-based lesson extraction locally</td>
+<td>lessons limited to numbered paragraphs in Lessons / Key-factor sections</td>
+<td>LLM extraction with quote check (notebook 24)</td>
+</tr>
+<tr>
+<td>Thin risk-model labels</td>
+<td>single-bid, re-tender and amendment models are indicative only</td>
+<td>more countries and internal records; recalibration</td>
+</tr>
+<tr>
+<td>Verifier misses a fabricated number that appears elsewhere in the evidence</td>
+<td>1 of 125 injected errors can pass</td>
+<td>number-unit binding + entailment judge</td>
+</tr>
+<tr>
+<td>Databricks path not executed</td>
+<td>continuous-learning loop designed, not measured</td>
+<td>run notebooks 21-29 when the workspace allows jobs</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="9-recommendations-and-next-steps">9. Recommendations and next steps</h2>
+<ol>
+<li><strong>Pilot the chatbot with procurement specialists and biomedical engineers</strong> in two or three health programmes
+   that are about to buy lab equipment. Measure plan-preparation time and evidence usefulness.</li>
+<li><strong>Add the equipment's life cycle:</strong> service and maintenance contracts, reagent purchases after equipment purchases,
+   and asset registers. These answer the domain's real question, whether the equipment was still working a year later.</li>
+<li><strong>Build a labelled taxonomy set and an evaluation set</strong> of about 200 question-answer pairs with the domain experts.</li>
+<li><strong>Run the Databricks pipeline</strong> to switch on LLM lesson extraction, vector search and the monitoring job.</li>
+<li><strong>Extend the scope configuration</strong> to the next domain (e.g. medicines, or civil works). The pipeline already runs on
+   an India roads scope and a three-country scope with no code changes.</li>
+</ol>
+<h2 id="10-reproducing-these-numbers">10. Reproducing these numbers</h2>
+<pre><code class="language-bash">python -m procurement_demo.run_all
+python src/build_proposal.py
+python src/build_deliverables.py
+</code></pre>
+<p>All figures come from the run outputs (<code>procurement_demo/output/health_lab/eval_results.json</code> and the Gold tables); none are typed by hand.</p>
+    <h2 id="data-model">Data model diagram</h2>
+    <p>Arrows point from the many side to the one side; dashed lines are derivations. Every link is also stored as a row
+    in the knowledge-graph edge table, with the method that created it and a confidence.</p>
+    <div class="diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1184 746" font-family="Segoe UI, Arial, sans-serif" role="img" aria-label="Entity-relationship diagram of the procurement intelligence data model">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#57606a"/></marker></defs>
+<rect x="0" y="0" width="1184" height="746" fill="#ffffff"/>
+<line x1="200" y1="90" x2="258" y2="90" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="229" y="86" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1</text>
+<line x1="500" y1="90" x2="442" y2="90" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="471" y="86" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1</text>
+<line x1="684" y1="87" x2="742" y2="85" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="713" y="82" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1</text>
+<line x1="592" y1="160" x2="592" y2="238" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="592" y="195" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 project_id</text>
+<line x1="428" y1="160" x2="514" y2="238" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="471" y="195" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 project_id</text>
+<line x1="269" y1="160" x2="179" y2="238" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="224" y="195" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 country + year</text>
+<line x1="350" y1="238" x2="350" y2="160" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="350" y="195" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">1:1</text>
+<line x1="168" y1="456" x2="290" y2="346" stroke="#57606a" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+<text x="229" y="397" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">aggregates tenders</text>
+<line x1="551" y1="160" x2="377" y2="456" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="464" y="304" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 item_type</text>
+<line x1="200" y1="507" x2="258" y2="505" stroke="#57606a" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+<text x="229" y="502" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">by</text>
+<line x1="742" y1="308" x2="684" y2="308" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="713" y="304" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1</text>
+<line x1="984" y1="308" x2="926" y2="308" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="955" y="304" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1</text>
+<line x1="1076" y1="456" x2="1076" y2="378" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="1076" y="413" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 chunk_id</text>
+<line x1="834" y1="456" x2="834" y2="378" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="834" y="413" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 doc_id</text>
+<line x1="592" y1="456" x2="592" y2="378" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="592" y="413" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 project_id</text>
+<line x1="742" y1="523" x2="684" y2="521" stroke="#57606a" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+<text x="713" y="518" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">resolves</text>
+<line x1="1010" y1="144" x2="909" y2="238" stroke="#57606a" stroke-width="1.4" marker-end="url(#arr)"/>
+<text x="959" y="187" font-size="10.5" text-anchor="middle" fill="#24292f" stroke="#ffffff" stroke-width="4" paint-order="stroke">N:1 doc_id</text>
+<rect x="16" y="20" width="184" height="140" rx="6" fill="#ffffff" stroke="#0969da" stroke-width="1.6"/>
+<path d="M16,26 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#0969da"/>
+<text x="24" y="35" font-size="12" font-weight="700" fill="#ffffff">NOTICE</text>
+<text x="24" y="49" font-size="10" fill="#ffffff" opacity="0.9">gold.notices</text>
+<text x="24" y="72" font-size="11" fill="#24292f" font-weight="600">notice_id</text>
+<text x="192" y="72" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">PK</text>
+<text x="24" y="88" font-size="11" fill="#24292f">bid_ref_key</text>
+<text x="192" y="88" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="24" y="104" font-size="11" fill="#24292f">project_id</text>
+<text x="192" y="104" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="24" y="120" font-size="11" fill="#24292f">notice_type</text>
+<text x="24" y="136" font-size="11" fill="#24292f">notice_date</text>
+<text x="24" y="152" font-size="11" fill="#24292f">n_bidders</text>
+<rect x="258" y="20" width="184" height="140" rx="6" fill="#ffffff" stroke="#0969da" stroke-width="1.6"/>
+<path d="M258,26 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#0969da"/>
+<text x="266" y="35" font-size="12" font-weight="700" fill="#ffffff">TENDER</text>
+<text x="266" y="49" font-size="10" fill="#ffffff" opacity="0.9">gold.fact_tender</text>
+<text x="266" y="72" font-size="11" fill="#24292f" font-weight="600">tender_id</text>
+<text x="434" y="72" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">PK</text>
+<text x="266" y="88" font-size="11" fill="#24292f">project_id</text>
+<text x="434" y="88" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="266" y="104" font-size="11" fill="#24292f">country_iso3, tender_year</text>
+<text x="434" y="104" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="266" y="120" font-size="11" fill="#24292f">method_code</text>
+<text x="266" y="136" font-size="11" fill="#24292f">cycle_days</text>
+<text x="266" y="152" font-size="11" fill="#24292f">award_observed</text>
+<rect x="500" y="20" width="184" height="140" rx="6" fill="#ffffff" stroke="#0969da" stroke-width="1.6"/>
+<path d="M500,26 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#0969da"/>
+<text x="508" y="35" font-size="12" font-weight="700" fill="#ffffff">CONTRACT</text>
+<text x="508" y="49" font-size="10" fill="#ffffff" opacity="0.9">gold.fact_contract</text>
+<text x="508" y="72" font-size="11" fill="#24292f" font-weight="600">wb_contract_number</text>
+<text x="676" y="72" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">PK</text>
+<text x="508" y="88" font-size="11" fill="#24292f">tender_id</text>
+<text x="676" y="88" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="508" y="104" font-size="11" fill="#24292f">project_id</text>
+<text x="676" y="104" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="508" y="120" font-size="11" fill="#24292f">supplier_key</text>
+<text x="676" y="120" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="508" y="136" font-size="11" fill="#24292f">item_type</text>
+<text x="676" y="136" font-size="9.5" text-anchor="end" fill="#0969da" font-weight="700">FK</text>
+<text x="508" y="152" font-size="11" fill="#24292f">amount_usd</text>
+<rect x="742" y="20" width="184" height="124" rx="6" fill="#ffffff" stroke="#1a7f37" stroke-width="1.6"/>
+<path d="M742,26 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#1a7f37"/>
+<text x="750" y="35" font-size="12" font-weight="700" fill="#ffffff">SUPPLIER</text>
+<text x="750" y="49" font-size="10" fill="#ffffff" opacity="0.9">gold.dim_supplier</text>
+<text x="750" y="72" font-size="11" fill="#24292f" font-weight="600">supplier_key</text>
+<text x="918" y="72" font-size="9.5" text-anchor="end" fill="#1a7f37" font-weight="700">PK</text>
+<text x="750" y="88" font-size="11" fill="#24292f">supplier_name</text>
+<text x="750" y="104" font-size="11" fill="#24292f">name_variants</text>
+<text x="750" y="120" font-size="11" fill="#24292f">supplier_country</text>
+<text x="750" y="136" font-size="11" fill="#24292f">n_contracts</text>
+<rect x="984" y="20" width="184" height="124" rx="6" fill="#ffffff" stroke="#bc4c00" stroke-width="1.6"/>
+<path d="M984,26 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#bc4c00"/>
+<text x="992" y="35" font-size="12" font-weight="700" fill="#ffffff">PROJECT_OUTCOME</text>
+<text x="992" y="49" font-size="10" fill="#ffffff" opacity="0.9">gold.project_outcomes</text>
+<text x="992" y="72" font-size="11" fill="#24292f" font-weight="600">project_id</text>
+<text x="1160" y="72" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK FK</text>
+<text x="992" y="88" font-size="11" fill="#24292f">doc_id</text>
+<text x="1160" y="88" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="992" y="104" font-size="11" fill="#24292f">restructurings</text>
+<text x="992" y="120" font-size="11" fill="#24292f">closing_extension_days</text>
+<text x="992" y="136" font-size="11" fill="#24292f">outcome_rating</text>
+<rect x="16" y="238" width="184" height="124" rx="6" fill="#ffffff" stroke="#1a7f37" stroke-width="1.6"/>
+<path d="M16,244 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#1a7f37"/>
+<text x="24" y="253" font-size="12" font-weight="700" fill="#ffffff">GOVERNANCE</text>
+<text x="24" y="267" font-size="10" fill="#ffffff" opacity="0.9">gold.country_governance_year</text>
+<text x="24" y="290" font-size="11" fill="#24292f" font-weight="600">country_iso3</text>
+<text x="192" y="290" font-size="9.5" text-anchor="end" fill="#1a7f37" font-weight="700">PK</text>
+<text x="24" y="306" font-size="11" fill="#24292f" font-weight="600">year</text>
+<text x="192" y="306" font-size="9.5" text-anchor="end" fill="#1a7f37" font-weight="700">PK</text>
+<text x="24" y="322" font-size="11" fill="#24292f">cpia_* (3)</text>
+<text x="24" y="338" font-size="11" fill="#24292f">wgi_* (3)</text>
+<text x="24" y="354" font-size="11" fill="#24292f">cpia_missing</text>
+<rect x="258" y="456" width="184" height="92" rx="6" fill="#ffffff" stroke="#1a7f37" stroke-width="1.6"/>
+<path d="M258,462 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#1a7f37"/>
+<text x="266" y="471" font-size="12" font-weight="700" fill="#ffffff">ITEM_TYPE</text>
+<text x="266" y="485" font-size="10" fill="#ffffff" opacity="0.9">taxonomy (common.py)</text>
+<text x="266" y="508" font-size="11" fill="#24292f" font-weight="600">item_type</text>
+<text x="434" y="508" font-size="9.5" text-anchor="end" fill="#1a7f37" font-weight="700">PK</text>
+<text x="266" y="524" font-size="11" fill="#24292f">in_domain</text>
+<text x="266" y="540" font-size="11" fill="#24292f">4-language patterns</text>
+<rect x="258" y="238" width="184" height="108" rx="6" fill="#ffffff" stroke="#8250df" stroke-width="1.6"/>
+<path d="M258,244 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#8250df"/>
+<text x="266" y="253" font-size="12" font-weight="700" fill="#ffffff">TENDER_FEATURES</text>
+<text x="266" y="267" font-size="10" fill="#ffffff" opacity="0.9">gold.tender_features</text>
+<text x="266" y="290" font-size="11" fill="#24292f" font-weight="600">tender_id</text>
+<text x="434" y="290" font-size="9.5" text-anchor="end" fill="#8250df" font-weight="700">PK FK</text>
+<text x="266" y="306" font-size="11" fill="#24292f">planning-time features</text>
+<text x="266" y="322" font-size="11" fill="#24292f">governance at open</text>
+<text x="266" y="338" font-size="11" fill="#24292f">prior_group_median_days</text>
+<rect x="500" y="238" width="184" height="140" rx="6" fill="#ffffff" stroke="#1a7f37" stroke-width="1.6"/>
+<path d="M500,244 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#1a7f37"/>
+<text x="508" y="253" font-size="12" font-weight="700" fill="#ffffff">PROJECT</text>
+<text x="508" y="267" font-size="10" fill="#ffffff" opacity="0.9">gold.dim_project</text>
+<text x="508" y="290" font-size="11" fill="#24292f" font-weight="600">project_id</text>
+<text x="676" y="290" font-size="9.5" text-anchor="end" fill="#1a7f37" font-weight="700">PK</text>
+<text x="508" y="306" font-size="11" fill="#24292f">country_iso3</text>
+<text x="508" y="322" font-size="11" fill="#24292f">region</text>
+<text x="508" y="338" font-size="11" fill="#24292f">major_sector</text>
+<text x="508" y="354" font-size="11" fill="#24292f">commitment_usd</text>
+<text x="508" y="370" font-size="11" fill="#24292f">status</text>
+<rect x="742" y="238" width="184" height="140" rx="6" fill="#ffffff" stroke="#bc4c00" stroke-width="1.6"/>
+<path d="M742,244 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#bc4c00"/>
+<text x="750" y="253" font-size="12" font-weight="700" fill="#ffffff">DOCUMENT</text>
+<text x="750" y="267" font-size="10" fill="#ffffff" opacity="0.9">bronze.project_docs_meta</text>
+<text x="750" y="290" font-size="11" fill="#24292f" font-weight="600">doc_id</text>
+<text x="918" y="290" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK</text>
+<text x="750" y="306" font-size="11" fill="#24292f">project_id</text>
+<text x="918" y="306" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="750" y="322" font-size="11" fill="#24292f">project_ids[]</text>
+<text x="750" y="338" font-size="11" fill="#24292f">doc_type_code</text>
+<text x="750" y="354" font-size="11" fill="#24292f">doc_date</text>
+<text x="750" y="370" font-size="11" fill="#24292f">landing_url</text>
+<rect x="984" y="238" width="184" height="140" rx="6" fill="#ffffff" stroke="#bc4c00" stroke-width="1.6"/>
+<path d="M984,244 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#bc4c00"/>
+<text x="992" y="253" font-size="12" font-weight="700" fill="#ffffff">CHUNK</text>
+<text x="992" y="267" font-size="10" fill="#ffffff" opacity="0.9">gold.proj_doc_chunks</text>
+<text x="992" y="290" font-size="11" fill="#24292f" font-weight="600">chunk_id</text>
+<text x="1160" y="290" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK</text>
+<text x="992" y="306" font-size="11" fill="#24292f">doc_id</text>
+<text x="1160" y="306" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="992" y="322" font-size="11" fill="#24292f">section_path</text>
+<text x="992" y="338" font-size="11" fill="#24292f">section_kind</text>
+<text x="992" y="354" font-size="11" fill="#24292f">page_start, page_end</text>
+<text x="992" y="370" font-size="11" fill="#24292f">search_text</text>
+<rect x="16" y="456" width="184" height="108" rx="6" fill="#ffffff" stroke="#8250df" stroke-width="1.6"/>
+<path d="M16,462 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#8250df"/>
+<text x="24" y="471" font-size="12" font-weight="700" fill="#ffffff">TENDER_BENCHMARK</text>
+<text x="24" y="485" font-size="10" fill="#ffffff" opacity="0.9">gold.tender_benchmarks</text>
+<text x="24" y="508" font-size="11" fill="#24292f" font-weight="600">level</text>
+<text x="192" y="508" font-size="9.5" text-anchor="end" fill="#8250df" font-weight="700">PK</text>
+<text x="24" y="524" font-size="11" fill="#24292f" font-weight="600">item / country / method</text>
+<text x="192" y="524" font-size="9.5" text-anchor="end" fill="#8250df" font-weight="700">PK</text>
+<text x="24" y="540" font-size="11" fill="#24292f">n, n_awarded</text>
+<text x="24" y="556" font-size="11" fill="#24292f">median_days, p80_days</text>
+<rect x="500" y="456" width="184" height="124" rx="6" fill="#ffffff" stroke="#bc4c00" stroke-width="1.6"/>
+<path d="M500,462 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#bc4c00"/>
+<text x="508" y="471" font-size="12" font-weight="700" fill="#ffffff">PROJECT_RATING</text>
+<text x="508" y="485" font-size="10" fill="#ffffff" opacity="0.9">gold.project_ratings_resolved</text>
+<text x="508" y="508" font-size="11" fill="#24292f" font-weight="600">project_id</text>
+<text x="676" y="508" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK FK</text>
+<text x="508" y="524" font-size="11" fill="#24292f" font-weight="600">dimension</text>
+<text x="676" y="524" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK</text>
+<text x="508" y="540" font-size="11" fill="#24292f">resolved_rating</text>
+<text x="508" y="556" font-size="11" fill="#24292f">resolved_from</text>
+<text x="508" y="572" font-size="11" fill="#24292f">conflict</text>
+<rect x="742" y="456" width="184" height="140" rx="6" fill="#ffffff" stroke="#bc4c00" stroke-width="1.6"/>
+<path d="M742,462 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#bc4c00"/>
+<text x="750" y="471" font-size="12" font-weight="700" fill="#ffffff">RATING_EVIDENCE</text>
+<text x="750" y="485" font-size="10" fill="#ffffff" opacity="0.9">gold.rating_evidence</text>
+<text x="750" y="508" font-size="11" fill="#24292f" font-weight="600">source_id</text>
+<text x="918" y="508" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK</text>
+<text x="750" y="524" font-size="11" fill="#24292f">project_id</text>
+<text x="918" y="524" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="750" y="540" font-size="11" fill="#24292f">doc_id</text>
+<text x="918" y="540" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="750" y="556" font-size="11" fill="#24292f">source_type</text>
+<text x="750" y="572" font-size="11" fill="#24292f">date</text>
+<text x="750" y="588" font-size="11" fill="#24292f">rating</text>
+<rect x="984" y="456" width="184" height="140" rx="6" fill="#ffffff" stroke="#bc4c00" stroke-width="1.6"/>
+<path d="M984,462 a6,6 0 0 1 6,-6 h172 a6,6 0 0 1 6,6 v30 h-184 z" fill="#bc4c00"/>
+<text x="992" y="471" font-size="12" font-weight="700" fill="#ffffff">LESSON</text>
+<text x="992" y="485" font-size="10" fill="#ffffff" opacity="0.9">gold.lessons</text>
+<text x="992" y="508" font-size="11" fill="#24292f" font-weight="600">lesson_id</text>
+<text x="1160" y="508" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">PK</text>
+<text x="992" y="524" font-size="11" fill="#24292f">chunk_id</text>
+<text x="1160" y="524" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="992" y="540" font-size="11" fill="#24292f">project_id</text>
+<text x="1160" y="540" font-size="9.5" text-anchor="end" fill="#bc4c00" font-weight="700">FK</text>
+<text x="992" y="556" font-size="11" fill="#24292f">procurement_stage</text>
+<text x="992" y="572" font-size="11" fill="#24292f">risk_category</text>
+<text x="992" y="588" font-size="11" fill="#24292f">quote_verified</text>
+<rect x="16" y="650" width="1152" height="80" rx="6" fill="#f6f8fa" stroke="#8c959f" stroke-dasharray="4 3"/>
+<text x="28" y="670" font-size="12" font-weight="700" fill="#24292f">KG_EDGE  (gold.kg_edges)  115,327 edges: one row per link between any two entities above</text>
+<text x="28" y="690" font-size="11" fill="#24292f">(src_type, src_id, rel, dst_type, dst_id, method, confidence, valid_from, evidence)   method ∈ exact_key | fuzzy_desc | fuzzy_name | temporal | llm_extracted | human_confirmed</text>
+<text x="28" y="710" font-size="10.5" fill="#57606a">FINANCED_BY 14,613   OF_TYPE 14,613   AWARDED_TO 14,608   ANNOUNCES 14,445   FINANCED_BY 10,403   HAS_CONTEXT 10,403   OF_TYPE 10,403   RESULTED_IN 9,782</text>
+</svg></div>
+  </main>
+  <footer>
+    <span>Data: World Bank Major Contract Awards, Procurement Notices, Projects &amp; Operations, Documents &amp; Reports,
+    and WDI governance indicators (CPIA, WGI). All public.</span>
+    <span>Every figure on this page comes from the prototype run; none is typed by hand.</span>
+  </footer>
+</div>
+</body>
+</html>
