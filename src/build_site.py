@@ -21,6 +21,8 @@ BASE_CSS = ("html{-webkit-text-size-adjust:100%}:root{padding-top:env(safe-area-
 def standalone(page, link_html, anchor):
     """Wrap an artifact body (title, meta, links and style first) into a complete HTML document."""
     page = re.sub(r'<meta name="claude:[^"]*"[^>]*>\s*', "", page)
+    page = re.sub(r"[ \t]*/\* @hosted \*/.*?/\* @end-hosted \*/\n", "", page, flags=re.S)   # model-hosting code
+    page = re.sub(r'\s*<div class="controls" hidden>.*?<span id="mode-note"></span>\s*</div>', "", page, count=1, flags=re.S)
     split = page.index(anchor)
     head, body = page[:split], page[split:]
     body = body.replace(anchor, anchor + link_html, 1) if link_html else body
@@ -43,9 +45,8 @@ def main():
         report.replace("</style>", "</style>" + nav_css.replace("920px", "980px"), 1),
         '<nav class="sitenav"><a href="index.html">&larr; Ask the procurement assistant</a></nav>', '<div class="page">'),
         encoding="utf-8")
-    left = [f.name for f in SITE.glob("*.html") if re.search(r"claude", f.read_text(encoding="utf-8"), re.I)
-            and re.search(r"(?<![.\w])claude(?![.\w])", re.sub(r"window\.claude|claude\.use", "", f.read_text(encoding="utf-8")), re.I)]
-    print(f"wrote {SITE}: index.html (chatbot), report.html; files still naming the product: {left or 'none'}")
+    left = [f.name for f in SITE.glob("*.html") if re.search(r"claude|anthropic|@hosted|mode-ai", f.read_text(encoding="utf-8"), re.I)]
+    print(f"wrote {SITE}: index.html (chatbot), report.html; files with hosting references left: {left or 'none'}")
 
 
 if __name__ == "__main__":
