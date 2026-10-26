@@ -1,0 +1,122 @@
+{
+ "summary": {
+  "questions": 10,
+  "hit_rate_top5": 1.0,
+  "answered": 9,
+  "correctly_declined": 1,
+  "all_sources_in_selected_country": true,
+  "median_latency_ms": 1294
+ },
+ "cases": [
+  {
+   "country": "KEN",
+   "category": "All",
+   "question": "What laboratory equipment will be procured under the COVID-19 emergency response?",
+   "expected": "keyword: laborator",
+   "hit_top5": true,
+   "answer_sentences": 4,
+   "sources_in_country": true,
+   "latency_ms": 1782,
+   "first_source": "PAD Kenya - COVID-19 Emergency Response Project"
+  },
+  {
+   "country": "KEN",
+   "category": "All",
+   "question": "How were the East Africa public health laboratories strengthened?",
+   "expected": "project: P111556",
+   "hit_top5": true,
+   "answer_sentences": 4,
+   "sources_in_country": true,
+   "latency_ms": 1294,
+   "first_source": "ICR Africa Region - Eastern Africa Public Health Laboratory Network Projec"
+  },
+  {
+   "country": "KEN",
+   "category": "Procurement process and contracts",
+   "question": "Which procurement methods and thresholds apply to goods?",
+   "expected": "keyword: threshold|method",
+   "hit_top5": true,
+   "answer_sentences": 4,
+   "sources_in_country": true,
+   "latency_ms": 902,
+   "first_source": "PPR Kenya - Additional Financing for the Total War against HIV and AIDS Pr"
+  },
+  {
+   "country": "KEN",
+   "category": "All",
+   "question": "What lessons were learned from the laboratory networking project?",
+   "expected": "doc_type: ['ICR', 'ICRR']",
+   "hit_top5": true,
+   "answer_sentences": 4,
+   "sources_in_country": true,
+   "latency_ms": 653,
+   "first_source": "PAD Africa - East Africa Public Health Laboratory Networking Project"
+  },
+  {
+   "country": "KEN",
+   "category": "Diagnostic imaging",
+   "question": "Is x-ray or imaging equipment being purchased?",
+   "expected": "abstain: None",
+   "hit_top5": true,
+   "answer_sentences": 0,
+   "sources_in_country": true,
+   "latency_ms": 81,
+   "first_source": "PP Kenya - EASTERN AND SOUTHERN AFRICA- P173820- KENYA COVID-19 HEALTH EM"
+  },
+  {
+   "country": "IND",
+   "category": "All",
+   "question": "What diagnostic equipment is planned for tuberculosis elimination?",
+   "expected": "keyword: tubercul|\\bTB\\b",
+   "hit_top5": true,
+   "answer_sentences": 4,
+   "sources_in_country": true,
+   "latency_ms": 1923,
+   "first_source": "PAD India - Accelerating Universal Access to Early and Effective Tuberculo"
+  },
+  {
+   "country": "IND",
+   "category": "All",
+   "question": "How will public health laboratories be strengthened for pandemic preparedness?",
+   "expected": "project: P175676",
+   "hit_top5": true,
+   "answer_sentences": 4,
+   "sources_in_country": true,
+   "latency_ms": 1356,
+   "first_source": "PAD India - COVID-19 Emergency Response and Health Systems Preparedness Pr"
+  },
+  {
+   "country": "IND",
+   "category": "All",
+   "question": "What were the results of the Uttar Pradesh health systems strengthening project?",
+   "expected": "project: P100304",
+   "hit_top5": true,
+   "answer_sentences": 4,
+   "sources_in_country": true,
+   "latency_ms": 707,
+   "first_source": "ICR India - Uttar Pradesh Health Systems Strengthening Project"
+  },
+  {
+   "country": "IND",
+   "category": "Procurement process and contracts",
+   "question": "What does the procurement plan say about medical equipment packages?",
+   "expected": "doc_type: ['PP']",
+   "hit_top5": true,
+   "answer_sentences": 4,
+   "sources_in_country": true,
+   "latency_ms": 1400,
+   "first_source": "PP India - SOUTH ASIA- P173836- India COVID-19 Emergency Response and Hea"
+  },
+  {
+   "country": "IND",
+   "category": "Molecular diagnostics (PCR, GeneXpert)",
+   "question": "Where are molecular diagnostic tests such as GeneXpert or PCR used?",
+   "expected": "keyword: gene ?xpert|PCR|CBNAAT|molecular",
+   "hit_top5": true,
+   "answer_sentences": 4,
+   "sources_in_country": true,
+   "latency_ms": 195,
+   "first_source": "ICR India - Accelerating Universal Access to Early and Effective Tuberculo"
+  }
+ ]
+}

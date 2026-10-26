@@ -30,6 +30,16 @@ questions in which every statement cites its evidence and is checked against it.
 The chatbot is also a static website in [deliverables/site/](deliverables/site/) (chatbot + report). It runs entirely
 in the browser: open `index.html`, or host the folder on any static host.
 
+## Document Q&A by country (RAG)
+
+`procurement_rag/` is a reusable pipeline that fetches the World Bank project documents of a country (appraisal
+documents, procurement plans, supervision, completion and IEG reports), stores them as
+`data/<country>/pdf/<doc type>/`, extracts and chunks them, embeds them into a vector database (ChromaDB) and answers
+questions from them with the supporting sources. The chatbot's **Ask the documents** tab has a country and a category
+dropdown. Built for Kenya and India; a new country is one command
+(`python -m procurement_rag.pipeline --add-country NGA` then `--countries NGA`) and does not rebuild the others.
+See [procurement_rag/README.md](procurement_rag/README.md).
+
 ## Run it
 
 Needs Python 3.11+.

@@ -17,6 +17,17 @@ from procurement_demo.common import CFG, GOLD  # noqa: E402
 st.set_page_config(page_title="Procurement Intelligence", page_icon="🔬", layout="wide")
 
 
+@st.cache_resource(show_spinner="Loading the document index…")
+def load_docs():
+    from procurement_rag.search import DocSearch
+    try:
+        return DocSearch()
+    except Exception as e:          # index not built yet
+        st.warning(f"Document search is not available yet ({str(e)[:120]}). "
+                   "Build it with: python -m procurement_rag.pipeline --countries KEN IND")
+        return None
+
+
 @st.cache_resource(show_spinner="Loading the knowledge base…")
 def load():
     return ProcurementChat(), json.loads((GOLD / "build_stats.json").read_text(encoding="utf-8"))
@@ -47,7 +58,7 @@ with st.sidebar:
                "[R] rating, [D] derived figure). A verifier removes any sentence whose numbers or quotes are not in "
                "the cited evidence.")
 
-chat_tab, model_tab, explore_tab = st.tabs(["Chat", "Data model", "Explore"])
+chat_tab, docs_tab, model_tab, explore_tab = st.tabs(["Chat", "Ask the documents", "Data model", "Explore"])
 
 
 def show_answer(ans):
@@ -88,6 +99,48 @@ with chat_tab:
                 ans = bot.ask(q)
             show_answer(ans)
         st.session_state.history.append(ans)
+
+DOC_EXAMPLES = [
+    "What laboratory equipment does the project plan to procure?",
+    "What problems were found with the maintenance of laboratory or diagnostic equipment?",
+    "Which procurement methods are used for medical equipment and what are the thresholds?",
+    "What lessons were learned about strengthening public health laboratories?",
+]
+
+with docs_tab:
+    docs = load_docs()
+    countries = docs.countries() if docs else {}
+    if not countries:
+        st.info("No countries indexed yet. Build them with: python -m procurement_rag.pipeline --countries KEN IND")
+    else:
+        from procurement_rag.config import CATEGORIES
+        c1, c2 = st.columns(2)
+        iso3 = c1.selectbox("Country", list(countries), format_func=lambda k: countries[k])
+        category = c2.selectbox("Category", ["All categories", *CATEGORIES])
+        info = docs.stats(iso3)
+        st.caption(f"{info['documents']} World Bank documents from {info['projects']} projects in {countries[iso3]}, "
+                   f"{info['chunks']:,} indexed passages · " + ", ".join(f"{v} {k}" for k, v in info["by_type"].items()))
+        st.markdown("**Example questions**")
+        ex_cols = st.columns(2)
+        for i, q in enumerate(DOC_EXAMPLES):
+            if ex_cols[i % 2].button(q, key=f"docq{i}", use_container_width=True):
+                st.session_state.doc_question = q
+        question = st.text_input("Your question", key="doc_question",
+                                 placeholder=f"Ask anything about lab and diagnostic equipment procurement in {countries[iso3]}…")
+        if question:
+            with st.spinner(f"Searching {countries[iso3]} documents…"):
+                res = docs.answer(question, iso3, None if category == "All categories" else category)
+            if res["note"]:
+                st.info(res["note"])
+            if res["answer"]:
+                st.markdown("\n".join(f"- {a['text']} **[{a['source']}]**" for a in res["answer"]))
+                st.caption("Each sentence is taken from the cited document; open a source to read it in context.")
+            st.markdown(f"**Sources ({len(res['sources'])})**")
+            for s in res["sources"]:
+                with st.expander(f"[{s['id']}] {s['doc_type']} · {s['title'][:90]} · p. {s['pages']}"):
+                    st.markdown(f"Project {s['project_id']} {s['project_name']} · {s['doc_date']} · section: {s['section']}  \n"
+                                f"[Open the document]({s['url']})")
+                    st.write(s["text"])
 
 with model_tab:
     st.markdown("#### How the data is connected")

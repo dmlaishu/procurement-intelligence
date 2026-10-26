@@ -910,7 +910,7 @@ def prototype(ev):
     for f in ("prototype_report.html", "demo_brief.md", "eval_results.json"):
         shutil.copyfile(OUT / f, pdir / f)
     (ROOT / "requirements_procurement.txt").write_text(
-        "pandas\npyarrow\nscikit-learn\npypdf\nrequests\njoblib\nmarkdown\nstreamlit\n# optional: anthropic (LLM wording)\n",
+        "pandas\npyarrow\nscikit-learn\npypdf\nrequests\njoblib\nmarkdown\nstreamlit\nchromadb>=1.5,<2\nfastembed>=0.9,<1\n# optional: anthropic (LLM wording)\n",
         encoding="utf-8")
     files = ([p for p in (ROOT / "procurement_demo").glob("*.py")] + sorted((ROOT / "notebooks").glob("2[0-9]_proc*.py"))
              + sorted((ROOT / "notebooks").glob("2[0-9]_ingest*.py")) + [ROOT / "src" / "test_proc_lib.py",

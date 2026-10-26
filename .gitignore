@@ -31,3 +31,12 @@ procurement_demo/data/health_lab/*
 !procurement_demo/data/health_lab/gold/
 procurement_demo/output/*
 !procurement_demo/output/health_lab/
+
+# document RAG: PDFs, extracted text, embedding model and the vector index are rebuilt by
+# `python -m procurement_rag.pipeline`; the per-country manifests (what was fetched) are kept
+procurement_rag/data/*
+!procurement_rag/data/*/
+procurement_rag/data/*/*
+!procurement_rag/data/*/manifest.json
+procurement_rag/data/index/
+procurement_rag/data/models/

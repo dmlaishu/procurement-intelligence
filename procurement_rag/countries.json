@@ -1,0 +1,64 @@
+{
+  "defaults": {
+    "min_approval_year": 2005,
+    "project_keywords": [
+      "laboratory",
+      "diagnostic",
+      "disease surveillance",
+      "tuberculosis",
+      "pandemic preparedness"
+    ],
+    "health_pattern": "health|disease|tuberculosis|covid|pandemic|laborator|diagnost|hiv|aids|malaria|immuni|surveillance|medical|hospital",
+    "doc_types": {
+      "Project Appraisal Document": {
+        "code": "PAD",
+        "per_project": 1
+      },
+      "Project Paper": {
+        "code": "PPR",
+        "per_project": 1
+      },
+      "Procurement Plan": {
+        "code": "PP",
+        "per_project": 2
+      },
+      "Implementation Status and Results Report": {
+        "code": "ISR",
+        "per_project": 1
+      },
+      "Implementation Completion and Results Report": {
+        "code": "ICR",
+        "per_project": 1
+      },
+      "Implementation Completion Report Review": {
+        "code": "ICRR",
+        "per_project": 1
+      },
+      "Project Performance Assessment Report": {
+        "code": "PPAR",
+        "per_project": 1
+      }
+    },
+    "max_projects": 12,
+    "max_docs": 60
+  },
+  "countries": {
+    "KEN": {
+      "iso2": "KE",
+      "name": "Kenya",
+      "extra_projects": [
+        "P111556"
+      ]
+    },
+    "IND": {
+      "iso2": "IN",
+      "name": "India",
+      "extra_projects": []
+    },
+    "NGA": {
+      "iso2": "NG",
+      "name": "Nigeria",
+      "extra_projects": []
+    }
+  }
+}
