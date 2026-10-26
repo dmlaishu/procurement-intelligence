@@ -129,6 +129,11 @@ h1 { font-family: var(--display); font-weight: 600; font-size: clamp(28px, 4.6vw
 .ans p { margin: 6px 0; } .ans ul { margin: 4px 0 8px; padding-left: 20px; } .ans li { margin: 4px 0; }
 .sec { font-size: 12px !important; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; margin-top: 12px !important; }
 .thinking { color: var(--muted); font-style: italic; }
+.opener { font-weight: 500; margin-top: 0 !important; }
+.lead { font-size: 16px; }
+.hello p:first-child { margin-top: 0; }
+.more { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); font-size: 13px; color: var(--muted); }
+.example.follow { font-size: 13px; padding: 4px 11px; }
 .meta { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin-bottom: 6px; }
 .badge { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
 .badge.ok { background: var(--accent-soft); color: var(--accent); }
@@ -219,10 +224,10 @@ def main():
 <style>{STYLE}</style>
 <div class="wrap">
   <header>
-    <span class="eyebrow">AI-powered procurement intelligence · World Bank open data</span>
+    <span class="eyebrow">Procurement intelligence · World Bank open data</span>
     <h1>Ask about laboratory and diagnostic equipment procurement</h1>
     <p class="lede">Suppliers, prices, spend, tender times, lessons from project evaluations and how it all connects, for
-    lab and diagnostic equipment bought in World Bank-financed health projects. Every answer cites its evidence.</p>
+    lab and diagnostic equipment bought in World Bank-financed health projects. Every answer shows where it comes from.</p>
     <div class="stats"><span><b>{s['contracts']:,}</b> contracts</span><span><b>US${s['value'] / 1e9:.2f}B</b> value</span>
       <span><b>{s['countries']}</b> countries</span><span><b>{s['projects']}</b> projects</span>
       <span><b>{s['suppliers']:,}</b> suppliers</span><span><b>{s['docs']}</b> project reports</span></div>
@@ -239,7 +244,7 @@ def main():
   <footer>
     <span>Data: World Bank Major Contract Awards, Procurement Notices, Projects &amp; Operations and Documents &amp; Reports
     (public), FY2015 onwards, classified and linked by the prototype on {s['built']}.</span>
-    <span>Every answer cites its evidence and is checked against it before it is shown.</span>
+    <span>Every answer links to the contracts and reports it comes from, so you can check it yourself.</span>
   </footer>
 </div>
 <div class="bar-ask">

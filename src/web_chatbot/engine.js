@@ -487,7 +487,7 @@
       return { question, route, scope: scopeText(f), filters: f, statements: kept, dropped: log, evidence: ev.items, ...out };
     }
 
-    // ── tools for the AI mode: explicit arguments instead of free text, same data and evidence ids ────
+    // ── structured queries: explicit arguments instead of free text, same data and evidence ids ────
     function filtersFromArgs(a) {
       const items = Array.isArray(a.equipment_types) && a.equipment_types.length ? a.equipment_types.map(String).filter((t) => D.itemTypes.some(([n]) => n === t)) : null;
       const countries = (Array.isArray(a.countries) ? a.countries : []).map((x) => {

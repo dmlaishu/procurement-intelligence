@@ -1,8 +1,5 @@
-/* Chat UI for the procurement assistant. Two ways to answer:
- *   AI      - a language model (where the hosting viewer provides one) calls the engine's tools and writes the answer;
- *             the page then checks every number and citation against what the tools returned.
- *   Exact   - the engine answers directly (rule-based routing over the same data). The only mode on a plain web host,
- *             where the mode switch is not shown at all. */
+/* Chat UI for the procurement assistant. Answers come from the engine (rule-based routing over the embedded data),
+ * each sentence linked to its sources. */
 (function () {
   "use strict";
   const D = JSON.parse(document.getElementById("data").textContent);
@@ -10,14 +7,20 @@
   const $ = (s, el = document) => el.querySelector(s);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const thread = $("#thread"), form = $("#ask"), box = $("#q"), stopBtn = $("#stop"), sendBtn = $("#send");
-  const modeAi = $("#mode-ai"), modeExact = $("#mode-exact"), modeNote = $("#mode-note");
+  let busy = false, ctl = null, writer = null;          // writer: answers through a hosted model, when one is available
+  const asked = new Set();
 
-  let sample = null, aiReady = false, mode = "exact", busy = false, ctl = null;
+  /* @hosted */
+  // Blocks between these markers add written answers where the hosting viewer provides a model;
+  // build_site.py removes them for the public website.
+  const modeAi = $("#mode-ai"), modeExact = $("#mode-exact"), modeNote = $("#mode-note");
+  let sample = null, aiReady = false, mode = "exact";
   const history = [];                                   // [{role, content}] for AI follow-ups (last few turns)
 
   // ── mode ──────────────────────────────────────────────────────────────────────────────────────
   function setMode(m, note) {
     mode = m;
+    writer = m === "ai" && aiReady ? askAi : null;
     modeAi.setAttribute("aria-pressed", String(m === "ai"));
     modeExact.setAttribute("aria-pressed", String(m === "exact"));
     modeNote.textContent = note || (m === "ai"
@@ -39,6 +42,7 @@
     document.querySelector(".controls").hidden = !aiReady;      // no mode switch where only exact answers exist
     if (aiReady) setMode("ai");
   })();
+  /* @end-hosted */
 
   // ── rendering helpers ─────────────────────────────────────────────────────────────────────────
   function chipify(html, scope) {
@@ -61,9 +65,15 @@
   }
   function statementsHtml(statements, scope) {
     let out = "", sec = null;
+    const chips = (s) => s.cites.map((c) => `<button type="button" class="chip" data-ev="${c}" data-scope="${scope}" title="See the source">${c}</button>`).join(" ");
     for (const s of statements) {
-      if (s.section !== sec) { if (sec !== null) out += "</ul>"; sec = s.section; out += `<p class="sec">${esc(sec)}</p><ul>`; }
-      out += `<li>${esc(s.text)} ${s.cites.map((c) => `<button type="button" class="chip" data-ev="${c}" data-scope="${scope}">${c}</button>`).join(" ")}</li>`;
+      if (s.section === "Answer") { if (sec !== null) out += "</ul>"; sec = null; out += `<p class="lead">${esc(s.text)} ${chips(s)}</p>`; continue; }
+      if (s.section !== sec) {
+        if (sec !== null) out += "</ul>";
+        sec = s.section;
+        out += `<p class="sec">${esc(SECTION_NAMES[sec] || sec)}</p><ul>`;
+      }
+      out += `<li>${esc(s.text)} ${chips(s)}</li>`;
     }
     return out + (sec !== null ? "</ul>" : "");
   }
@@ -73,7 +83,7 @@
     const row = (e) => `<li id="${scope}-${e.id}"><span class="eid">${e.id}</span><div><div class="esrc">${esc(e.source || "")}` +
       `${e.page != null ? ` · p. ${e.page}` : ""}${e.url ? ` · <a href="${esc(e.url)}" target="_blank" rel="noopener">open source</a>` : ""}</div>` +
       `<div class="etext">${esc(String(e.text).slice(0, 700))}${String(e.text).length > 700 ? "…" : ""}</div></div></li>`;
-    return `<details class="evidence"><summary>Evidence (${list.length})</summary><ol>${list.map(row).join("")}</ol></details>`;
+    return `<details class="evidence"><summary>Where this comes from (${list.length} ${list.length === 1 ? "source" : "sources"})</summary><ol>${list.map(row).join("")}</ol></details>`;
   }
   function tableHtml(t) {
     if (!t || !t.rows || !t.rows.length) return "";
@@ -116,10 +126,43 @@
     return `<div class="graph">${svg}</svg></div><p class="hint">Hover a line to see the relationship (e.g. contract value).</p>`;
   }
 
+  // a short, plain-language opener for each kind of answer
+  const OPENERS = {
+    rank_low: "Here are the lowest-value contracts I found.",
+    rank_high: "Here are the largest contracts I found.",
+    suppliers: "Here's who has been winning this business.",
+    aggregate: "Here's how the spending breaks down.",
+    timeline: "Here's how long these tenders usually take, from invitation to award.",
+    lessons: "Here's what the project reports say about this.",
+    project: "Here's an overview of that project.",
+    supplier: "Here's a quick profile of this supplier.",
+    graph: "Here's how these pieces connect.",
+  };
+  const SECTION_NAMES = { "Next in the ranking": "Next in line", "Context": "Worth knowing", "How to read this": "Worth knowing" };
+
+  function greet() {
+    const s = D.stats;
+    const el = document.createElement("article");
+    el.className = "turn";
+    el.innerHTML = `<div class="ans hello"><p>Hi! I can help you explore how laboratory and diagnostic equipment has been bought in
+      World Bank-financed health projects: ${s.contracts.toLocaleString("en-US")} contracts across ${s.countries} countries.</p>
+      <p>Ask me about suppliers, prices, spending, how long tenders take, or what past projects learned. I'll show you where every
+      fact comes from, so you can check it yourself. Pick an example above or type your own question below.</p></div>`;
+    thread.appendChild(el);
+  }
+
+  function suggestions(q) {
+    asked.add(q.toLowerCase());
+    const left = [...document.querySelectorAll(".examples .example")].map((b) => b.textContent).filter((t) => !asked.has(t.toLowerCase()));
+    if (!left.length) return "";
+    const pick = left.sort(() => Math.random() - 0.5).slice(0, 2);
+    return `<div class="more"><span>You could also ask:</span>${pick.map((t) => `<button type="button" class="example follow">${esc(t)}</button>`).join("")}</div>`;
+  }
+
   function addTurn(q) {
     const el = document.createElement("article");
     el.className = "turn";
-    el.innerHTML = `<p class="you"><span class="who">You</span>${esc(q)}</p><div class="ans"><p class="thinking">Thinking…</p></div>`;
+    el.innerHTML = `<p class="you"><span class="who">You</span>${esc(q)}</p><div class="ans"><p class="thinking">Looking that up…</p></div>`;
     thread.appendChild(el);
     el.scrollIntoView({ behavior: "smooth", block: "start" });
     return el.querySelector(".ans");
@@ -139,13 +182,19 @@
   function renderExact(ansEl, res, prefixNote) {
     const scope = "t" + (++turnNo);
     const cited = new Set(res.statements.flatMap((s) => s.cites));
+    const found = res.statements.length > 0 && !/^Not enough data|^No verified/.test(res.statements[0].text);
+    const opener = !found ? "Sorry, I couldn't find anything that matches that. Try a broader question, another country or a different type of equipment."
+      : res.schema ? "Here's how the data fits together." : (OPENERS[res.route] || "Here's what I found.");
     ansEl.innerHTML = (prefixNote ? `<p class="note">${esc(prefixNote)}</p>` : "") +
-      `<div class="meta"><span class="badge ok">Exact answer · every sentence cited</span><span class="scope">${esc(res.scope)}</span></div>` +
-      statementsHtml(res.statements, scope) + chartHtml(res.chart) + graphHtml(res.graph) +
-      (res.schema ? `<div class="graph er">${D.erSvg}</div>` : "") + tableHtml(res.table) + evidenceHtml(res.evidence, cited, scope) +
-      (res.dropped && res.dropped.length ? `<details class="dropped"><summary>Removed by the checker (${res.dropped.length})</summary><ul>${res.dropped.map((d) => `<li>${esc(d.text.slice(0, 160))} <em>${esc(d.problems.join("; "))}</em></li>`).join("")}</ul></details>` : "");
+      `<p class="opener">${esc(opener)}</p>` +
+      (found ? `<p class="scope">Looking at: ${esc(res.scope)}</p>` + statementsHtml(res.statements, scope) : "") +
+      chartHtml(res.chart) + graphHtml(res.graph) +
+      (res.schema ? `<div class="graph er">${D.erSvg}</div>` : "") + tableHtml(res.table) +
+      (found && cited.size ? `<p class="hint">Tags like ${[...cited][0]} link each fact to its source; click one to see it.</p>` : "") +
+      evidenceHtml(res.evidence, cited, scope);
   }
 
+  /* @hosted */
   const RULES = () => `You are a procurement assistant for medical laboratory and diagnostic equipment bought in World Bank-financed health projects.
 Data available through your tools (public World Bank data, FY2015 onwards): ${D.stats.contracts} lab and diagnostic contracts in ${D.stats.countries} countries and ${D.stats.projects} projects, resolved suppliers, tender timelines from procurement notices, and passages and lessons from ${D.stats.docs} project reports (completion reports, IEG reviews, appraisal and supervision reports).
 Equipment types: ${D.itemTypes.filter((t) => t[2]).map((t) => t[0]).join("; ")}.
@@ -218,20 +267,23 @@ Rules:
       `<div class="ai">${mdLite(text, scope)}</div>` + (truncated ? `<p class="note">The answer was cut short; ask for less at a time.</p>` : "") +
       graphHtml(extras.graph) + (extras.schema ? `<div class="graph er">${D.erSvg}</div>` : "") + tableHtml(extras.table) + evidenceHtml(ev.items, cited, scope);
   }
+  /* @end-hosted */
 
   async function ask(q) {
     q = q.trim();
     if (!q || busy) return;
-    busy = true; sendBtn.disabled = true; stopBtn.hidden = mode !== "ai";
+    busy = true; sendBtn.disabled = true; stopBtn.hidden = !writer;
     const ansEl = addTurn(q);
     try {
-      if (mode === "ai" && aiReady) await askAi(q, ansEl);
-      else { await new Promise((r) => setTimeout(r, 30)); renderExact(ansEl, E.ask(q)); }
+      if (writer) await writer(q, ansEl);
+      else { await new Promise((r) => setTimeout(r, 350)); renderExact(ansEl, E.ask(q)); }
+      ansEl.insertAdjacentHTML("beforeend", suggestions(q));
     } finally { busy = false; sendBtn.disabled = false; stopBtn.hidden = true; box.focus(); }
   }
 
   form.addEventListener("submit", (e) => { e.preventDefault(); const q = box.value; box.value = ""; ask(q); });
   box.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); } });
   stopBtn.addEventListener("click", () => ctl && ctl.abort());
-  document.querySelectorAll(".example").forEach((b) => b.addEventListener("click", () => { box.value = ""; ask(b.textContent); }));
+  document.addEventListener("click", (e) => { const b = e.target.closest(".example"); if (b) { box.value = ""; ask(b.textContent); } });
+  greet();
 })();

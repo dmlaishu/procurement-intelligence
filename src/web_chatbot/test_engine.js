@@ -23,7 +23,7 @@ for (const x of expected) {
     for (const d of a.dropped) console.log("   dropped:", d.text.slice(0, 120), d.problems);
   }
 }
-// every Claude tool runs and returns cited, verified findings
+// every structured query runs and returns cited, verified findings
 const ev = new E.Evidence();
 const calls = [
   ["rank_contracts", { equipment_types: ["Molecular diagnostics (PCR, GeneXpert)"], order: "lowest" }],
