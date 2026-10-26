@@ -11,6 +11,8 @@
 # MAGIC | Long reports (ICR / PAD / ISR / PPAR) | `strip_running_lines`, `split_sections`, `section_chunks`, `parse_icr_datasheet` |
 # MAGIC | Survival benchmarks | `kaplan_meier` |
 # MAGIC | Guardrails | `quote_in_source`, `numbers_in`, `unsupported_numbers`, `resolve_rating_conflict` |
+# MAGIC | Domain taxonomy | `ITEM_TYPES_LAB`, `LAB_DOMAIN_ITEMS`, `classify_item` (lab and diagnostic equipment) |
+# MAGIC | IEG ratings | `parse_icrr_ratings`, `parse_ppar_rating` |
 
 # COMMAND ----------
 
@@ -573,3 +575,81 @@ def safe_div(a, b):
 
 def log1p_safe(x):
     return _math.log1p(x) if x is not None and x >= 0 else None
+
+
+# ── Domain taxonomy: laboratory and diagnostic equipment ──────────────────────────────────────────
+# What was bought, one level beneath the procurement category (first match wins). English, French, Spanish and
+# Portuguese terms; "." stands in for accents that arrive garbled in the award feed. The first ten types are the domain.
+ITEM_TYPES_LAB = [
+    ("Molecular diagnostics (PCR, GeneXpert)", r"\bq?RT-?PCR\b|\bPCR\b|gene ?xpert|molecular|mol.culaire|nucleic|nucl.ique|"
+                                               r"RNA extract|\bDNA\b|\bADN\b|thermocycl|sequenc|s.quen.age|genom|g.nom|primer|amorce"),
+    ("Diagnostic imaging", r"x-?ray|radiograph|radiolog|rayos? x|rayons? x|ultraso|sonograph|.chograph|ecograf|\bCT\b|"
+                           r"computed tomograph|tomograf|tomodensit|\bMRI\b|\bIRM\b|magnetic resonance|mammograph|mamograf|"
+                           r"fluoroscop|c-?arm|imaging|imagerie|linear accelerator|angiograph|echocardiograph"),
+    ("Rapid tests and test kits", r"rapid (diagnostic )?tests?|\bRDTs?\b|\bTDRs?\b|test kits?|testing kits?|antigen|antig.n|"
+                                  r"antibod|anticorps|serolog|s.rolog|self-?test|diagnostic kits?|pruebas? r.pidas?|"
+                                  r"tests? (de diagnostic )?rapides?|tests? de d.pistage|kits? de (test|d.pistage|diagn)"),
+    ("Reagents and cartridges", r"reagent|\br.{0,2}acti[fv]|cartridge|cartouche|calibrator|culture media|milieux? de culture|"
+                                r"laboratory consumable|lab consumable|consommables? de laboratoire|consumibles? de laboratorio|"
+                                r"microbiolog|agarose|viral transport|\bVTM\b|swab|.couvillon|hisopo"),
+    ("Laboratory analyzers", r"analy[sz]er|analy[sz]eur|analizador|hematolog|haematolog|h.matolog|biochem|biochimi|bioqu.mic|"
+                             r"chemistry|immunoassay|inmunoqu|immunochimi|ELISA|coagulat|blood gas|electrolyte|\bCD4\b|"
+                             r"viral load|charge virale|carga viral|blood (grouping|bank)|banque de sang|banco de sangre|urinaly"),
+    ("Microscopy", r"microscop|microtome"),
+    ("Biosafety, sterilization and cold chain", r"biosafety|bios.curit|bioseguridad|biological safety|safety cabinet|"
+                                                r"autoclave|steriliz|st.rilis|esteriliz|(ultra[- ]?low|deep) freezer|"
+                                                r"cong.lateur|congelador|laboratory (fridge|refrigerat)|centrifug|incubat|"
+                                                r"incubad|fume hood|hotte|laminar"),
+    ("Laboratory information systems", r"\bLIMS\b|laborator(y|ies) information|lab information|SIL\b"),
+    ("Mobile and modular laboratories", r"mobile lab|modular lab|laboratoire mobile|laboratorio m.vil|"
+                                        r"container(ised|ized)? lab|BSL-?[23]"),
+    ("General laboratory and diagnostic equipment", r"laborator|laboratoi|laboratorio|\blab\b|diagnost|diagn.stico|"
+                                                    r"pathology|patholog|anatomo|testing equipment|specialised testing"),
+    # outside the domain (kept so the market context and models see the whole health-goods picture)
+    ("Medicines and vaccines", r"medicine|drug|vaccin|vacuna|pharmac|m.dicament|medicamento|antiretro|insulin|tablet|"
+                               r"injection|\d+ ?mg\b|folic|ferrous|plumpy|contracepti"),
+    ("PPE and medical consumables", r"\bPPE\b|\bEPI\b|personal protect|mask|masque|mascarilla|glove|gant|guante|gown|"
+                                    r"coverall|goggle|face shield|visi.re|syringe|seringue|jeringa|sanitiz|disinfect|"
+                                    r"d.sinfect|gel hydro|soap|savon|jab.n|hygien|hand ?wash|lavage des mains"),
+    ("Other medical equipment", r"medical equipment|.quipements? (m.dicaux|biom.dicaux)|mat.riels? m.dicaux|"
+                                r"equipamientos? m.dicos?|equipos? m.dicos?|ventilat|oxyg|monitor|hospital bed|\bbeds?\b|"
+                                r"\blits?\b|camas?|anaesthe|anesthe|infusion|surgical|chirurgi|quir.rgic|dental|\bICU\b|"
+                                r"theatre|delivery|neonatal|n.onat|h.modialys|dialys|medical gas|stent|cat.ter|catheter|"
+                                r"simulat|mattress|matelas|incinerat|ambulance"),
+    ("IT, furniture and vehicles", r"computer|ordinateur|computador|laptop|server|serveur|software|logiciel|IT equipment|"
+                                   r"furniture|mobilier|mobiliario|vehicle|v.hicule|veh.culo|moto|printer|imprimante|"
+                                   r"firewall|CCTV|internet|office|bureau"),
+]
+LAB_DOMAIN_ITEMS = {name for name, _ in ITEM_TYPES_LAB[:10]}
+
+# "Vehicles for the national laboratory" is not laboratory equipment: these words veto the catch-all type
+NOT_EQUIPMENT = _re.compile(r"vehicle|v.hicule|veh.culo|pick ?-?up|motorcycle|\bmotos?\b|CCTV|access control|printing|"
+                            r"impression|manuals?\b|construction|r.habilitation|works\b|travaux|obras", _re.I)
+_OTHER_BY_CATEGORY = {"Works": "Other works", "Goods": "Other goods", "Consultant Services": "Other consultancy",
+                      "Non-consulting Services": "Other services"}
+
+
+def classify_item(description, category=None, item_types=ITEM_TYPES_LAB):
+    """Classify what a contract or tender buys into the item taxonomy ('Other <category>' when nothing matches)."""
+    d = description or ""
+    for name, pat in item_types:
+        if name.startswith("General") and NOT_EQUIPMENT.search(d):
+            continue
+        if _re.search(pat, d, _re.I):
+            return name
+    return _OTHER_BY_CATEGORY.get(category, "Other")
+
+
+def parse_icrr_ratings(text):
+    """IEG ICR Review: the independent outcome rating ("Outcome Rating <IEG>") and, from the summary table
+    ("Outcome <ICR> <IEG>"), the Bank's own ICR rating beside it. Returns (ieg_rating, icr_rating), either may be None."""
+    flat = " ".join((text or "")[:60000].split())
+    ieg = _re.search(rf"\bOutcome Rating {_RATING_WORDS}", flat)
+    tab = _re.search(rf"\bOutcome {_RATING_WORDS} {_RATING_WORDS}", flat)
+    return (ieg.group(1) if ieg else (tab.group(2) if tab else None)), (tab.group(1) if tab else None)
+
+
+def parse_ppar_rating(text):
+    """IEG Project Performance Assessment Report: the outcome rating from its ratings table, or None."""
+    m = _re.search(rf"\bOutcome\b[^\n]{{0,40}}?\b{_RATING_WORDS}", (text or "")[:30000])
+    return m.group(1) if m else None

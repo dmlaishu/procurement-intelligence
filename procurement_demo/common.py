@@ -21,47 +21,8 @@ lib = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(lib)
 
 # ── Item taxonomies: the component level beneath procurement category (first match wins) ──────────
-# English, French, Spanish and Portuguese terms; "." stands in for accents that arrive garbled in the award feed.
-ITEM_TYPES_LAB = [
-    ("Molecular diagnostics (PCR, GeneXpert)", r"\bq?RT-?PCR\b|\bPCR\b|gene ?xpert|molecular|mol.culaire|nucleic|nucl.ique|"
-                                               r"RNA extract|\bDNA\b|\bADN\b|thermocycl|sequenc|s.quen.age|genom|g.nom|primer|amorce"),
-    ("Diagnostic imaging", r"x-?ray|radiograph|radiolog|rayos? x|rayons? x|ultraso|sonograph|.chograph|ecograf|\bCT\b|"
-                           r"computed tomograph|tomograf|tomodensit|\bMRI\b|\bIRM\b|magnetic resonance|mammograph|mamograf|"
-                           r"fluoroscop|c-?arm|imaging|imagerie|linear accelerator|angiograph|echocardiograph"),
-    ("Rapid tests and test kits", r"rapid (diagnostic )?tests?|\bRDTs?\b|\bTDRs?\b|test kits?|testing kits?|antigen|antig.n|"
-                                  r"antibod|anticorps|serolog|s.rolog|self-?test|diagnostic kits?|pruebas? r.pidas?|"
-                                  r"tests? (de diagnostic )?rapides?|tests? de d.pistage|kits? de (test|d.pistage|diagn)"),
-    ("Reagents and cartridges", r"reagent|\br.{0,2}acti[fv]|cartridge|cartouche|calibrator|culture media|milieux? de culture|"
-                                r"laboratory consumable|lab consumable|consommables? de laboratoire|consumibles? de laboratorio|"
-                                r"microbiolog|agarose|viral transport|\bVTM\b|swab|.couvillon|hisopo"),
-    ("Laboratory analyzers", r"analy[sz]er|analy[sz]eur|analizador|hematolog|haematolog|h.matolog|biochem|biochimi|bioqu.mic|"
-                             r"chemistry|immunoassay|inmunoqu|immunochimi|ELISA|coagulat|blood gas|electrolyte|\bCD4\b|"
-                             r"viral load|charge virale|carga viral|blood (grouping|bank)|banque de sang|banco de sangre|urinaly"),
-    ("Microscopy", r"microscop|microtome"),
-    ("Biosafety, sterilization and cold chain", r"biosafety|bios.curit|bioseguridad|biological safety|safety cabinet|"
-                                                r"autoclave|steriliz|st.rilis|esteriliz|(ultra[- ]?low|deep) freezer|"
-                                                r"cong.lateur|congelador|laboratory (fridge|refrigerat)|centrifug|incubat|"
-                                                r"incubad|fume hood|hotte|laminar"),
-    ("Laboratory information systems", r"\bLIMS\b|laborator(y|ies) information|lab information|SIL\b"),
-    ("Mobile and modular laboratories", r"mobile lab|modular lab|laboratoire mobile|laboratorio m.vil|"
-                                        r"container(ised|ized)? lab|BSL-?[23]"),
-    ("General laboratory and diagnostic equipment", r"laborator|laboratoi|laboratorio|\blab\b|diagnost|diagn.stico|"
-                                                    r"pathology|patholog|anatomo|testing equipment|specialised testing"),
-    # outside the domain (kept so the market context and models see the whole health-goods picture)
-    ("Medicines and vaccines", r"medicine|drug|vaccin|vacuna|pharmac|m.dicament|medicamento|antiretro|insulin|tablet|"
-                               r"injection|\d+ ?mg\b|folic|ferrous|plumpy|contracepti"),
-    ("PPE and medical consumables", r"\bPPE\b|\bEPI\b|personal protect|mask|masque|mascarilla|glove|gant|guante|gown|"
-                                    r"coverall|goggle|face shield|visi.re|syringe|seringue|jeringa|sanitiz|disinfect|"
-                                    r"d.sinfect|gel hydro|soap|savon|jab.n|hygien|hand ?wash|lavage des mains"),
-    ("Other medical equipment", r"medical equipment|.quipements? (m.dicaux|biom.dicaux)|mat.riels? m.dicaux|"
-                                r"equipamientos? m.dicos?|equipos? m.dicos?|ventilat|oxyg|monitor|hospital bed|\bbeds?\b|"
-                                r"\blits?\b|camas?|anaesthe|anesthe|infusion|surgical|chirurgi|quir.rgic|dental|\bICU\b|"
-                                r"theatre|delivery|neonatal|n.onat|h.modialys|dialys|medical gas|stent|cat.ter|catheter|"
-                                r"simulat|mattress|matelas|incinerat|ambulance"),
-    ("IT, furniture and vehicles", r"computer|ordinateur|computador|laptop|server|serveur|software|logiciel|IT equipment|"
-                                   r"furniture|mobilier|mobiliario|vehicle|v.hicule|veh.culo|moto|printer|imprimante|"
-                                   r"firewall|CCTV|internet|office|bureau"),
-]
+# The lab-equipment taxonomy lives in 20_proc_lib so the Databricks notebooks classify exactly the same way.
+ITEM_TYPES_LAB = lib.ITEM_TYPES_LAB
 ITEM_TYPES_ROADS = [
     ("Road safety", r"road safety|black ?spot|crash|accident|ambulance|enforcement|speed (camera|management)"),
     ("Bridges and structures", r"bridge|culvert|cross[- ]?drain|retaining wall|causeway|flyover|structure"),
@@ -109,7 +70,7 @@ SCOPES = {
         "contract_filter": "project_global_practice like '%Health%' and procurement_category='Goods'",
         "min_year": 2015,
         "item_types": ITEM_TYPES_LAB, "item_label": "Equipment type",
-        "domain_items": {name for name, _ in ITEM_TYPES_LAB[:10]},
+        "domain_items": lib.LAB_DOMAIN_ITEMS,
         "max_projects": 140,                        # domain projects whose notices are ingested (most domain spend first)
         "doc_types": FULL_DOC_TYPES,
         "max_doc_projects": 36,                     # 16 highest-spend projects + 20 highest-spend CLOSED ones (ICRs, lessons)
@@ -170,20 +131,12 @@ GOV_INDICATORS = {
 CATEGORY = {"CW": "Works", "GO": "Goods", "CS": "Consultant Services", "NC": "Non-consulting Services"}
 
 
-NOT_EQUIPMENT = re.compile(r"vehicle|v.hicule|veh.culo|pick ?-?up|motorcycle|\bmotos?\b|CCTV|access control|printing|"
-                           r"impression|manuals?\b|construction|r.habilitation|works\b|travaux|obras", re.I)
+NOT_EQUIPMENT = lib.NOT_EQUIPMENT
 
 
 def item_type(description, category):
     """Classify what is being bought into the scope's item taxonomy."""
-    d = description or ""
-    for name, pat in CFG["item_types"]:
-        if name.startswith("General") and NOT_EQUIPMENT.search(d):
-            continue                   # "vehicles for the national laboratory" is not laboratory equipment
-        if re.search(pat, d, re.I):
-            return name
-    return {"Works": "Other works", "Goods": "Other goods", "Consultant Services": "Other consultancy",
-            "Non-consulting Services": "Other services"}.get(category, "Other")
+    return lib.classify_item(description, category, CFG["item_types"])
 
 
 def in_domain(item):

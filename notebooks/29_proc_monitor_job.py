@@ -16,7 +16,7 @@
 
 # COMMAND ----------
 
-# MAGIC %run ./00_config
+# MAGIC %run ./00_proc_config
 
 # COMMAND ----------
 
@@ -26,7 +26,7 @@ spark.sql(f"USE CATALOG {CATALOG}")
 # Realised outcomes: tenders awarded since the champion models were trained (MLflow run time)
 import mlflow
 me = spark.sql("SELECT current_user()").first()[0]
-runs = mlflow.search_runs(experiment_names=[f"/Users/{me}/wb_proc_models"], order_by=["start_time DESC"], max_results=1)
+runs = mlflow.search_runs(experiment_names=[f"/Users/{me}/proc_lab_models"], order_by=["start_time DESC"], max_results=1)
 trained_at = pd.to_datetime(runs.iloc[0].start_time) if len(runs) else pd.Timestamp("2000-01-01", tz="UTC")
 new = spark.sql(f"""SELECT count(*) AS n FROM gold.fact_tender
                     WHERE award_observed AND award_date > to_date('{trained_at.date()}')""").first().n
@@ -98,10 +98,10 @@ tasks = [
                                                 left="{{tasks.monitor.values.retrain}}", right="true")),
     t("retrain", "26_proc_risk_models", ["retrain_gate"], outcome="true"),
 ]
-settings = dict(name="wb_proc_pipeline", tasks=tasks, max_concurrent_runs=1,
+settings = dict(name="proc_lab_pipeline", tasks=tasks, max_concurrent_runs=1,
                 schedule=jobs.CronSchedule(quartz_cron_expression="0 0 3 ? * MON", timezone_id="UTC",
                                            pause_status=jobs.PauseStatus.PAUSED))
-existing = [j for j in w.jobs.list(name="wb_proc_pipeline")]
+existing = [j for j in w.jobs.list(name="proc_lab_pipeline")]
 if existing:
     w.jobs.reset(job_id=existing[0].job_id, new_settings=jobs.JobSettings(**settings))
     print("updated job", existing[0].job_id)

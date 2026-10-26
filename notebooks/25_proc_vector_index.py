@@ -1,15 +1,15 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # Step 25 - Procurement: Vector Search index over project documents
-# MAGIC Delta Sync index `wb_demo.ai.proj_doc_chunks_index` on `gold.proj_doc_chunks`, on the **existing** endpoint from
-# MAGIC Step 6 (no extra endpoint cost). Embeddings: `databricks-gte-large-en` on `search_text` (header + chunk).
+# MAGIC Delta Sync index `ai.proj_doc_chunks_index` on `gold.proj_doc_chunks`, on the `proc_vs_endpoint` Vector Search
+# MAGIC endpoint (created here on the first run). Embeddings: `databricks-gte-large-en` on `search_text` (header + chunk).
 # MAGIC Filter columns synced for the copilot: `doc_type_code`, `section_kind`, `content_type`, `country_iso3`,
 # MAGIC `project_id`, `major_sector`. Queries run HYBRID (semantic + keyword) so report names, P-codes and terms such as
 # MAGIC "re-tender" match exactly.
 
 # COMMAND ----------
 
-# MAGIC %run ./00_config
+# MAGIC %run ./00_proc_config
 
 # COMMAND ----------
 
@@ -17,7 +17,7 @@ import json, time
 import pandas as pd
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.vectorsearch import (
-    DeltaSyncVectorIndexSpecRequest, EmbeddingSourceColumn, PipelineType, VectorIndexType,
+    DeltaSyncVectorIndexSpecRequest, EmbeddingSourceColumn, EndpointType, PipelineType, VectorIndexType,
 )
 
 w = WorkspaceClient()
@@ -25,6 +25,10 @@ SOURCE = f"{CATALOG}.gold.proj_doc_chunks"
 COLUMNS = ["chunk_id", "doc_id", "doc_type_code", "project_id", "project_name", "major_sector", "country_iso3", "title",
            "landing_url", "section_path", "section_kind", "content_type", "page_start", "page_end", "chunk_text"]
 log_event("proc_vector_index", "started", index=PROC_VS_INDEX)
+
+if VS_ENDPOINT not in {e.name for e in w.vector_search_endpoints.list_endpoints()}:
+    print("creating endpoint", VS_ENDPOINT, "(takes a few minutes)")
+    w.vector_search_endpoints.create_endpoint_and_wait(name=VS_ENDPOINT, endpoint_type=EndpointType.STANDARD)
 
 existing = {i.name for i in w.vector_search_indexes.list_indexes(endpoint_name=VS_ENDPOINT)}
 if PROC_VS_INDEX not in existing:
@@ -60,9 +64,9 @@ def search(q, filters=None, k=5):
         df["chunk_text"] = df["chunk_text"].str.slice(0, 200) + "…"
     return df
 
-display(search("civil works contracts delayed because bids exceeded the engineer's estimate and had to be re-tendered",
+display(search("laboratory equipment delivered but not installed or maintained, no service contract or trained staff",
                {"section_kind": ["lessons", "key_factors"]}))
-display(search("weak procurement capacity of the implementing agency", {"country_iso3": "KEN"}))
+display(search("delays in procuring diagnostic equipment and test kits", {"country_iso3": "KEN"}))
 
 # COMMAND ----------
 

@@ -7,13 +7,18 @@
 # MAGIC                                     │                        │
 # MAGIC                                     └──────FINANCED_BY───────┴──▶ PROJECT ──LOCATED_IN──▶ COUNTRY ──HAS_CONTEXT(year)──▶ GOVERNANCE
 # MAGIC                                                                    ▲   └──IN_SECTOR──▶ SECTOR
-# MAGIC                       DOCUMENT (PAD/ISR/ICR/PPAR) ──DESCRIBES──────┘
+# MAGIC                       DOCUMENT (PAD/ISR/ICR/PPAR) ──DESCRIBES──────┘          COUNTRY ──IN_REGION──▶ REGION
+# MAGIC  CONTRACT / TENDER ──OF_TYPE──▶ ITEM_TYPE (equipment type)        SUPPLIER ──BASED_IN──▶ COUNTRY
 # MAGIC                       LESSON ──FROM──▶ CHUNK ──PART_OF──▶ DOCUMENT          (added in Step 24)
 # MAGIC ```
 # MAGIC
+# MAGIC Every contract and tender carries its **equipment type** (`classify_item`) and an `in_domain` flag (one of the ten
+# MAGIC lab and diagnostic types). The tables keep all Goods of the domain projects, so benchmarks and models see the whole
+# MAGIC market; `gold.v_lab_contracts` is the domain view the copilot and the chatbot answer from.
+# MAGIC
 # MAGIC | Layer | Table | Grain |
 # MAGIC |---|---|---|
-# MAGIC | silver | `contracts`, `notices`, `projects`, `governance` | one typed row per source record |
+# MAGIC | silver | `contracts`, `notices`, `projects`, `governance` | one typed row per source record, with `item_type` / `in_domain` |
 # MAGIC | gold | `fact_contract` | contract × supplier, with resolved `supplier_key` and linked `tender_id` |
 # MAGIC | gold | `fact_tender` | one procurement package: open date → award date, bidders, re-bid flag, censoring flag |
 # MAGIC | gold | `dim_supplier`, `dim_project`, `country_governance_year` | resolved entities |
@@ -25,7 +30,7 @@
 
 # COMMAND ----------
 
-# MAGIC %run ./00_config
+# MAGIC %run ./00_proc_config
 
 # COMMAND ----------
 
@@ -53,6 +58,20 @@ def WB_DATE(c):
 CATEGORY = {"CW": "Works", "GO": "Goods", "CS": "Consultant Services", "NC": "Non-consulting Services"}
 
 norm_ref_udf = F.udf(norm_ref, "string")
+item_type_udf = F.udf(lambda d, c: classify_item(d, c), "string")
+DOMAIN = F.array(*[F.lit(x) for x in sorted(LAB_DOMAIN_ITEMS)])
+# Region of a regional (multi-country) borrower such as 'Eastern and Southern Africa'
+REGIONAL = [("middle east", "Middle East & North Africa"), ("north africa", "Middle East & North Africa"),
+            ("africa", "Sub-Saharan Africa"), ("europe", "Europe & Central Asia"), ("central asia", "Europe & Central Asia"),
+            ("latin america", "Latin America & Caribbean"), ("caribbean", "Latin America & Caribbean"),
+            ("south asia", "South Asia"), ("east asia", "East Asia & Pacific"), ("pacific", "East Asia & Pacific")]
+
+
+def regional_region(c):
+    out = F.lit(None).cast("string")
+    for key, reg in reversed(REGIONAL):
+        out = F.when(F.lower(c).contains(key), reg).otherwise(out)
+    return out
 norm_supplier_udf = F.udf(norm_supplier, "string")
 is_rebid_udf = F.udf(lambda a, b: bool(is_rebid(a, b)), "boolean")
 
@@ -91,12 +110,19 @@ contracts = (
         F.trim(F.regexp_replace(J("$.contract_description"), r"\s+", " ")).alias("description"),
         J("$.borrower_contract_reference_number").alias("borrower_ref"),
         J("$.project_global_practice").alias("global_practice"),
+        J("$.borrower_country").alias("borrower_country"),
     )
     .withColumn("borrower_ref_key", norm_ref_udf("borrower_ref"))
     .withColumn("supplier_name_key", norm_supplier_udf("supplier_name"))
+    .withColumn("item_type", item_type_udf("description", "procurement_category"))
+    .withColumn("in_domain", F.array_contains(DOMAIN, F.col("item_type")))
+    .join(spark.table("bronze.country_ref").select(F.col("iso3").alias("country_iso3"), F.col("region").alias("ref_region")),
+          "country_iso3", "left")
+    .withColumn("region", F.coalesce("ref_region", regional_region("borrower_country"), "region")).drop("ref_region")
 )
 contracts.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("silver.contracts")
-print("silver.contracts", spark.table("silver.contracts").count())
+display(spark.sql("""SELECT item_type, in_domain, count(*) AS contracts, round(sum(amount_usd) / 1e6, 1) AS usd_m
+                     FROM silver.contracts GROUP BY ALL ORDER BY in_domain DESC, usd_m DESC"""))
 
 # COMMAND ----------
 
@@ -139,6 +165,7 @@ notices = (
     .withColumn("procurement_category", F.coalesce(F.create_map(*[x for k, v in CATEGORY.items() for x in (F.lit(k), F.lit(v))])
                                                    [F.col("procurement_group")], F.col("procurement_group")))
     .withColumn("rebid_text", is_rebid_udf("description", "bid_ref"))
+    .withColumn("item_type", item_type_udf("description", "procurement_category"))
 )
 notices.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("silver.notices")
 display(spark.sql("""SELECT notice_type, count(*) AS n, count(bid_ref_key) AS with_ref,
@@ -170,6 +197,9 @@ projects = (
         F.coalesce(J("$.pdo"), J("$.project_abstract.cdata!")).alias("objective"),
         J("$.url").alias("project_url"),
     )
+    .join(spark.table("bronze.country_ref").select(F.col("iso3").alias("country_iso3"), "country_name",
+                                                   F.col("region").alias("ref_region")), "country_iso3", "left")
+    .withColumn("region", F.coalesce("ref_region", F.trim("region"))).drop("ref_region")
 )
 projects.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("silver.projects")
 
@@ -242,7 +272,8 @@ WITH inv AS (
          first(project_id, true) AS project_id, first(country_iso3, true) AS country_iso3,
          first(procurement_category, true) AS procurement_category, first(method_name, true) AS method_name,
          first(method_code, true) AS method_code, first(description, true) AS description,
-         first(implementing_org, true) AS implementing_org, first(notice_type, true) AS open_notice_type
+         first(implementing_org, true) AS implementing_org, first(notice_type, true) AS open_notice_type,
+         first(item_type, true) AS item_type
   FROM silver.notices
   WHERE notice_type IN ('Invitation for Bids', 'Request for Expression of Interest') AND bid_ref_key IS NOT NULL
   GROUP BY bid_ref_key
@@ -252,7 +283,8 @@ awd AS (
          max_by(award, notice_date) AS award, count(*) AS n_award_notices, max(award.notice_version) AS max_notice_version,
          first(project_id, true) AS project_id, first(country_iso3, true) AS country_iso3,
          first(procurement_category, true) AS procurement_category, first(method_name, true) AS method_name,
-         first(method_code, true) AS method_code, first(description, true) AS description
+         first(method_code, true) AS method_code, first(description, true) AS description,
+         first(item_type, true) AS item_type
   FROM silver.notices WHERE notice_type = 'Contract Award' AND bid_ref_key IS NOT NULL
   GROUP BY bid_ref_key
 )
@@ -263,6 +295,8 @@ SELECT coalesce(i.bid_ref_key, a.bid_ref_key) AS tender_id,
        coalesce(i.method_name, a.method_name) AS procurement_method,
        coalesce(i.method_code, a.method_code) AS method_code,
        coalesce(i.description, a.description) AS description,
+       coalesce(i.item_type, a.item_type) AS item_type,
+       array_contains(array({domain}), coalesce(i.item_type, a.item_type)) AS in_domain,
        i.implementing_org, i.open_notice_type, i.open_date, i.deadline_date, a.award_date,
        datediff(i.deadline_date, i.open_date) AS bid_window_days,
        coalesce(i.n_invitations, 0) AS n_invitations,
@@ -274,7 +308,7 @@ SELECT coalesce(i.bid_ref_key, a.bid_ref_key) AS tender_id,
        CASE WHEN i.open_date IS NOT NULL AND a.award_date IS NOT NULL THEN datediff(a.award_date, i.open_date) END AS observed_days,
        a.award_date IS NOT NULL AS award_observed
 FROM inv i FULL OUTER JOIN awd a ON i.bid_ref_key = a.bid_ref_key
-""")
+""".replace("{domain}", ", ".join("'" + x.replace("'", "''") + "'" for x in sorted(LAB_DOMAIN_ITEMS))))
 
 spark.sql("""
 CREATE OR REPLACE TABLE silver.tenders
@@ -348,8 +382,9 @@ display(spark.sql("""SELECT coalesce(tender_link_method, 'unlinked') AS link, co
 
 # Enrich tenders with what only the contract knows: review type (prior/post), USD amount, winning supplier
 enriched = spark.sql("""
-SELECT t.*, c.review_type, c.contract_usd, c.supplier_key
+SELECT t.*, c.review_type, c.contract_usd, c.supplier_key, p.region
 FROM silver.tenders t
+LEFT JOIN (SELECT project_id, region FROM silver.projects) p USING (project_id)
 LEFT JOIN (SELECT tender_id, first(review_type, true) AS review_type, sum(amount_usd) AS contract_usd,
                   first(supplier_key, true) AS supplier_key FROM gold.fact_contract WHERE tender_id IS NOT NULL GROUP BY 1) c
 USING (tender_id)
@@ -372,19 +407,36 @@ AS SELECT supplier_key,
           first(supplier_country, true) AS supplier_country,
           collect_set(supplier_name) AS name_variants, collect_set(supplier_id) AS wb_supplier_ids,
           count(DISTINCT wb_contract_number) AS n_contracts, round(sum(amount_usd), 0) AS total_usd,
+          count(DISTINCT CASE WHEN in_domain THEN wb_contract_number END) AS n_lab_contracts,
+          round(sum(CASE WHEN in_domain THEN amount_usd END), 0) AS lab_usd,
           count(DISTINCT country_iso3) AS n_borrower_countries, min(signing_date) AS first_contract, max(signing_date) AS last_contract
 FROM gold.fact_contract WHERE supplier_key IS NOT NULL GROUP BY supplier_key
 """)
 
 spark.sql("""
 CREATE OR REPLACE TABLE gold.dim_project
-COMMENT 'Projects with procurement activity summary.'
+COMMENT 'Domain projects (bought lab or diagnostic equipment) with procurement activity and lab-equipment spend.'
 AS SELECT p.*, datediff(p.closing_date, p.approval_date) AS planned_duration_days,
-          c.n_contracts, c.contracted_usd, t.n_tenders, t.median_cycle_days, t.rebid_rate
+          c.n_contracts, c.contracted_usd, d.domain_contracts AS n_lab_contracts, d.domain_spend_usd AS lab_usd,
+          d.spend_rank AS lab_spend_rank, t.n_tenders, t.median_cycle_days, t.rebid_rate
 FROM silver.projects p
+LEFT JOIN bronze.domain_projects d USING (project_id)
 LEFT JOIN (SELECT project_id, count(*) AS n_contracts, sum(amount_usd) AS contracted_usd FROM gold.fact_contract GROUP BY 1) c USING (project_id)
 LEFT JOIN (SELECT project_id, count(*) AS n_tenders, percentile(observed_days, 0.5) AS median_cycle_days,
                   avg(cast(rebid_flag AS int)) AS rebid_rate FROM gold.fact_tender GROUP BY 1) t USING (project_id)
+""")
+
+spark.sql("""
+CREATE OR REPLACE VIEW gold.v_lab_contracts
+COMMENT 'Laboratory and diagnostic equipment contracts only (in_domain), with project, country and region names.'
+AS SELECT c.wb_contract_number, c.supplier_key, s.supplier_name AS resolved_supplier, c.supplier_name, c.supplier_country,
+          c.amount_usd, c.signing_date, c.item_type, c.description, c.procurement_method, c.review_type,
+          c.project_id, p.project_name, c.country_iso3, r.country_name, c.region, c.tender_id
+FROM gold.fact_contract c
+LEFT JOIN gold.dim_supplier s USING (supplier_key)
+LEFT JOIN silver.projects p USING (project_id)
+LEFT JOIN bronze.country_ref r ON r.iso3 = c.country_iso3
+WHERE c.in_domain AND c.amount_usd > 0
 """)
 
 # Governance by country-year, forward-filled up to 3 years (scores are annual and published with a lag);
@@ -448,6 +500,18 @@ UNION ALL
 SELECT 'DOCUMENT', m.doc_id, 'DESCRIBES', 'PROJECT', p.pid, 'exact_key', 1.0, m.doc_date, m.doc_type_code
 FROM bronze.project_docs_meta m LATERAL VIEW explode(m.project_ids) p AS pid
 WHERE m.download_status NOT LIKE 'failed%'
+UNION ALL
+SELECT DISTINCT 'CONTRACT', wb_contract_number, 'OF_TYPE', 'ITEM_TYPE', item_type, 'keyword', 0.7, signing_date, description
+FROM gold.fact_contract
+UNION ALL
+SELECT 'TENDER', tender_id, 'OF_TYPE', 'ITEM_TYPE', item_type, 'keyword', 0.7, open_date, description
+FROM gold.fact_tender WHERE item_type IS NOT NULL
+UNION ALL
+SELECT DISTINCT 'COUNTRY', country_iso3, 'IN_REGION', 'REGION', region, 'reference', 1.0, NULL, NULL
+FROM silver.projects WHERE country_iso3 IS NOT NULL AND region IS NOT NULL
+UNION ALL
+SELECT 'SUPPLIER', supplier_key, 'BASED_IN', 'COUNTRY', supplier_country, 'exact_key', 1.0, first_contract, NULL
+FROM gold.dim_supplier WHERE supplier_country IS NOT NULL
 """)
 display(spark.sql("SELECT src_type, rel, dst_type, method, count(*) AS edges FROM gold.kg_edges GROUP BY ALL ORDER BY edges DESC"))
 
@@ -460,6 +524,10 @@ display(spark.sql("SELECT src_type, rel, dst_type, method, count(*) AS edges FRO
 checks = spark.sql("""
 SELECT
   (SELECT count(*) FROM gold.fact_contract) AS contracts,
+  (SELECT count(DISTINCT wb_contract_number) FROM gold.v_lab_contracts) AS lab_contracts,
+  (SELECT round(sum(amount_usd)) FROM gold.v_lab_contracts) AS lab_value_usd,
+  (SELECT count(DISTINCT country_iso3) FROM gold.v_lab_contracts) AS lab_countries,
+  (SELECT count(DISTINCT project_id) FROM gold.v_lab_contracts) AS lab_projects,
   (SELECT round(avg(CAST(tender_id IS NOT NULL AS INT)), 3) FROM gold.fact_contract) AS contract_tender_link_rate,
   (SELECT round(avg(CAST(p.project_id IS NOT NULL AS INT)), 3) FROM gold.fact_contract c LEFT JOIN silver.projects p USING (project_id)) AS contract_project_link_rate,
   (SELECT count(*) FROM gold.fact_tender) AS tenders,
@@ -468,6 +536,7 @@ SELECT
   (SELECT count(DISTINCT supplier_name) FROM silver.contracts) AS raw_supplier_names
 """).first().asDict()
 print(json.dumps(checks, indent=1, default=str))
+assert checks["lab_contracts"] > 0, "No lab or diagnostic contracts - check the taxonomy and Step 21"
 assert checks["tenders_with_cycle"] > 50, "Too few tenders with an invitation and an award - check notices ingestion"
 
 for t, tags in {"gold.fact_tender": "procurement", "gold.fact_contract": "procurement", "gold.kg_edges": "knowledge_graph"}.items():

@@ -4,8 +4,8 @@
 # MAGIC
 # MAGIC ```
 # MAGIC new package ──▶ PLAN  sub-queries from the description + model risk flags
-# MAGIC             ──▶ ACT   UC tools: proc_benchmark · @champion models · proc_similar_tenders · proc_search_lessons
-# MAGIC             │         · proc_search_passages · proc_project_evidence · proc_country_context
+# MAGIC             ──▶ ACT   UC tools: proc_benchmark · @champion models · proc_similar_tenders · proc_supplier_market
+# MAGIC             │         · proc_search_lessons · proc_search_passages · proc_project_evidence · proc_country_context
 # MAGIC             ──▶ EVIDENCE REGISTRY  every tool row gets an id (B1, M1, T3, L2, P1, R1, G1, D1)
 # MAGIC             ──▶ COMPOSE  each statement built from registered evidence, cites its ids
 # MAGIC             ──▶ (optional) LLM rewrite for readability
@@ -21,7 +21,7 @@
 
 # COMMAND ----------
 
-# MAGIC %run ./00_config
+# MAGIC %run ./00_proc_config
 
 # COMMAND ----------
 
@@ -46,17 +46,19 @@ def sql_str(s):
     return "NULL" if s is None else "'" + str(s).replace("'", "''") + "'"
 
 champions = {}
-for short in ("cycle_p50", "cycle_p80", "single_bid", "rebid"):
+for short in ("cycle_p50", "cycle_p80", "single_bid", "rebid", "amendment"):
     try:
         champions[short] = mlflow.sklearn.load_model(f"models:/{PROC_MODEL_PREFIX}{short}@champion")
     except Exception as e:
         print("⚠ no champion for", short, str(e)[:100])
-run = mlflow.search_runs(experiment_names=[f"/Users/{spark.sql('SELECT current_user()').first()[0]}/wb_proc_models"],
+run = mlflow.search_runs(experiment_names=[f"/Users/{spark.sql('SELECT current_user()').first()[0]}/proc_lab_models"],
                          order_by=["start_time DESC"], max_results=1)
 enc = mlflow.artifacts.load_dict(f"runs:/{run.iloc[0].run_id}/encoder.json") if len(run) else None
 priors = {r.name: r.base for r in spark.sql("""SELECT 'single_bid' AS name, avg(cast(single_bid_flag AS DOUBLE)) AS base FROM gold.fact_tender
                                               UNION ALL SELECT 'rebid', avg(cast(rebid_flag AS DOUBLE)) FROM gold.fact_tender
-                                              WHERE n_invitations > 0""").collect()}
+                                              WHERE n_invitations > 0
+                                              UNION ALL SELECT 'amendment', avg(cast(award_amended_flag AS DOUBLE))
+                                              FROM gold.fact_tender WHERE award_observed""").collect()}
 
 def score(pkg):
     row = pd.DataFrame([pkg])
@@ -68,7 +70,7 @@ def score(pkg):
     for qn in ("p50", "p80"):
         if f"cycle_{qn}" in champions:
             out[f"cycle_{qn}"] = float(np.expm1(champions[f"cycle_{qn}"].predict(x)[0]))
-    for name in ("single_bid", "rebid"):
+    for name in ("single_bid", "rebid", "amendment"):
         if name in champions:
             p = champions[name].predict_proba(x)[0, 1]
             odds = p / (1 - p + 1e-9) * (priors[name] / (1 - priors[name]))      # undo class_weight='balanced'
@@ -79,12 +81,13 @@ def score(pkg):
 
 RISK_QUERIES = {"single_bid": "limited competition single bid few bidders non-responsive bids",
                 "rebid": "re-tendering re-bid cancelled bidding bids exceeded estimate",
+                "amendment": "contract amendment variation order change in quantities or specifications",
                 "delay": "procurement delays slow contract award long evaluation no objection"}
 
 def build_brief(pkg, rewrite=None):
     ev, st = Evidence(), []
-    c, cat, m = pkg["country_iso3"], pkg["procurement_category"], pkg["method_code"]
-    b = q(f"SELECT * FROM ai.proc_benchmark({sql_str(c)}, {sql_str(cat)}, {sql_str(m)})")
+    c, cat, m, item = pkg["country_iso3"], pkg["procurement_category"], pkg["method_code"], pkg.get("item_type")
+    b = q(f"SELECT * FROM ai.proc_benchmark({sql_str(cat)}, {sql_str(item)}, {sql_str(c)}, {sql_str(m)})")
     if len(b):
         b = b.iloc[0]
         bid = ev.add("B", f"Kaplan-Meier benchmark ({b.level}): median {b.median_days:.0f} days, P80 {b.p80_days:.0f} days "
@@ -99,10 +102,11 @@ def build_brief(pkg, rewrite=None):
     if s:
         mid = ev.add("M", f"Champion models: cycle P50 {s.get('cycle_p50', float('nan')):.0f} days, P80 {s.get('cycle_p80', float('nan')):.0f} days; "
                           f"single-bid {s.get('single_bid_prob', float('nan')):.0%} (base {s.get('single_bid_base_rate', float('nan')):.0%}); "
-                          f"re-tender {s.get('rebid_prob', float('nan')):.0%} (base {s.get('rebid_base_rate', float('nan')):.0%}).",
+                          f"re-tender {s.get('rebid_prob', float('nan')):.0%} (base {s.get('rebid_base_rate', float('nan')):.0%}); "
+                          f"amendment {s.get('amendment_prob', float('nan')):.0%} (base {s.get('amendment_base_rate', float('nan')):.0%}).",
                      source="models @champion")
         st.append(("Schedule", f"Model estimate for this package: {s['cycle_p50']:.0f} days (P50), {s['cycle_p80']:.0f} days (P80).", [mid]))
-        for name in ("single_bid", "rebid"):
+        for name in ("single_bid", "rebid", "amendment"):
             if s.get(f"{name}_prob", 0) >= 1.5 * s.get(f"{name}_base_rate", 1):
                 flags.append(name)
                 st.append(("Risks", f"Elevated {name.replace('_', '-')} risk: {s[name + '_prob']:.0%} vs base rate "
@@ -116,6 +120,15 @@ def build_brief(pkg, rewrite=None):
         top = sim.procurement_method.value_counts()
         did = ev.add("D", f"Derived from {len(sim)} similar tenders: method counts {top.to_dict()}; count {len(sim)}.", inputs=tids)
         st.append(("Market approach", f"Most similar past {cat} tenders used {top.index[0]} ({int(top.iloc[0])} of {len(sim)}).", tids + [did]))
+    mk = q(f"SELECT * FROM ai.proc_supplier_market({sql_str(item)}, NULL, {sql_str(pkg.get('region'))})")
+    if len(mk):
+        where = pkg.get("region") or "all regions"
+        mid2 = ev.add("D", f"Suppliers of {item} in {where} by contract value: " + "; ".join(
+            f"{r.supplier} ({r.supplier_country}): {r.contracts} contracts, US${r.value_usd:,.0f}, {r.share:.0%} of value, "
+            f"{r.countries} countries" for r in mk.head(5).itertuples()) + ".", source="ai.proc_supplier_market")
+        t0 = mk.iloc[0]
+        st.append(("Market approach", f"The largest supplier of {item} in {where} is {t0.supplier} ({t0.supplier_country}), with "
+                                      f"{t0.share:.0%} of value from {t0.contracts} contracts.", [mid2]))
     queries = [f"{cat} {pkg['description']}"] + [RISK_QUERIES[f] for f in flags]
     seen = set()
     for qtext in queries:
@@ -153,23 +166,23 @@ def build_brief(pkg, rewrite=None):
 # COMMAND ----------
 
 llm = w.serving_endpoints.get_open_ai_client()
+LLM = resolve_llm_endpoint()
 
 def rewrite(text):
     msg = [{"role": "system", "content": "Rewrite the sentence for a procurement officer in plain English. Keep every number, "
                                          "quotation and parenthetical reference exactly. Do not add information. Reply with the sentence only."},
            {"role": "user", "content": text}]
     try:
-        return llm.chat.completions.create(model=LLM_ENDPOINT, messages=msg, temperature=0, max_tokens=300).choices[0].message.content.strip()
+        return llm.chat.completions.create(model=LLM, messages=msg, temperature=0, max_tokens=300).choices[0].message.content.strip()
     except Exception:
         return text
 
 # COMMAND ----------
 
-PACKAGE = {"description": "Rehabilitation of rural roads and bridges in two counties, Lot 1", "procurement_category": "Works",
-           "method_code": "RFB", "country_iso3": "KEN", "open_notice_type": "Invitation for Bids", "review_type": "Prior",
-           "log_contract_usd": float(np.log1p(12e6)), "bid_window_days": 30, "open_month": 3, "major_sector": "Transportation",
-           "env_category": "B", "log_commitment": float(np.log1p(3e8)), "project_age_days": 400, "kw_works_civil": 1, "kw_lot": 1,
-           "desc_words": 11}
+PACKAGE = {**PROC_DEMO_PACKAGE, "open_notice_type": "Invitation for Bids",
+           "log_contract_usd": float(np.log1p(PROC_DEMO_PACKAGE["contract_usd"])), "bid_window_days": 45, "open_month": 3,
+           "env_category": "C", "log_commitment": float(np.log1p(1.5e8)), "project_age_days": 400, "kw_supply": 1, "kw_lot": 1,
+           "desc_words": len(PROC_DEMO_PACKAGE["description"].split())}
 brief = build_brief(PACKAGE, rewrite=rewrite)
 for s_ in brief["statements"]:
     print(f"[{s_['section']}] {s_['text']}  {s_['citations']}")

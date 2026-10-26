@@ -4,13 +4,16 @@
 # MAGIC
 # MAGIC | Model | Target | Method | Why |
 # MAGIC |---|---|---|---|
-# MAGIC | Benchmarks | invitation → award days | **Kaplan-Meier** per country × category × method, fallback to coarser cells | open tenders are *censored*, not dropped (dropping them biases toward fast tenders) |
+# MAGIC | Benchmarks | invitation → award days | **Kaplan-Meier** per country × category × method, equipment type × method, equipment type, then coarser cells | open tenders are *censored*, not dropped (dropping them biases toward fast tenders) |
 # MAGIC | `proc_cycle_p50` / `proc_cycle_p80` | cycle days | gradient-boosted **quantile** regression | planners need a range; P80 is the date to plan against |
 # MAGIC | `proc_single_bid` | single responsive bid (competitive methods) | gradient-boosted classifier, prior-corrected | competition risk |
 # MAGIC | `proc_rebid` | package re-tendered | gradient-boosted classifier, prior-corrected | re-tender risk |
+# MAGIC | `proc_amendment` | award notice re-issued or amended | gradient-boosted classifier, prior-corrected | public proxy for contract amendment |
 # MAGIC
-# MAGIC Features are only what is known **when the package is planned** (category, method, review type, estimate, bid
-# MAGIC window, project and sector, governance scores, and *history up to that date*). Validation is **out-of-time**.
+# MAGIC Features are only what is known **when the package is planned** (equipment type, category, method, review type,
+# MAGIC estimate, bid window, project, region and sector, governance scores, and *history up to that date*). The equipment-type
+# MAGIC levels let a cross-country domain (PCR systems bought in 40 countries) benchmark against the same kind of item when
+# MAGIC no single country has enough tenders. Validation is **out-of-time**.
 # MAGIC The same algorithm runs locally in `procurement_demo/models.py` (verified results in `procurement_demo/output/`).
 
 # COMMAND ----------
@@ -20,7 +23,7 @@
 
 # COMMAND ----------
 
-# MAGIC %run ./00_config
+# MAGIC %run ./00_proc_config
 
 # COMMAND ----------
 
@@ -39,7 +42,7 @@ from sklearn.metrics import mean_absolute_error, roc_auc_score, brier_score_loss
 spark.sql(f"USE CATALOG {CATALOG}")
 mlflow.set_registry_uri("databricks-uc")
 me = spark.sql("SELECT current_user()").first()[0]
-mlflow.set_experiment(f"/Users/{me}/wb_proc_models")
+mlflow.set_experiment(f"/Users/{me}/proc_lab_models")
 SPLIT_DATE = pd.Timestamp("2024-01-01")
 log_event("proc_models", "started", split=str(SPLIT_DATE.date()))
 
@@ -60,11 +63,12 @@ for c in ("open_date", "award_date", "approval_date"):
     t[c] = pd.to_datetime(t[c])
 
 CAT = ["procurement_category", "method_code", "country_iso3", "open_notice_type", "review_type", "env_category",
-       "es_risk_rating", "major_sector"]
+       "es_risk_rating", "major_sector", "item_type", "region"]
 GOV = [c for c in t.columns if c.startswith(("cpia_", "wgi_"))]
-KW = {"kw_works_civil": r"construct|rehabilit|road|bridge|civil|building|works", "kw_supply": r"supply|deliver|equipment",
-      "kw_consulting": r"consult|study|design|supervis|technical assistance|audit", "kw_it": r"software|system|ict|digital",
-      "kw_vehicle": r"vehicle|motorcycle|truck", "kw_lot": r"\blot\b|lots"}
+KW = {"kw_works_civil": r"construct|rehabilit|road|bridge|civil|building|works",
+      "kw_supply": r"supply|deliver|procure|purchase|equipment",
+      "kw_consulting": r"consult|study|design|supervis|technical assistance|audit",
+      "kw_it": r"software|system|ict|digital|computer|it ", "kw_vehicle": r"vehicle|motorcycle|truck", "kw_lot": r"\blot\b|lots"}
 t["log_contract_usd"] = np.log1p(t["contract_usd"].astype(float))
 t["log_commitment"] = np.log1p(t["commitment_usd"].astype(float))
 t["project_age_days"] = (t["open_date"] - t["approval_date"]).dt.days
@@ -112,8 +116,12 @@ spark.createDataFrame(t.astype(object).where(t.notna(), None)).write.mode("overw
 
 rows = []
 base = t[t.cycle_days.notna() & (t.cycle_days >= 0)]
-for level, cols in (("country+category+method", ["country_iso3", "procurement_category", "method_code"]),
-                    ("category+method", ["procurement_category", "method_code"]), ("category", ["procurement_category"])):
+BENCH_LEVELS = (("country+category+method", ["country_iso3", "procurement_category", "method_code"]),
+                ("item_type+method", ["item_type", "method_code"]),
+                ("item_type", ["item_type"]),
+                ("category+method", ["procurement_category", "method_code"]),
+                ("category", ["procurement_category"]))
+for level, cols in BENCH_LEVELS:
     for k, g in base.groupby(cols):
         if len(g) >= 10:
             km = kaplan_meier(g.cycle_days.tolist(), g.award_observed.tolist())
@@ -152,7 +160,9 @@ with mlflow.start_run(run_name="proc_models") as run:
                         "cycle_p80_coverage": float(np.mean(y <= preds[0.8])), "cycle_n_test": len(te)})
     for name, target, subset in (("single_bid", "single_bid_flag",
                                   t[t.single_bid_flag.notna() & ~t.method_code.isin(["CDS", "DIR", "SSS", "other"])]),
-                                 ("rebid", "rebid_flag", t[t.n_invitations > 0])):
+                                 ("rebid", "rebid_flag", t[t.n_invitations > 0]),
+                                 # public proxy for contract amendment: the award notice was re-issued or amended
+                                 ("amendment", "award_amended_flag", t[t.award_observed])):
         a, b = subset[subset.open_date < SPLIT_DATE], subset[subset.open_date >= SPLIT_DATE]
         ya, yb = a[target].astype(int).values, b[target].astype(int).values
         if len(set(ya)) < 2 or len(set(yb)) < 2:
@@ -180,7 +190,7 @@ print(json.dumps(metrics_all, indent=1, default=str))
 from mlflow import MlflowClient
 client = MlflowClient()
 gate = metrics_all["cycle_mae_p50"] < metrics_all["cycle_mae_global_median"] and 0.70 <= metrics_all["cycle_p80_coverage"] <= 0.90
-for short in ("cycle_p50", "cycle_p80", "single_bid", "rebid"):
+for short in ("cycle_p50", "cycle_p80", "single_bid", "rebid", "amendment"):
     name = f"{PROC_MODEL_PREFIX}{short}"
     try:
         latest = max(int(v.version) for v in client.search_model_versions(f"name='{name}'"))

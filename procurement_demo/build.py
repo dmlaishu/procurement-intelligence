@@ -347,30 +347,24 @@ def build_documents(projects):
                                  "date": r["isr_date"] or lib.parse_wb_date(d["doc_date"]), "rating": r["do_current"],
                                  "source_id": src, "doc_id": d["doc_id"], "via": "ISR overall ratings"})
         if d["doc_type_code"] == "ICRR":
-            # IEG's ICR Review rates the project independently ("Outcome Rating <IEG rating>") and its summary table
-            # sets the Bank's own ICR rating beside it ("Outcome <ICR rating> <IEG rating>"), so one review yields both
-            # sides of a self-evaluation vs independent-evaluation disagreement.
-            flat = " ".join(full[:60000].split())
-            R = lib._RATING_WORDS
-            ieg = re.search(rf"\bOutcome Rating {R}", flat)
-            tab = re.search(rf"\bOutcome {R} {R}", flat)
-            ieg_rating = ieg.group(1) if ieg else (tab.group(2) if tab else None)
+            # IEG's ICR Review rates the project independently and its summary table sets the Bank's own ICR rating
+            # beside it, so one review yields both sides of a self-evaluation vs independent-evaluation disagreement.
+            ieg_rating, icr_rating = lib.parse_icrr_ratings(full)
             when = lib.parse_wb_date(d["doc_date"])
             if ieg_rating:
                 evidence.append({"project_id": pid, "dimension": "development_objective", "source_type": "ICRR",
                                  "date": when, "rating": ieg_rating, "source_id": src, "doc_id": d["doc_id"],
                                  "via": "IEG ICR Review: outcome rating"})
-            if tab:
+            if icr_rating:
                 evidence.append({"project_id": pid, "dimension": "development_objective", "source_type": "ICR",
-                                 "date": when - pd.Timedelta(days=1).to_pytimedelta() if when else None, "rating": tab.group(1),
+                                 "date": when - pd.Timedelta(days=1).to_pytimedelta() if when else None, "rating": icr_rating,
                                  "source_id": f"{src}#ICR", "doc_id": d["doc_id"],
                                  "via": "ICR rating as reported in the IEG review"})
         if d["doc_type_code"] == "PPAR":
-            m = re.search(r"\bOutcome\b[^\n]{0,40}?\b(Highly Satisfactory|Moderately Satisfactory|Satisfactory|Moderately "
-                          r"Unsatisfactory|Highly Unsatisfactory|Unsatisfactory)", full[:30000])
-            if m:
+            rating = lib.parse_ppar_rating(full)
+            if rating:
                 evidence.append({"project_id": pid, "dimension": "development_objective", "source_type": "PPAR",
-                                 "date": lib.parse_wb_date(d["doc_date"]), "rating": m.group(1), "source_id": src,
+                                 "date": lib.parse_wb_date(d["doc_date"]), "rating": rating, "source_id": src,
                                  "doc_id": d["doc_id"], "via": "PPAR ratings table"})
     chunks = pd.DataFrame(chunks)
 

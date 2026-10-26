@@ -6,7 +6,7 @@
 # MAGIC |---|---|---|
 # MAGIC | `silver.proj_doc_pages` | page text **with line breaks kept** | pypdf in a Spark UDF (one PDF per task) |
 # MAGIC | `gold.proj_doc_chunks` | section-aware chunks: `section_path`, `section_kind`, `content_type`, page span | `section_chunks()` from `20_proc_lib`: running headers removed, numbered headings → hierarchy, chunks never cross a section, tables / annexes typed |
-# MAGIC | `gold.rating_evidence` | dated ratings per project from ICR data sheets (full ISR history), ISRs and PPARs | deterministic parsers, no LLM |
+# MAGIC | `gold.rating_evidence` | dated ratings per project from ICR data sheets (full ISR history), ISRs, IEG ICR Reviews and PPARs | deterministic parsers, no LLM |
 # MAGIC | `gold.project_ratings_resolved` | one resolved rating per project + conflict flag + trajectory | `resolve_rating_conflict()` - completion/independent evaluation outranks mid-term supervision; losing evidence kept |
 # MAGIC | `gold.lessons` | atomic lessons with stage, risk category, **verbatim evidence quote**, page | `ai_query` extraction → quote verified against the chunk (`quote_in_source`) → unverified lessons are kept but flagged and never served |
 # MAGIC
@@ -21,7 +21,7 @@
 
 # COMMAND ----------
 
-# MAGIC %run ./00_config
+# MAGIC %run ./00_proc_config
 
 # COMMAND ----------
 
@@ -29,13 +29,13 @@
 
 # COMMAND ----------
 
-import json
+import json, datetime
 import pandas as pd
 from pyspark.sql import functions as F, types as T
 
-spark.sql(f"USE CATALOG {CATALOG}")
 PDF_DIR = f"{RAW_DOCS_PATH}/project_docs"
-log_event("proc_docs_lessons", "started")
+LLM = resolve_llm_endpoint()
+log_event("proc_docs_lessons", "started", llm=LLM)
 
 # COMMAND ----------
 
@@ -131,7 +131,7 @@ docs = spark.sql("""
   SELECT m.doc_id, m.doc_type_code, m.project_id, m.doc_date,
          concat_ws('\n', transform(array_sort(collect_list(struct(p.page_num, p.page_text))), x -> x.page_text)) AS text
   FROM bronze.project_docs_meta m JOIN silver.proj_doc_pages p USING (doc_id)
-  WHERE m.doc_type_code IN ('ICR', 'ISR', 'PPAR') AND p.page_num <= 25
+  WHERE m.doc_type_code IN ('ICR', 'ICRR', 'ISR', 'PPAR') AND p.page_num <= 25
   GROUP BY ALL""").toPandas()
 
 evidence, outcomes = [], []
@@ -155,13 +155,22 @@ for d in docs.itertuples():
             evidence.append(dict(project_id=d.project_id, dimension="development_objective", source_type="ISR",
                                  date=r["isr_date"] or d.doc_date, rating=r["do_current"], source_id=d.doc_id,
                                  via="ISR overall ratings"))
+    elif d.doc_type_code == "ICRR":
+        # IEG's independent rating, and the Bank's own ICR rating as the review reports it: both sides of a
+        # self-evaluation vs independent-evaluation disagreement from one document
+        ieg, icr = parse_icrr_ratings(d.text)
+        if ieg:
+            evidence.append(dict(project_id=d.project_id, dimension="development_objective", source_type="ICRR",
+                                 date=d.doc_date, rating=ieg, source_id=d.doc_id, via="IEG ICR Review: outcome rating"))
+        if icr:
+            evidence.append(dict(project_id=d.project_id, dimension="development_objective", source_type="ICR",
+                                 date=d.doc_date - datetime.timedelta(days=1) if d.doc_date else None, rating=icr,
+                                 source_id=f"{d.doc_id}#ICR", via="ICR rating as reported in the IEG review"))
     elif d.doc_type_code == "PPAR":
-        import re
-        m = re.search(r"\bOutcome\b[^\n]{0,40}?\b(Highly Satisfactory|Moderately Satisfactory|Satisfactory|Moderately "
-                      r"Unsatisfactory|Highly Unsatisfactory|Unsatisfactory)", d.text)
-        if m:
+        rating = parse_ppar_rating(d.text)
+        if rating:
             evidence.append(dict(project_id=d.project_id, dimension="development_objective", source_type="PPAR",
-                                 date=d.doc_date, rating=m.group(1), source_id=d.doc_id, via="PPAR ratings"))
+                                 date=d.doc_date, rating=rating, source_id=d.doc_id, via="PPAR ratings"))
 
 ev = pd.DataFrame(evidence)
 resolved = []
@@ -208,7 +217,7 @@ spark.sql("""CREATE TABLE IF NOT EXISTS gold.lessons (lesson_id STRING, chunk_id
 todo = spark.sql("""
   SELECT c.* FROM gold.proj_doc_chunks c
   LEFT ANTI JOIN (SELECT DISTINCT chunk_id FROM gold.lessons) l USING (chunk_id)
-  WHERE c.content_type <> 'table'
+  WHERE c.content_type <> 'table' AND c.doc_type_code <> 'PP'
     AND (c.section_kind IN ('lessons', 'key_factors', 'procurement_fiduciary')
          OR (c.section_kind = 'risk' AND lower(c.chunk_text) RLIKE 'procure|tender|bid|contract'))
 """)
@@ -216,7 +225,7 @@ print(todo.count(), "chunks to extract")
 todo.createOrReplaceTempView("todo")
 
 extracted = spark.sql(f"""
-  SELECT t.*, ai_query('{LLM_ENDPOINT}',
+  SELECT t.*, ai_query('{LLM}',
                        concat('{PROMPT.replace("'", "''")}', t.doc_type_code, ', ', t.section_path, '):\\n', t.chunk_text),
                        modelParameters => named_struct('temperature', 0.0, 'max_tokens', 1200),
                        failOnError => false) AS resp
@@ -231,8 +240,9 @@ lessons = (extracted
                    "project_id", "country_iso3", "doc_type_code", "section_kind", "page_start", "l.lesson",
                    "l.procurement_stage", "l.risk_category", "l.procurement_category", "l.evidence_quote",
                    verify_udf("l.evidence_quote", "chunk_text").alias("quote_verified"),
-                   F.lower("chunk_text").rlike("procure|tender|bid|contract|supplier|award").alias("procurement_related"),
-                   F.lit(f"llm:{LLM_ENDPOINT}").alias("extraction_method"), "title", "landing_url", "doc_date",
+                   F.lower("chunk_text").rlike("procure|tender|bid|contract|supplier|award|equipment|laborator|diagnost")
+                    .alias("procurement_related"),
+                   F.lit(f"llm:{LLM}").alias("extraction_method"), "title", "landing_url", "doc_date",
                    F.current_timestamp().alias("extracted_ts")))
 lessons.write.mode("append").saveAsTable("gold.lessons")
 display(spark.sql("""SELECT extraction_method, quote_verified, count(*) AS lessons FROM gold.lessons GROUP BY ALL"""))
