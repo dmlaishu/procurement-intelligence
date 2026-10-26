@@ -87,7 +87,7 @@ RISK_QUERIES = {"single_bid": "limited competition single bid few bidders non-re
 def build_brief(pkg, rewrite=None):
     ev, st = Evidence(), []
     c, cat, m, item = pkg["country_iso3"], pkg["procurement_category"], pkg["method_code"], pkg.get("item_type")
-    b = q(f"SELECT * FROM ai.proc_benchmark({sql_str(cat)}, {sql_str(item)}, {sql_str(c)}, {sql_str(m)})")
+    b = q(f"SELECT * FROM {CATALOG}.ai.proc_benchmark({sql_str(cat)}, {sql_str(item)}, {sql_str(c)}, {sql_str(m)})")
     if len(b):
         b = b.iloc[0]
         bid = ev.add("B", f"Kaplan-Meier benchmark ({b.level}): median {b.median_days:.0f} days, P80 {b.p80_days:.0f} days "
@@ -111,7 +111,7 @@ def build_brief(pkg, rewrite=None):
                 flags.append(name)
                 st.append(("Risks", f"Elevated {name.replace('_', '-')} risk: {s[name + '_prob']:.0%} vs base rate "
                                     f"{s[name + '_base_rate']:.0%}.", [mid]))
-    sim = q(f"SELECT * FROM ai.proc_similar_tenders({sql_str(pkg['description'])}, {sql_str(cat)}, {sql_str(c)})")
+    sim = q(f"SELECT * FROM {CATALOG}.ai.proc_similar_tenders({sql_str(pkg['description'])}, {sql_str(cat)}, {sql_str(c)})")
     if len(sim):
         tids = [ev.add("T", f"{r.description[:140]} | {r.country_iso3} | {r.procurement_method} | "
                             f"{'%d days to award' % r.observed_days if pd.notna(r.observed_days) else 'no award yet'}"
@@ -120,7 +120,7 @@ def build_brief(pkg, rewrite=None):
         top = sim.procurement_method.value_counts()
         did = ev.add("D", f"Derived from {len(sim)} similar tenders: method counts {top.to_dict()}; count {len(sim)}.", inputs=tids)
         st.append(("Market approach", f"Most similar past {cat} tenders used {top.index[0]} ({int(top.iloc[0])} of {len(sim)}).", tids + [did]))
-    mk = q(f"SELECT * FROM ai.proc_supplier_market({sql_str(item)}, NULL, {sql_str(pkg.get('region'))})")
+    mk = q(f"SELECT * FROM {CATALOG}.ai.proc_supplier_market({sql_str(item)}, NULL, {sql_str(pkg.get('region'))})")
     if len(mk):
         where = pkg.get("region") or "all regions"
         mid2 = ev.add("D", f"Suppliers of {item} in {where} by contract value: " + "; ".join(
@@ -132,7 +132,7 @@ def build_brief(pkg, rewrite=None):
     queries = [f"{cat} {pkg['description']}"] + [RISK_QUERIES[f] for f in flags]
     seen = set()
     for qtext in queries:
-        les = q(f"SELECT * FROM ai.proc_search_lessons({sql_str(qtext)}, {sql_str(c)})")
+        les = q(f"SELECT * FROM {CATALOG}.ai.proc_search_lessons({sql_str(qtext)}, {sql_str(c)})")
         for r in les.head(3).itertuples():
             if r.chunk_id in seen:
                 continue
@@ -144,7 +144,7 @@ def build_brief(pkg, rewrite=None):
             lid = ev.add("L", r.chunk_text, source=f"{r.doc_type_code} {r.title}", page=r.page_start, url=r.landing_url)
             cite = [lid]
             line = f"{verified.lesson[0]} - “{verified.evidence_quote[0]}” ({r.doc_type_code}, {r.project_id}, p. {r.page_start})"
-            pe = q(f"SELECT * FROM ai.proc_project_evidence({sql_str(r.project_id)})")
+            pe = q(f"SELECT * FROM {CATALOG}.ai.proc_project_evidence({sql_str(r.project_id)})")
             if len(pe) and pe.conflict[0]:
                 rid = ev.add("R", f"Ratings for {r.project_id}: {pe.trajectory[0]}; resolved {pe.resolved_rating[0]} "
                                   f"from {pe.resolved_from[0]}.", source="ai.proc_project_evidence")
@@ -165,15 +165,16 @@ def build_brief(pkg, rewrite=None):
 
 # COMMAND ----------
 
-llm = w.serving_endpoints.get_open_ai_client()
 LLM = resolve_llm_endpoint()
+REWRITE = ("Rewrite the sentence for a procurement officer in plain English. Keep every number, quotation and parenthetical "
+           "reference exactly. Do not add information. Reply with the sentence only.\n\nSentence: ")
 
 def rewrite(text):
-    msg = [{"role": "system", "content": "Rewrite the sentence for a procurement officer in plain English. Keep every number, "
-                                         "quotation and parenthetical reference exactly. Do not add information. Reply with the sentence only."},
-           {"role": "user", "content": text}]
+    """Through ai_query: on serverless, SQL AI functions reach the serving endpoints reliably (direct SDK calls time out)."""
     try:
-        return llm.chat.completions.create(model=LLM, messages=msg, temperature=0, max_tokens=300).choices[0].message.content.strip()
+        out = spark.sql(f"SELECT ai_query('{LLM}', :p, modelParameters => named_struct('temperature', 0.0, 'max_tokens', 300)) AS r",
+                        args={"p": REWRITE + text}).first().r
+        return (out or text).strip()
     except Exception:
         return text
 

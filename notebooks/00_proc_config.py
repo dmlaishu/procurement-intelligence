@@ -74,9 +74,10 @@ RAG_DEFAULTS = {
 }
 RAG_SEED_COUNTRIES = [("KEN", "KE", "Kenya", ["P111556"]), ("IND", "IN", "India", [])]   # iso3, iso2, name, pinned projects
 # Answer sentences must be at least this close in meaning to the question (cosine of databricks-gte-large-en
-# embeddings). Starting values: check them with the evaluation cell in 34_rag_ask on the first run.
-RAG_MIN_SIM = 0.70
-RAG_MIN_SIM_NO_OVERLAP = 0.80
+# embeddings). Calibrated on the first Free Edition run: selected answer sentences scored 0.71-0.85, and at 0.70 / 0.80
+# some answerable questions got no sentence, so 0.65 / 0.75. Re-check with the evaluation cell in 34_rag_ask.
+RAG_MIN_SIM = 0.65
+RAG_MIN_SIM_NO_OVERLAP = 0.75
 
 # ── Models, search and serving (Databricks-hosted Foundation Model APIs) ──
 LLM_ENDPOINT = "databricks-meta-llama-3-3-70b-instruct"   # replaced by an available chat endpoint if missing

@@ -77,8 +77,11 @@ are shared through `notebooks/20_proc_lib.py`, so both versions tag and answer t
 Run order: `00_proc_config`, then 30, then 31, 32 and 33 with `countries = KEN,IND`, then 34. New country: 30 with
 `add_country = NGA`, then the `proc_rag_pipeline` job with `countries = NGA`.
 
-The similarity thresholds in `00_proc_config` (`RAG_MIN_SIM`) are starting values for the `databricks-gte-large-en`
-embeddings, which score differently from the local model; check them with the evaluation cell in 34 on the first run.
+Run on Databricks Free Edition: Kenya 29 documents / 1,239 passages and India 55 / 2,556, the same as locally; the
+evaluation in 34 passes 10/10 (9 answered with 1-4 cited sentences, the Kenya imaging question declined, every source
+from the selected country), about 3 seconds per answer. The similarity thresholds in `00_proc_config` (`RAG_MIN_SIM`
+0.65 / 0.75) were calibrated on that run for the `databricks-gte-large-en` embeddings, which score higher than the
+local model. On serverless the notebook reaches the embedding and chat models through `ai_query`.
 
 ## Current index
 

@@ -95,9 +95,26 @@ deliverables/                      the four deliverables, the chatbot website an
 
 The Databricks notebooks (`00_proc_config`, 20-29) implement the same lab-equipment scope on a lakehouse (Delta, Unity
 Catalog, Vector Search, MLflow, Lakeflow Jobs), using the same taxonomy and parsers as the local prototype through
-`20_proc_lib`. The local prototype produced every number in the deliverables; the notebooks have been checked offline
-(syntax, names, and the contract-first selection replayed on the saved API data: 17,058 Health Goods awards → 179
-domain projects → US$1,375,387,988 of lab and diagnostic contracts) but not yet run on a workspace.
+`20_proc_lib`. The local prototype produced the numbers in the deliverables; all notebooks (00, 20-34) have also been
+run end to end on Databricks Free Edition (serverless), on fresh downloads from the World Bank APIs:
+
+| | Databricks run | Local prototype |
+|---|---|---|
+| Lab and diagnostic contracts (contract × supplier rows) | 2,221 | 2,220 |
+| Value | US$1,375,796,408 | US$1,375,387,988 |
+| Domain projects | 179 | 179 |
+| Tenders / with an invitation-to-award time | 10,407 / 1,068 | 10,403 / 1,068 |
+| Resolved suppliers | 7,543 | 7,540 |
+| Lessons extracted by the LLM / quote verified | 732 / 711 (97%) | 150 / 98% |
+| Projects with conflicting ratings | 8 of 33 | 8 of 34 |
+| Cycle-time MAE, P50 model vs global median | 49 vs 73 days (P80 coverage 78%) | 47 vs 56 days |
+| Single-bid AUC / amendment AUC | 0.64 / 0.56 | 0.67 / 0.55 |
+| Document Q&A evaluation (10 questions) | 10/10, 9 answered, 1 correctly declined | 10/10 |
+
+The small differences come from contracts the World Bank published between the two runs. The models passed the quality
+gate and are registered as `@champion` in Unity Catalog. Changes needed on Free Edition (all committed): models are
+saved with cloudpickle, SQL function parameters are qualified and not used in subqueries, and the model endpoints are
+called through `ai_query`.
 
 ## Run it on Databricks
 

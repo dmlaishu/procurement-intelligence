@@ -25,6 +25,7 @@ spark.sql(f"USE CATALOG {CATALOG}")
 
 # Realised outcomes: tenders awarded since the champion models were trained (MLflow run time)
 import mlflow
+mlflow.set_registry_uri("databricks-uc")     # serverless: set the registry before any MLflow call
 me = spark.sql("SELECT current_user()").first()[0]
 runs = mlflow.search_runs(experiment_names=[f"/Users/{me}/proc_lab_models"], order_by=["start_time DESC"], max_results=1)
 trained_at = pd.to_datetime(runs.iloc[0].start_time) if len(runs) else pd.Timestamp("2000-01-01", tz="UTC")

@@ -42,20 +42,18 @@ dbutils.widgets.dropdown("answer_style", "Cited sentences", ["Cited sentences", 
 LLM = resolve_llm_endpoint()
 
 
-def embed(texts, batch=16, tries=4):
-    """databricks-gte-large-en embeddings, in small batches with retries (the endpoint is rate-limited on Free Edition)."""
-    out = []
-    for i in range(0, len(texts), batch):
-        for attempt in range(tries):
-            try:
-                r = w.serving_endpoints.query(name=EMBEDDING_ENDPOINT, input=texts[i:i + batch])
-                break
-            except Exception:
-                if attempt == tries - 1:
-                    raise
-                time.sleep(10 * (attempt + 1))
-        out += [d.embedding for d in r.data]
-    return out
+def embed(texts):
+    """databricks-gte-large-en embeddings through ai_query (on serverless, SQL AI functions reach the model serving
+    endpoints reliably; direct SDK calls from a notebook time out on Free Edition)."""
+    df = spark.createDataFrame(list(enumerate(texts)), "i int, t string")
+    rows = df.selectExpr("i", f"ai_query('{EMBEDDING_ENDPOINT}', t) AS v").collect()
+    return [list(r.v) for r in sorted(rows, key=lambda r: r.i)]
+
+
+def chat(prompt, max_tokens=400):
+    """One completion from the chat model through ai_query."""
+    return spark.sql(f"SELECT ai_query('{LLM}', :p, modelParameters => named_struct('temperature', 0.0, 'max_tokens', {max_tokens})) AS r",
+                     args={"p": prompt}).first().r
 
 
 def shortlist(question, cands, n=40):
@@ -93,9 +91,7 @@ def written(question, sources, country_name):
               f"source id(s) in square brackets, e.g. [S2]. If the sources do not answer it, say so. At most 120 words.\n\n"
               f"Question: {question}\n\nSources:\n{ctx}")
     try:
-        text = (w.serving_endpoints.get_open_ai_client().chat.completions
-                .create(model=LLM, messages=[{"role": "user", "content": prompt}], temperature=0, max_tokens=400)
-                .choices[0].message.content.strip())
+        text = chat(prompt).strip()
     except Exception as e:
         print("writing model unavailable:", str(e)[:120])
         return None
