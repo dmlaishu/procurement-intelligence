@@ -44,6 +44,8 @@ mlflow.set_registry_uri("databricks-uc")
 me = spark.sql("SELECT current_user()").first()[0]
 mlflow.set_experiment(f"/Users/{me}/proc_lab_models")
 SPLIT_DATE = pd.Timestamp("2024-01-01")
+# MLflow 3 saves scikit-learn models with skops by default, which serverless does not ship; cloudpickle needs nothing extra
+SAVE_AS = mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE
 log_event("proc_models", "started", split=str(SPLIT_DATE.date()))
 
 # COMMAND ----------
@@ -152,7 +154,7 @@ with mlflow.start_run(run_name="proc_models") as run:
                                           random_state=7).fit(X(tr), np.log1p(tr.observed_days))
         preds[q] = np.expm1(m.predict(X(te)))
         name = f"{PROC_MODEL_PREFIX}cycle_p{int(q * 100)}"
-        mlflow.sklearn.log_model(m, name=f"cycle_p{int(q * 100)}", registered_model_name=name,
+        mlflow.sklearn.log_model(m, name=f"cycle_p{int(q * 100)}", registered_model_name=name, serialization_format=SAVE_AS,
                                  signature=infer_signature(X(tr.head(5)), m.predict(X(tr.head(5)))))
     y = te.observed_days.values
     metrics_all.update({"cycle_mae_p50": mean_absolute_error(y, preds[0.5]),
@@ -172,7 +174,7 @@ with mlflow.start_run(run_name="proc_models") as run:
                                              categorical_features=CAT_MASK, class_weight="balanced", random_state=7).fit(X(a), ya)
         p = clf.predict_proba(X(b))[:, 1]
         metrics_all.update({f"{name}_auc": roc_auc_score(yb, p), f"{name}_base_rate": float(ya.mean())})
-        mlflow.sklearn.log_model(clf, name=name, registered_model_name=f"{PROC_MODEL_PREFIX}{name}",
+        mlflow.sklearn.log_model(clf, name=name, registered_model_name=f"{PROC_MODEL_PREFIX}{name}", serialization_format=SAVE_AS,
                                  signature=infer_signature(X(a.head(5)), clf.predict_proba(X(a.head(5)))))
     mlflow.log_metrics({k: float(v) for k, v in metrics_all.items() if isinstance(v, (int, float))})
     mlflow.log_dict({"levels": levels, "num": NUM, "cat": CAT}, "encoder.json")

@@ -36,11 +36,12 @@ COMMENT 'Historical invitation-to-award time for comparable World Bank-financed 
 RETURN
   SELECT level, n, n_awarded, median_days, p80_days, naive_median_awarded_only FROM {C}.gold.tender_benchmarks
   WHERE n >= 15
-    AND ((level = 'country+category+method' AND procurement_category = category AND method_code = method AND country_iso3 = upper(country))
-         OR (level = 'item_type+method' AND item_type = proc_benchmark.item_type AND method_code = method)
+    AND ((level = 'country+category+method' AND procurement_category = proc_benchmark.category
+          AND method_code = proc_benchmark.method AND country_iso3 = upper(proc_benchmark.country))
+         OR (level = 'item_type+method' AND item_type = proc_benchmark.item_type AND method_code = proc_benchmark.method)
          OR (level = 'item_type' AND item_type = proc_benchmark.item_type)
-         OR (level = 'category+method' AND procurement_category = category AND method_code = method)
-         OR (level = 'category' AND procurement_category = category))
+         OR (level = 'category+method' AND procurement_category = proc_benchmark.category AND method_code = proc_benchmark.method)
+         OR (level = 'category' AND procurement_category = proc_benchmark.category))
   ORDER BY CASE level WHEN 'country+category+method' THEN 1 WHEN 'item_type+method' THEN 2 WHEN 'item_type' THEN 3
                       WHEN 'category+method' THEN 4 ELSE 5 END
   LIMIT 1
@@ -59,9 +60,9 @@ RETURN
          item_type, description, project_id, project_name, country_iso3
   FROM {C}.gold.v_lab_contracts
   WHERE (proc_lab_contracts.item_type IS NULL OR item_type = proc_lab_contracts.item_type)
-    AND (country IS NULL OR country_iso3 = upper(country))
+    AND (proc_lab_contracts.country IS NULL OR country_iso3 = upper(proc_lab_contracts.country))
     AND (proc_lab_contracts.region IS NULL OR region = proc_lab_contracts.region)
-  ORDER BY CASE WHEN lower(order_by) = 'highest' THEN -amount_usd ELSE amount_usd END
+  ORDER BY CASE WHEN lower(proc_lab_contracts.order_by) = 'highest' THEN -amount_usd ELSE amount_usd END
   LIMIT 10
 """)
 
@@ -72,13 +73,13 @@ CREATE OR REPLACE FUNCTION {C}.ai.proc_supplier_market(
 RETURNS TABLE (supplier STRING, supplier_country STRING, contracts BIGINT, value_usd DOUBLE, share DOUBLE, countries BIGINT)
 COMMENT 'Suppliers of lab and diagnostic equipment ranked by contract value, with their share of the market and the number of borrower countries served.'
 RETURN
-  WITH m AS (SELECT * FROM {C}.gold.v_lab_contracts
-             WHERE (proc_supplier_market.item_type IS NULL OR item_type = proc_supplier_market.item_type)
-               AND (country IS NULL OR country_iso3 = upper(country))
-               AND (proc_supplier_market.region IS NULL OR region = proc_supplier_market.region))
   SELECT max(coalesce(resolved_supplier, supplier_name)), first(supplier_country, true), count(DISTINCT wb_contract_number),
-         round(sum(amount_usd), 0), round(sum(amount_usd) / (SELECT sum(amount_usd) FROM m), 4), count(DISTINCT country_iso3)
-  FROM m GROUP BY supplier_key ORDER BY 4 DESC LIMIT 15
+         round(sum(amount_usd), 0), round(sum(amount_usd) / sum(sum(amount_usd)) OVER (), 4), count(DISTINCT country_iso3)
+  FROM {C}.gold.v_lab_contracts
+  WHERE (proc_supplier_market.item_type IS NULL OR item_type = proc_supplier_market.item_type)
+    AND (proc_supplier_market.country IS NULL OR country_iso3 = upper(proc_supplier_market.country))
+    AND (proc_supplier_market.region IS NULL OR region = proc_supplier_market.region)
+  GROUP BY supplier_key ORDER BY 4 DESC LIMIT 15
 """)
 
 spark.sql(f"""
@@ -89,13 +90,14 @@ RETURNS TABLE (tender_id STRING, description STRING, country_iso3 STRING, procur
                observed_days INT, n_bidders INT, rebid_flag BOOLEAN, single_bid_flag BOOLEAN, project_id STRING, score DOUBLE)
 COMMENT 'Past tenders in the same category with the most similar descriptions (token overlap), with their outcomes.'
 RETURN
-  WITH q AS (SELECT array_distinct(filter(split(lower(regexp_replace(description, '[^A-Za-z ]', ' ')), ' +'), w -> length(w) >= 4)) AS qt)
+  WITH q AS (SELECT array_distinct(filter(split(lower(regexp_replace(proc_similar_tenders.description, '[^A-Za-z ]', ' ')), ' +'),
+                                          w -> length(w) >= 4)) AS qt)
   SELECT t.tender_id, t.description, t.country_iso3, t.procurement_method, t.open_date, CAST(t.observed_days AS INT),
          CAST(t.n_bidders AS INT), t.rebid_flag, CAST(t.single_bid_flag AS BOOLEAN), t.project_id,
          size(array_intersect(q.qt, array_distinct(split(lower(regexp_replace(t.description, '[^A-Za-z ]', ' ')), ' +'))))
-           * CASE WHEN t.country_iso3 = upper(country) THEN 1.3 ELSE 1.0 END AS score
+           * CASE WHEN t.country_iso3 = upper(proc_similar_tenders.country) THEN 1.3 ELSE 1.0 END AS score
   FROM {C}.gold.fact_tender t CROSS JOIN q
-  WHERE t.procurement_category = category AND t.description IS NOT NULL
+  WHERE t.procurement_category = proc_similar_tenders.category AND t.description IS NOT NULL
   ORDER BY score DESC, t.open_date DESC
   LIMIT 12
 """)
@@ -113,8 +115,8 @@ RETURNS TABLE (chunk_id STRING, doc_type_code STRING, project_id STRING, title S
 COMMENT '{extra}, hybrid vector search, narrative chunks only, with page and link for citation.'
 RETURN
   SELECT chunk_id, doc_type_code, project_id, title, section_path, CAST(page_start AS INT), landing_url, chunk_text,
-         CAST(search_score AS DOUBLE) * CASE WHEN country_iso3 = upper(country) THEN 1.3 ELSE 1.0 END AS score
-  FROM vector_search(index => '{PROC_VS_INDEX}', query_text => query, query_type => 'HYBRID', num_results => 40)
+         CAST(search_score AS DOUBLE) * CASE WHEN country_iso3 = upper({name}.country) THEN 1.3 ELSE 1.0 END AS score
+  FROM vector_search(index => '{PROC_VS_INDEX}', query_text => {name}.query, query_type => 'HYBRID', num_results => 40)
   WHERE section_kind IN ({kinds}) AND content_type = 'narrative'
   ORDER BY score DESC LIMIT 8
 """)
@@ -140,8 +142,10 @@ RETURN
   SELECT country_iso3, year, cpia_public_sector_mgmt, cpia_transparency_corruption, wgi_gov_effectiveness,
          wgi_control_of_corruption, cpia_missing
   FROM {C}.gold.country_governance_year
-  WHERE country_iso3 = upper(country) AND year = coalesce(yr, (SELECT max(year) FROM {C}.gold.country_governance_year
-                                                               WHERE country_iso3 = upper(country) AND wgi_gov_effectiveness IS NOT NULL))
+  WHERE country_iso3 = upper(proc_country_context.country)
+    AND ((proc_country_context.yr IS NULL AND wgi_gov_effectiveness IS NOT NULL) OR year = proc_country_context.yr)
+  ORDER BY year DESC
+  LIMIT 1          -- latest year with scores (parameters cannot be used inside subqueries of a SQL function)
 """)
 
 # COMMAND ----------

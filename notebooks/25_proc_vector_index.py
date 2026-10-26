@@ -39,8 +39,13 @@ if PROC_VS_INDEX not in existing:
             embedding_source_columns=[EmbeddingSourceColumn(name="search_text", embedding_model_endpoint_name=EMBEDDING_ENDPOINT)]))
     print("creating", PROC_VS_INDEX)
 else:
-    w.vector_search_indexes.sync_index(index_name=PROC_VS_INDEX)
-    print("sync triggered (incremental via Change Data Feed)")
+    try:
+        w.vector_search_indexes.sync_index(index_name=PROC_VS_INDEX)
+        print("sync triggered (incremental via Change Data Feed)")
+    except Exception as e:
+        if "not ready to sync" not in str(e):
+            raise
+        print("a sync is already running; waiting for it")
 
 # COMMAND ----------
 

@@ -42,13 +42,26 @@ dbutils.widgets.dropdown("answer_style", "Cited sentences", ["Cited sentences", 
 LLM = resolve_llm_endpoint()
 
 
-def embed(texts):
-    """databricks-gte-large-en embeddings, in batches."""
+def embed(texts, batch=16, tries=4):
+    """databricks-gte-large-en embeddings, in small batches with retries (the endpoint is rate-limited on Free Edition)."""
     out = []
-    for i in range(0, len(texts), 100):
-        r = w.serving_endpoints.query(name=EMBEDDING_ENDPOINT, input=texts[i:i + 100])
+    for i in range(0, len(texts), batch):
+        for attempt in range(tries):
+            try:
+                r = w.serving_endpoints.query(name=EMBEDDING_ENDPOINT, input=texts[i:i + batch])
+                break
+            except Exception:
+                if attempt == tries - 1:
+                    raise
+                time.sleep(10 * (attempt + 1))
         out += [d.embedding for d in r.data]
     return out
+
+
+def shortlist(question, cands, n=40):
+    """The n candidate sentences sharing the most words with the question (keeps embedding calls small)."""
+    qt = set(rag_tokens(question))
+    return sorted(cands, key=lambda c: -len(qt & set(rag_tokens(c[1]))))[:n]
 
 
 def retrieve(question, iso3, category=None, k=8, per_doc=2):
@@ -102,7 +115,7 @@ def answer(question, iso3, category=None, style="Cited sentences"):
     out = written(question, sources, name) if style.startswith("Written") else None
     method = "written" if out else "extractive"
     if not out:
-        cands = rag_candidate_sentences(sources, category)
+        cands = shortlist(question, rag_candidate_sentences(sources, category))
         out = rag_pick_sentences(question, embed([question])[0], cands, embed([c[1] for c in cands]), 4,
                                  RAG_MIN_SIM, RAG_MIN_SIM_NO_OVERLAP) if cands else []
     note = None if out else (f"The {name} documents don't answer this directly" + (f" for {category}" if category else "")

@@ -47,8 +47,13 @@ if RAG_INDEX not in {i.name for i in w.vector_search_indexes.list_indexes(endpoi
             embedding_source_columns=[EmbeddingSourceColumn(name="search_text", embedding_model_endpoint_name=EMBEDDING_ENDPOINT)]))
     print("creating", RAG_INDEX)
 else:
-    w.vector_search_indexes.sync_index(index_name=RAG_INDEX)
-    print("sync triggered (only new or changed passages are embedded)")
+    try:
+        w.vector_search_indexes.sync_index(index_name=RAG_INDEX)
+        print("sync triggered (only new or changed passages are embedded)")
+    except Exception as e:
+        if "not ready to sync" not in str(e):
+            raise
+        print("a sync is already running; waiting for it")
 
 # COMMAND ----------
 
