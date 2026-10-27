@@ -30,6 +30,15 @@ questions in which every statement cites its evidence and is checked against it.
 The chatbot is also a static website in [deliverables/site/](deliverables/site/) (chatbot + report). It runs entirely
 in the browser: open `index.html`, or host the folder on any static host.
 
+## Try it
+
+| | Link |
+|---|---|
+| Chatbot with document Q&A by country (public) | https://procurement-intelligence-gkhea5oeh3lwtbbs6yganq.streamlit.app/ |
+| Chatbot and report, static site (public) | https://dmlaishu.github.io/procurement-intelligence/ |
+
+The Streamlit app is `procurement_demo/app.py`; the "Ask the documents" tab has the country and category dropdowns.
+
 ## Document Q&A by country (RAG)
 
 `procurement_rag/` is a reusable pipeline that fetches the World Bank project documents of a country (appraisal
