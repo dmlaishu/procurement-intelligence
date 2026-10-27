@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab Equipment Procurement Chatbot</title>
+<meta name="description" content="Ask about laboratory and diagnostic equipment procurement in World Bank-financed health projects: contracts, suppliers, prices, and answers from each country's project documents with their sources.">
+<style>
+  :root { --paper: #f4f6f7; --ink: #17222a; --muted: #56656f; --accent: #0b6e69; }
+  @media (prefers-color-scheme: dark) { :root { --paper: #0f161a; --ink: #e2e9ed; --muted: #9babb4; --accent: #4fc2b8; } }
+  html, body { margin: 0; height: 100%; background: var(--paper); color: var(--ink);
+               font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif; }
+  body { display: flex; flex-direction: column; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; padding: 10px 16px;
+           border-bottom: 1px solid rgba(128, 128, 128, .25); }
+  header b { font-size: 15px; }
+  header span { font-size: 13px; color: var(--muted); flex: 1 1 260px; }
+  header a { font-size: 13px; color: var(--accent); }
+  #wake { font-size: 13px; color: var(--muted); padding: 8px 16px 0; }
+  iframe { flex: 1; width: 100%; border: 0; }
+</style>
+</head>
+<body>
+<header>
+  <b>Lab equipment procurement chatbot</b>
+  <span>World Bank-financed health projects · tab "Ask the documents" for Kenya and India with country and category menus</span>
+  <a href="../report.html">Report</a>
+  <a href="https://procurement-intelligence-gkhea5oeh3lwtbbs6yganq.streamlit.app/" target="_blank" rel="noopener">Open full screen</a>
+</header>
+<p id="wake">If the chatbot has been idle it may take a minute to start.</p>
+<iframe src="https://procurement-intelligence-gkhea5oeh3lwtbbs6yganq.streamlit.app/?embed=true"
+        title="Lab equipment procurement chatbot" allow="clipboard-write"
+        onload="document.getElementById('wake').hidden = true"></iframe>
+</body>
+</html>

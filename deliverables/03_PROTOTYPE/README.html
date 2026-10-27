@@ -7,7 +7,9 @@ blockquote{border-left:4px solid #0969da;margin:12px 0;padding:4px 14px;backgrou
 @media print{body{max-width:none;margin:0}h2{page-break-after:avoid}pre,table{page-break-inside:avoid}pre{font-size:62%}}</style></head><body><h1>Deliverable 3: Prototype</h1>
 <p>A working, end-to-end prototype of the Procurement Intelligence Platform for <strong>medical laboratory and diagnostic
 equipment in World Bank-financed health projects</strong>, on real public World Bank data from 91 countries.
-It includes a <strong>chatbot</strong> that answers questions with cited evidence.</p>
+It includes a <strong>chatbot</strong> that answers questions with cited evidence, and a <strong>document Q&amp;A</strong> that answers from a
+selected country's World Bank project documents. It runs locally and on Databricks.</p>
+<p><strong>Try it:</strong> https://dmlaishu.github.io/procurement-intelligence/chat/ (public; tab "Ask the documents" for the country menus) · code: https://github.com/dmlaishu/procurement-intelligence</p>
 <h2>What is in this folder</h2>
 <table>
 <thead>
@@ -31,7 +33,7 @@ It includes a <strong>chatbot</strong> that answers questions with cited evidenc
 </tr>
 <tr>
 <td><code>prototype_source.zip</code></td>
-<td>source code: pipeline and chatbot (<code>procurement_demo/</code>), Databricks notebooks 20-29, tests, build scripts</td>
+<td>source code: pipeline and chatbot (<code>procurement_demo/</code>), document Q&amp;A (<code>procurement_rag/</code>, incl. the Databricks App), Databricks notebooks 00, 20-34, tests, build scripts</td>
 </tr>
 </tbody>
 </table>
@@ -50,8 +52,16 @@ It includes a <strong>chatbot</strong> that answers questions with cited evidenc
 <p>Each answer shows its evidence (contract rows, benchmarks, report pages with links), the result table, and any
 sentence the verifier removed. On 16 labelled questions it chose the right tool for
 100% and matched an independent query in 6 of
-6 exactness checks. Optional: <code>pip install anthropic</code>, set credentials and
-<code>PROC_CHAT_LLM=1</code> to have an LLM rephrase verified answers. Its text is discarded if it adds any number.</p>
+6 exactness checks. An LLM can optionally rephrase verified answers (<code>PROC_CHAT_LLM=1</code>, see
+<code>chatbot.py</code>); its text is discarded if it adds any number.</p>
+<p><strong>Ask the documents</strong> (second tab): choose a <strong>country</strong> (Kenya, India, Nigeria) and a
+<strong>category</strong> (ten equipment types or the procurement process), then ask your own question. The answer is built from
+that country's World Bank project documents (111 documents, 4,761 passages), each sentence with
+its source and page. Evaluation: 10/10. Build or extend it:</p>
+<pre><code class="language-bash">python -m procurement_rag.pipeline --countries KEN IND      # download, chunk, embed, index
+python -m procurement_rag.pipeline --add-country NGA       # register a country, then --countries NGA
+python -m procurement_rag.evaluate
+</code></pre>
 <h2>What the pipeline does</h2>
 <pre><code>World Bank APIs ──▶ ingest.py ──▶ build.py ──────────────────────▶ models.py ──────▶ copilot.py / chatbot.py
  health Goods awards,  contract-   equipment taxonomy, entity        KM benchmarks      retrieval.py (BM25 +
@@ -93,10 +103,15 @@ and inter-urban roads, or <code>three_country</code> for Kenya, Nigeria and Bang
 <tr>
 <th>Component</th>
 <th>Local prototype (run and verified)</th>
-<th>Databricks production path (written, not yet run)</th>
+<th>Databricks (run end to end on 2026-10-27)</th>
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>Settings</td>
+<td><code>procurement_demo/common.py</code></td>
+<td><code>notebooks/00_proc_config</code> (catalog <code>proc_demo</code>)</td>
+</tr>
 <tr>
 <td>Ingestion</td>
 <td><code>procurement_demo/ingest.py</code></td>
@@ -132,5 +147,12 @@ and inter-urban roads, or <code>three_country</code> for Kenya, Nigeria and Bang
 <td><code>evaluate.py</code></td>
 <td><code>29_proc_monitor_job</code> (Lakeflow Job, retrain gate)</td>
 </tr>
+<tr>
+<td>Document Q&amp;A by country</td>
+<td><code>procurement_rag/</code> (ChromaDB) and the "Ask the documents" tab</td>
+<td><code>30_rag_registry</code> → <code>34_rag_ask</code> (Vector Search, job <code>proc_rag_pipeline</code>), Databricks App in <code>procurement_rag/databricks_app/</code></td>
+</tr>
 </tbody>
-</table></body></html>
+</table>
+<p>The shared logic (parsers, entity resolution, survival estimates, verifier, equipment taxonomy, document categories
+and answer-sentence rules) is one file, <code>notebooks/20_proc_lib.py</code>, used by both columns.</p></body></html>

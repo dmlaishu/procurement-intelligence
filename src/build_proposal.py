@@ -68,6 +68,9 @@ def main():
     brief = json.loads((OUT / "demo_brief.json").read_text(encoding="utf-8"))
     b, m, r, g, le, cf = ev["build"], ev["models"], ev["retrieval"], ev["guardrails"], ev["lesson_extraction"], ev["conflicts"]
     c, sb, rb, am = m["cycle"], m["single_bid"], m["rebid"], m.get("amendment", {})
+    from build_deliverables import platform_facts      # here, not at the top: build_deliverables imports this module
+    dbx, qa = platform_facts()
+    dp, dq = dbx["procurement"], dbx["document_qa"]
     raw = json.loads((RAW / "documents_meta.json").read_text(encoding="utf-8"))
     tm, pl = r["topic_macro"], r["project_link"]
     gain = 1 - c["mae_days_model_p50"] / c["mae_days_km_benchmark"]
@@ -127,6 +130,14 @@ def main():
             f"- **Faithfulness:** {g['statements_kept']} statements across {g['briefs']} generated briefs, **100% with valid citations**. "
             f"The verifier caught **{g['caught']} of {g['injected_hallucinations']}** injected hallucinations "
             f"(fake numbers, quotes, pages, citations); {pct(le['verification_rate'])} of extracted lessons have quotes verified against source.",
+            f"- **Document Q&A by country:** users pick a country and a category and ask their own question; answers come from that "
+            f"country's project documents with sources ({', '.join(qa['names'][k] for k in qa['countries'])}: {qa['documents']} documents, "
+            f"{qa['passages']:,} passages). **{qa['eval']['passed']}/{qa['eval']['questions']}** evaluation questions passed; a new "
+            f"country is one command and does not rebuild the others (§3.9).",
+            f"- **On Databricks:** every notebook ran end to end on {dbx['run_date']} with results matching the prototype "
+            f"({dp['lab_contract_rows']:,} lab contract rows, {dp['lessons']} LLM-extracted lessons "
+            f"{dp['lessons_quote_verified'] / dp['lessons']:.0%} quote-verified, models registered as `@champion`, document Q&A "
+            f"{dq['evaluation']['passed']}/{dq['evaluation']['questions']} on Vector Search). Try it: {dbx['public_links']['chatbot']}",
         ]),
         "SOURCE_VOLUMES": f"{b['contracts']:,} contract-supplier rows; {b['tenders']:,} tenders built from notices; {b['projects']:,} projects; "
                           f"{len(raw)} project documents (ICR {sum(d['doc_type_code'] == 'ICR' for d in raw)}, ISR {sum(d['doc_type_code'] == 'ISR' for d in raw)}, "
@@ -201,13 +212,33 @@ def main():
             "",
             "The full results page with the example brief and its evidence is `procurement_demo/output/prototype_report.html`.",
             "",
-            "**Not yet demonstrated:** LLM-based lesson extraction and LLM rewriting run only in the Databricks notebooks (24, 28), which "
-            "are written but could not be executed here because new job runs on the trial workspace were disabled. The local prototype "
-            "uses rule-based extraction and a deterministic composer, which the same verifier gates. Supplier performance, "
-            "disbursement-lag warnings and contract amendments need non-public or Phase 2 data.",
+            f"**Run on Databricks ({dbx['run_date']}).** Notebooks 00 and 20-34 ran end to end on {dbx['platform'].split(' (')[0]} "
+            f"(catalog `{dbx['catalog']}`), on fresh downloads from the World Bank APIs:",
+            "",
+            "| Measure | Databricks | Local prototype |", "|---|---|---|",
+            f"| Lab and diagnostic contract rows | {dp['lab_contract_rows']:,} | {len(dom):,} |",
+            f"| Tenders with an invitation-to-award time | {dp['tenders_with_cycle']:,} | {b['tenders_with_cycle']:,} |",
+            f"| Lessons, quote-verified | {dp['lessons']} by LLM, {dp['lessons_quote_verified'] / dp['lessons']:.0%} | {le['extracted']} by rules, {pct(le['verification_rate'])} |",
+            f"| Projects with conflicting ratings | {dp['rating_conflicts']} of {dp['projects_with_ratings']} | {cf['with_conflict']} of {cf['projects_with_rating_evidence']} |",
+            f"| Days-to-award MAE, P50 model vs single median | {dbx['models']['cycle_mae_p50_days']:.0f} vs {dbx['models']['cycle_mae_global_median_days']:.0f} | {c['mae_days_model_p50']:.0f} vs {c['mae_days_global_median']:.0f} |",
+            f"| Document Q&A evaluation | {dq['evaluation']['passed']}/{dq['evaluation']['questions']} (Vector Search) | {qa['eval']['passed']}/{qa['eval']['questions']} (ChromaDB) |",
+            "",
+            "Small differences come from contracts published between the two runs. The weekly learning-loop job exists with its "
+            "schedule paused, so retraining has run once, not yet over weeks of new data. Supplier performance, disbursement-lag "
+            "warnings and contract amendments need non-public or Phase 2 data.",
         ]),
     }
     vals.update({
+        "TRY_IT": f"{dbx['public_links']['chatbot']} (public) · code: {dbx['public_links']['code']}",
+        "DATABRICKS_RUN_DATE": dbx["run_date"],
+        "DOCQA_RESULT": (f"Measured: {qa['eval']['passed']}/{qa['eval']['questions']} evaluation questions passed locally "
+                         f"({qa['eval']['answered']} answered with the expected source in the top five, {qa['eval']['declined']} correctly "
+                         f"declined, every source from the selected country, about {qa['eval']['seconds']:.1f} s per answer) and "
+                         f"{dq['evaluation']['passed']}/{dq['evaluation']['questions']} on Databricks Vector Search. Nigeria was added with one "
+                         f"command in under four minutes without re-embedding Kenya or India."),
+        "DOCQA_TABLE": "\n".join(["| Country | Projects | Documents | Passages |", "|---|---|---|---|"]
+                                 + [f"| {qa['names'][k]} | {v['projects']} | {v['documents']} | {v['passages']:,} |"
+                                    for k, v in qa["countries"].items()]),
         "SCOPE_LINE": f"{len(dom):,} laboratory and diagnostic equipment contracts in {dom.country_iso3.nunique()} countries",
         "MIN_YEAR": str(MIN_YEAR),
         "DOMAIN_RESULT": f"{len(dom):,} of {len(contracts):,} health-goods contracts ({pct(len(dom) / len(contracts))}) are laboratory or diagnostic equipment",

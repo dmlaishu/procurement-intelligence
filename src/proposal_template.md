@@ -8,7 +8,8 @@ health projects, built on public World Bank data**
 | Domain | Medical laboratory and diagnostic equipment (PCR and GeneXpert systems, imaging, analyzers, reagents and cartridges, rapid tests, microscopy, biosafety and cold chain, lab IT) in World Bank-financed health projects, all countries |
 | Scope | Modules 1-4 of the assessment: ingestion and knowledge representation, predictive and retrieval engines, guardrails, continuous learning and rollout |
 | Platform | Databricks lakehouse (Delta, Unity Catalog, Vector Search, MLflow, Model Serving, Lakeflow Jobs), extending an existing World Bank assistant built on the same platform |
-| Evidence | A working prototype, including a chatbot, on real public data: {{SCOPE_LINE}}. The results quoted in this document are measured, not projected (§7) |
+| Evidence | A working prototype, including a chatbot and a document Q&A by country, on real public data: {{SCOPE_LINE}}; run locally and end to end on Databricks. The results quoted in this document are measured, not projected (§7) |
+| Try it | {{TRY_IT}} |
 
 ---
 
@@ -393,6 +394,26 @@ evidence. Measured on a labelled question set: {{CHATBOT_RESULT}}
 
 {{CHAT_EXAMPLES}}
 
+### 3.9 Document Q&A by country (reusable RAG pipeline)
+
+The chatbot's second mode lets a user choose a **country** and a **category** and ask any question; the answer comes
+only from that country's World Bank project documents and shows its sources. It is a pipeline, not a one-off index, so
+a new country is configuration, not code:
+
+| Stage | Local | Databricks | What it does |
+|---|---|---|---|
+| Registry | `procurement_rag/countries.json` | `ops.rag_countries` (notebook 30) | one row per country (ISO codes, name, pinned projects); shared defaults for document types and limits |
+| Fetch | `fetch.py` | notebook 31 → volume `rag_docs/<country>/<type>/<id>.pdf`, `bronze.rag_documents` | projects that bought lab equipment there, lab-related health projects (Projects API), pinned regional programmes; newest PAD, project papers, procurement plans, ISR, ICR, IEG review, PPAR per project |
+| Process | `process.py` | notebook 32 → `silver.rag_pages`, `gold.rag_chunks` | text per page once per PDF; section-aware passages (§2.5); category tags from the equipment taxonomy (§2.7) |
+| Index | `index.py` → ChromaDB | notebook 33 → Vector Search Delta Sync index | embeddings, filterable by country and category; incremental, other countries untouched |
+| Answer | `search.py`, chatbot tab | notebook 34, Databricks App | hybrid retrieval (meaning + exact words), at most two passages per document; answer = the sentences that answer the question, each with its source, or a written summary shown only if every citation and number is in the cited sources |
+
+Answer sentences are chosen by meaning, weighted towards the question's distinctive words; for questions about
+equipment, sentences that name equipment come first. If nothing in the selected country's documents is close enough,
+the chatbot says so instead of guessing. {{DOCQA_RESULT}}
+
+{{DOCQA_TABLE}}
+
 ---
 
 ## 4. Module 3: Guardrails, faithfulness and source attribution
@@ -511,16 +532,18 @@ verifier code lives in `notebooks/20_proc_lib.py`. The Databricks notebooks (`%r
 prototype (`procurement_demo/`) both use it, and it is unit-tested against real notices, an ISR and an ICR
 (`python src/test_proc_lib.py`).
 
-| Component | Databricks (production path) | Local prototype (verified) |
+| Component | Databricks (run end to end on {{DATABRICKS_RUN_DATE}}) | Local prototype (verified) |
 |---|---|---|
+| Settings | `00_proc_config` (own catalog, scope, endpoints) | `procurement_demo/common.py` |
 | Ingestion | `21_ingest_procurement`, `22_ingest_project_docs` | `procurement_demo/ingest.py` |
 | Silver / Gold, entity resolution, graph | `23_proc_silver_gold` | `build.py` |
 | Document structure, lessons, ratings | `24_proc_docs_lessons` (LLM extraction + quote check) | `build.py` (rule-based extraction + quote check) |
 | Vector index | `25_proc_vector_index` (hybrid Vector Search) | `retrieval.py` (BM25 + filters + RRF) |
 | Models | `26_proc_risk_models` (MLflow, UC registry, champion gate) | `models.py` |
 | Tools / copilot | `27_proc_tools`, `28_proc_copilot` | `copilot.py` |
-| Chatbot | Databricks App over the same UC functions | `chatbot.py` + `app.py` (Streamlit) |
 | Monitoring, job | `29_proc_monitor_job` | `evaluate.py` |
+| Document Q&A by country | `30_rag_registry` → `34_rag_ask`, Vector Search, job `proc_rag_pipeline`, Databricks App | `procurement_rag/` (ChromaDB) |
+| Chatbot | Databricks App (document Q&A, workspace sign-in) | `chatbot.py` + `app.py` (Streamlit), public at the link above |
 
 ## Appendix A: Glossary
 

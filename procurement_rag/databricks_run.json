@@ -1,0 +1,63 @@
+{
+  "_source": "Measured on the Databricks Free Edition workspace (serverless, catalog proc_demo) from proc_demo.ops.app_logs, proc_demo.ops.rag_eval_results and SQL on the Gold tables, after running notebooks 00 and 20-34 end to end on fresh downloads from the World Bank APIs.",
+  "run_date": "2026-10-27",
+  "platform": "Databricks Free Edition (serverless compute, Unity Catalog, Vector Search, Model Serving, MLflow, Lakeflow Jobs, Apps)",
+  "catalog": "proc_demo",
+  "procurement": {
+    "health_goods_contract_rows": 14622,
+    "lab_contract_rows": 2221,
+    "lab_contracts_distinct": 2194,
+    "lab_value_usd": 1375796408,
+    "domain_projects": 179,
+    "notices": 15164,
+    "tenders": 10407,
+    "tenders_with_cycle": 1068,
+    "suppliers": 7543,
+    "project_documents": 128,
+    "passages": 6126,
+    "lessons": 733,
+    "lessons_quote_verified": 712,
+    "projects_with_ratings": 33,
+    "rating_conflicts": 8,
+    "kg_edges": 116199,
+    "llm": "databricks-meta-llama-3-3-70b-instruct (through ai_query)"
+  },
+  "models": {
+    "cycle_mae_p50_days": 49.1,
+    "cycle_mae_global_median_days": 73.0,
+    "cycle_p80_coverage": 0.78,
+    "cycle_n_test": 259,
+    "single_bid_auc": 0.64,
+    "amendment_auc": 0.56,
+    "rebid": "skipped (too few re-tenders in the test period)",
+    "promoted_to_champion": true
+  },
+  "tools": {"uc_functions": 8, "tests_passed": 8},
+  "copilot_brief": {"package": "PCR / GeneXpert systems, Kenya, US$2.5M", "statements_kept": 5, "statements_dropped": 0},
+  "document_qa": {
+    "countries": {"KEN": {"projects": 8, "documents": 29, "passages": 1239},
+                  "IND": {"projects": 12, "documents": 55, "passages": 2556}},
+    "index": "proc_demo.ai.rag_chunks_index (Delta Sync, databricks-gte-large-en, 3,795 rows)",
+    "evaluation": {"questions": 10, "passed": 10, "answered": 9, "correctly_declined": 1, "sources_in_selected_country": true,
+                   "seconds_per_answer": 3},
+    "first_index_build_hours": 1.5
+  },
+  "jobs": {"proc_lab_pipeline": "21 → 22 → 23 → 24 → 25 → 29, retrain gate → 26 (weekly schedule, paused)",
+           "proc_rag_pipeline": "31 → 32 → 33 with a countries parameter"},
+  "apps": {"databricks_app": "proc-lab-docs-chat (requires workspace sign-in)"},
+  "public_links": {
+    "chatbot": "https://dmlaishu.github.io/procurement-intelligence/chat/",
+    "chatbot_direct": "https://procurement-intelligence-gkhea5oeh3lwtbbs6yganq.streamlit.app/",
+    "static_site": "https://dmlaishu.github.io/procurement-intelligence/",
+    "report": "https://dmlaishu.github.io/procurement-intelligence/report.html",
+    "code": "https://github.com/dmlaishu/procurement-intelligence"
+  },
+  "free_edition_adjustments": [
+    "scikit-learn models saved with cloudpickle (serverless has no skops)",
+    "SQL function parameters qualified and kept out of subqueries",
+    "UC table functions called by their three-part names",
+    "model endpoints called through ai_query from notebooks",
+    "embedding requests in batches of 8 (larger requests are rejected by the rate limit)",
+    "answer-sentence similarity thresholds calibrated for databricks-gte-large-en (0.65 / 0.75)"
+  ]
+}

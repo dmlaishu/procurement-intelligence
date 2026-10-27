@@ -84,7 +84,7 @@ footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line);
     <span class="eyebrow">Technical assessment · AI-powered procurement intelligence</span>
     <h1>Procurement intelligence for laboratory and diagnostic equipment</h1>
     <p class="lede">Medical laboratory and diagnostic equipment in World Bank-financed health projects: what was built, what the World Bank's public data shows, and what comes next.
-    Report generated 25 October 2026 from a working prototype run on public World Bank data.</p>
+    Report generated 26 October 2026 from a working prototype run on public World Bank data.</p>
   </header>
   <div class="figures"><div><b>2,220</b><span>lab and diagnostic contracts</span></div><div><b>US$1.38B</b><span>contract value</span></div><div><b>91</b><span>countries</span></div><div><b>16/16</b><span>chatbot questions routed correctly</span></div></div>
   <section class="col" aria-labelledby="deliverables">
@@ -100,7 +100,7 @@ footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line);
     <div><b>4 · Report</b><p>This page: findings, measured results, limitations and next steps
       (also as <code>04_REPORT.pdf</code>).</p></div>
   </div>
-  <nav class="toc" aria-label="Contents"><a href="#1-summary">Summary</a><a href="#2-what-was-built">What was built</a><a href="#3-data-how-the-domain-was-assembled">Data: how the domain was assembled</a><a href="#4-what-the-data-shows-about-laboratory-a">What the data shows about laboratory and diagnostic procurement</a><a href="#5-results-by-module">Results by module</a><a href="#6-the-chatbot">The chatbot</a><a href="#7-example-output-a-brief-for-a-new-packa">Example output: a brief for a new package</a><a href="#8-limitations">Limitations</a><a href="#9-recommendations-and-next-steps">Recommendations and next steps</a><a href="#10-reproducing-these-numbers">Reproducing these numbers</a><a href="#data-model">Data model diagram</a></nav>
+  <nav class="toc" aria-label="Contents"><a href="#1-summary">Summary</a><a href="#2-what-was-built">What was built</a><a href="#3-data-how-the-domain-was-assembled">Data: how the domain was assembled</a><a href="#4-what-the-data-shows-about-laboratory-a">What the data shows about laboratory and diagnostic procurement</a><a href="#5-results-by-module">Results by module</a><a href="#6-the-chatbot">The chatbot</a><a href="#7-document-q-amp-a-by-country">Document Q&amp;amp;A by country</a><a href="#8-example-output-a-brief-for-a-new-packa">Example output: a brief for a new package</a><a href="#9-limitations">Limitations</a><a href="#10-recommendations-and-next-steps">Recommendations and next steps</a><a href="#11-reproducing-these-numbers">Reproducing these numbers</a><a href="#data-model">Data model diagram</a></nav>
   <main>
     <div class="tbl"><table>
 <thead>
@@ -112,7 +112,7 @@ footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line);
 <tbody>
 <tr>
 <td>Run date</td>
-<td>22 October 2026</td>
+<td>26 October 2026</td>
 </tr>
 <tr>
 <td>Domain</td>
@@ -125,6 +125,14 @@ footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line);
 <tr>
 <td>Coverage</td>
 <td>2,220 lab and diagnostic contracts (US$1,375.4M), 91 countries, 179 projects, FY2015 onwards</td>
+</tr>
+<tr>
+<td>Platform</td>
+<td>local prototype, and the same pipeline run end to end on Databricks (2026-10-27)</td>
+</tr>
+<tr>
+<td>Try it</td>
+<td>chatbot: https://dmlaishu.github.io/procurement-intelligence/chat/ · code: https://github.com/dmlaishu/procurement-intelligence</td>
 </tr>
 <tr>
 <td>Companion deliverables</td>
@@ -177,6 +185,14 @@ procurement team can use, through a cited chatbot and package briefs.</p>
 <td>Are the risk models ready to drive decisions?</td>
 <td>Not yet. Single-bid AUC 0.67; re-tender skipped: not enough positives; award amendment AUC 0.55. Use as indicators only</td>
 </tr>
+<tr>
+<td>Can users ask their own questions of a country's documents?</td>
+<td>Yes. A document Q&amp;A answers from Kenya, India, Nigeria project documents (111 documents, 4,761 passages) with country and category menus; <strong>10/10</strong> evaluation questions passed and every source came from the selected country. A new country is one command (§7)</td>
+</tr>
+<tr>
+<td>Does it run on the target platform?</td>
+<td>Yes. All notebooks ran end to end on Databricks (2026-10-27) with results matching the local prototype (§5.5)</td>
+</tr>
 </tbody>
 </table></div>
 <h2 id="2-what-was-built">2. What was built</h2>
@@ -205,14 +221,19 @@ procurement team can use, through a cited chatbot and package briefs.</p>
 <td>built, run and evaluated</td>
 </tr>
 <tr>
+<td>2. Document Q&amp;A by country</td>
+<td>per-country document pipeline (fetch → chunk → embed → vector index), cited answers, country and category menus</td>
+<td>built, run and evaluated locally (ChromaDB) and on Databricks (Vector Search)</td>
+</tr>
+<tr>
 <td>3. Guardrails and attribution</td>
 <td>evidence registry, verifier (citations, numbers, quotes, pages), rating-conflict resolver incl. IEG reviews</td>
 <td>built, run and red-teamed</td>
 </tr>
 <tr>
 <td>4. Continuous learning and rollout</td>
-<td>incremental ingestion, monitoring and retrain gate, feedback tables, KPI view</td>
-<td>designed and written as Databricks notebooks 21-29; <strong>not yet executed</strong> (trial workspace blocked job runs)</td>
+<td>incremental ingestion, monitoring and retrain gate, feedback tables, KPI view, pipeline jobs</td>
+<td>built and run on Databricks (notebooks 21-29); jobs created with the schedule paused, so the loop has run once, not yet over weeks</td>
 </tr>
 </tbody>
 </table></div>
@@ -1018,6 +1039,74 @@ opposite sides of the satisfactory line. Example: P129539 reached <em>Moderately
 supervision; the final rating, from the ICRR, is <em>Satisfactory</em>.
 The resolver keeps the most authoritative source as the headline (IEG PPAR &gt; IEG ICR Review &gt; ICR &gt; latest ISR),
 stores the full trajectory, and the chatbot and briefs cite both sides.</p>
+<h3>5.5 The same pipeline on Databricks</h3>
+<p>Notebooks 00 and 20-34 were run end to end on Databricks Free Edition on 2026-10-27, on fresh downloads from
+the World Bank APIs, into the Unity Catalog catalog <code>proc_demo</code>. Lessons there are extracted by an LLM
+(<code>databricks-meta-llama-3-3-70b-instruct</code>) and checked against their source quote; models are tracked in MLflow and registered in
+Unity Catalog as <code>@champion</code>; retrieval uses Vector Search.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Measure</th>
+<th>Databricks run</th>
+<th>Local prototype</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lab and diagnostic contract rows / value</td>
+<td>2,221 / US$1,375,796,408</td>
+<td>2,220 / US$1,375,387,988</td>
+</tr>
+<tr>
+<td>Domain projects</td>
+<td>179</td>
+<td>179</td>
+</tr>
+<tr>
+<td>Tenders / with an invitation-to-award time</td>
+<td>10,407 / 1,068</td>
+<td>10,403 / 1,068</td>
+</tr>
+<tr>
+<td>Resolved suppliers</td>
+<td>7,543</td>
+<td>7,540</td>
+</tr>
+<tr>
+<td>Lessons extracted / quote-verified</td>
+<td>733 (LLM) / 97%</td>
+<td>150 (rules) / 98%</td>
+</tr>
+<tr>
+<td>Projects with conflicting ratings</td>
+<td>8 of 33</td>
+<td>8 of 34</td>
+</tr>
+<tr>
+<td>Days-to-award MAE, P50 model vs single median</td>
+<td>49 vs 73 days</td>
+<td>47 vs 73 days</td>
+</tr>
+<tr>
+<td>Single-bid AUC / amendment AUC</td>
+<td>0.64 / 0.56</td>
+<td>0.67 / 0.55</td>
+</tr>
+<tr>
+<td>Copilot brief: statements kept / removed by the verifier</td>
+<td>5 / 0</td>
+<td>see §8</td>
+</tr>
+<tr>
+<td>Document Q&amp;A evaluation</td>
+<td>10/10</td>
+<td>10/10</td>
+</tr>
+</tbody>
+</table></div>
+<p>Small differences in counts come from contracts the World Bank published between the two runs. The Databricks run
+needed a few platform adjustments, all in the notebooks: scikit-learn models saved with cloudpickle (serverless has no skops); SQL function parameters qualified and kept out of subqueries; UC table functions called by their three-part names; model endpoints called through ai_query from notebooks; embedding requests in batches of 8 (larger requests are rejected by the rate limit); answer-sentence similarity thresholds calibrated for databricks-gte-large-en (0.65 / 0.75).</p>
 <h2 id="6-the-chatbot">6. The chatbot</h2>
 <div class="tbl"><table>
 <thead>
@@ -1212,7 +1301,75 @@ stores the full trajectory, and the chatbot and briefs cite both sides.</p>
 <li>“Notwithstanding the cancellations, the project was still able to achieve the objectives.” (ICR, P131825, p. 36) - note: this project's supervision ratings fell to Unsatisfactory before the final ICRR rating of Moderately Satisfactory, so the lesson reflects a recovery. <code>L4 R3</code></li>
 </ul>
 </blockquote>
-<h2 id="7-example-output-a-brief-for-a-new-packa">7. Example output: a brief for a new package</h2>
+<p>The chatbot is public at https://dmlaishu.github.io/procurement-intelligence/chat/ (tabs: Chat, Ask the documents, Data model, Explore).</p>
+<h2 id="7-document-q-amp-a-by-country">7. Document Q&amp;A by country</h2>
+<p>Users pick a <strong>country</strong> and a <strong>category</strong> (ten equipment types, or the procurement process) and ask their own
+question; the answer is built only from that country's World Bank project documents and lists its sources (document
+type, title, project, page, link).</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Step</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fetch</td>
+<td>projects that bought lab equipment in the country, lab-related health projects from the Projects API, and pinned regional programmes; for each, the newest appraisal document, project papers, procurement plans, supervision report, completion report and IEG reviews, stored as <code>&lt;country&gt;/&lt;document type&gt;/&lt;id&gt;.pdf</code></td>
+</tr>
+<tr>
+<td>Process</td>
+<td>text per page, section-aware passages that keep section and pages, tagged with the categories they mention</td>
+</tr>
+<tr>
+<td>Index</td>
+<td>embeddings in a vector database (ChromaDB locally, Databricks Vector Search on the platform), filtered by country and category</td>
+</tr>
+<tr>
+<td>Answer</td>
+<td>hybrid retrieval (meaning + exact words), then the sentences that answer the question, each with its source; or a short written summary that is shown only if every citation and number is in the cited sources</td>
+</tr>
+</tbody>
+</table></div>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Country</th>
+<th>Projects</th>
+<th>Documents</th>
+<th>Passages</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Kenya</td>
+<td>8</td>
+<td>29</td>
+<td>1,239</td>
+</tr>
+<tr>
+<td>India</td>
+<td>12</td>
+<td>55</td>
+<td>2,556</td>
+</tr>
+<tr>
+<td>Nigeria</td>
+<td>6</td>
+<td>27</td>
+<td>966</td>
+</tr>
+</tbody>
+</table></div>
+<p>Evaluation: 10 questions with a known correct source (a project, document type or phrase) and one the
+documents cannot answer. <strong>10/10 passed</strong>: 9 answered with the expected source in the top
+five, 1 correctly declined, every source from the selected country, about 1.4 s per answer locally
+and about 3 s on Databricks. Adding a country does not rebuild the others: Nigeria was
+added with one command in under four minutes, and Kenya and India were not re-embedded.</p>
+<p>Answers are sentences quoted from the documents, so they are only as specific as the documents: TB projects in India
+describe "newer and quicker diagnostic equipment (including … rapid technology)" rather than naming machines.</p>
+<h2 id="8-example-output-a-brief-for-a-new-packa">8. Example output: a brief for a new package</h2>
 <p>Input: <em>Supply, installation and commissioning of automated real-time PCR systems and GeneXpert analyzers for regional public health laboratories, Lot 2</em> (Goods, RFB, KEN,
 est. US$2,500,000).</p>
 <h4>Schedule</h4>
@@ -1246,7 +1403,7 @@ est. US$2,500,000).</p>
 <li>“These delays did not leave time for the related procurement and, finally resulted in a decision to cancel US$34.4 million from the loan.” (ICR, B. Key Factors During Implementation, p. 32) [P3]</li>
 <li>“Performance on procurement arrangements and compliance was hindered by difficulties and delays encountered by the countries and regional institutions.” (ICR, B. Environmental, Social, And Fiduciary Compliance, p. 36) [P4]</li>
 </ul>
-<h2 id="8-limitations">8. Limitations</h2>
+<h2 id="9-limitations">9. Limitations</h2>
 <div class="tbl"><table>
 <thead>
 <tr>
@@ -1274,7 +1431,7 @@ est. US$2,500,000).</p>
 <tr>
 <td>Rule-based lesson extraction locally</td>
 <td>lessons limited to numbered paragraphs in Lessons / Key-factor sections</td>
-<td>LLM extraction with quote check (notebook 24)</td>
+<td>the Databricks path uses LLM extraction with a quote check (733 lessons)</td>
 </tr>
 <tr>
 <td>Thin risk-model labels</td>
@@ -1287,29 +1444,50 @@ est. US$2,500,000).</p>
 <td>number-unit binding + entailment judge</td>
 </tr>
 <tr>
-<td>Databricks path not executed</td>
-<td>continuous-learning loop designed, not measured</td>
-<td>run notebooks 21-29 when the workspace allows jobs</td>
+<td>Learning loop run once</td>
+<td>retraining and drift triggers work, but have not yet run over weeks of new data</td>
+<td>un-pause the <code>proc_lab_pipeline</code> job schedule</td>
+</tr>
+<tr>
+<td>Document Q&amp;A quotes rather than summarises</td>
+<td>answers read as quotations; a vague question gets a "not found"</td>
+<td>written-summary mode (checked); specific questions</td>
+</tr>
+<tr>
+<td>Documents chosen by project</td>
+<td>country studies and documents not linked to a project are not fetched</td>
+<td>add a keyword search of the Documents API per country</td>
+</tr>
+<tr>
+<td>Free hosting limits</td>
+<td>the public chatbot sleeps after a few days idle; the Databricks app needs a workspace sign-in; the first Vector Search build took about 1.5 hours on the free tier</td>
+<td>paid tier or provisioned throughput</td>
 </tr>
 </tbody>
 </table></div>
-<h2 id="9-recommendations-and-next-steps">9. Recommendations and next steps</h2>
+<h2 id="10-recommendations-and-next-steps">10. Recommendations and next steps</h2>
 <ol>
 <li><strong>Pilot the chatbot with procurement specialists and biomedical engineers</strong> in two or three health programmes
    that are about to buy lab equipment. Measure plan-preparation time and evidence usefulness.</li>
 <li><strong>Add the equipment's life cycle:</strong> service and maintenance contracts, reagent purchases after equipment purchases,
    and asset registers. These answer the domain's real question, whether the equipment was still working a year later.</li>
 <li><strong>Build a labelled taxonomy set and an evaluation set</strong> of about 200 question-answer pairs with the domain experts.</li>
-<li><strong>Run the Databricks pipeline</strong> to switch on LLM lesson extraction, vector search and the monitoring job.</li>
+<li><strong>Switch on the learning loop</strong> on Databricks (un-pause the weekly job) and add the next countries to the document
+   Q&amp;A (<code>add_country</code> in notebook 30, then the <code>proc_rag_pipeline</code> job).</li>
 <li><strong>Extend the scope configuration</strong> to the next domain (e.g. medicines, or civil works). The pipeline already runs on
    an India roads scope and a three-country scope with no code changes.</li>
 </ol>
-<h2 id="10-reproducing-these-numbers">10. Reproducing these numbers</h2>
+<h2 id="11-reproducing-these-numbers">11. Reproducing these numbers</h2>
 <pre><code class="language-bash">python -m procurement_demo.run_all
+python -m procurement_rag.pipeline --countries KEN IND NGA
+python -m procurement_rag.evaluate
 python src/build_proposal.py
 python src/build_deliverables.py
 </code></pre>
-<p>All figures come from the run outputs (<code>procurement_demo/output/health_lab/eval_results.json</code> and the Gold tables); none are typed by hand.</p>
+<p>On Databricks: import the <code>notebooks/</code> folder and run <code>00_proc_config</code>, 21-29 and 30-34 in order (README, "Run it on
+Databricks"). All figures come from run outputs (<code>procurement_demo/output/health_lab/eval_results.json</code>, the Gold tables,
+<code>procurement_rag/eval_results.json</code> and <code>procurement_rag/databricks_run.json</code>, recorded from the Databricks run);
+none are typed by hand.</p>
     <h2 id="data-model">Data model diagram</h2>
     <p>Arrows point from the many side to the one side; dashed lines are derivations. Every link is also stored as a row
     in the knowledge-graph edge table, with the method that created it and a confidence.</p>

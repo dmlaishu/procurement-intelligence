@@ -444,6 +444,33 @@ def data_model(stats):
                  for k, v in sorted(stats["kg_edge_types"].items(), key=lambda kv: -kv[1])]
     ddl_example = ddl("fact_contract", tables["fact_contract"])
     doc_counts = docs_meta.doc_type_code.value_counts()
+    dbx, qa = platform_facts()
+    dp, dq = dbx["procurement"], dbx["document_qa"]
+    sample_chunks = pd.read_parquet(next((ROOT / "procurement_rag" / "data").glob("*/chunks.parquet")))
+    n_cats = sum(c.startswith("cat_") for c in sample_chunks.columns)
+    rag_rows = [
+        ("`ops.rag_countries`", "country", "`iso3`", "-", f"{len(qa['countries'])} (local), {len(dq['countries'])} (Databricks)"),
+        ("`bronze.rag_documents`", "country × document", "`(country, doc_id)`", "`project_id` → `dim_project`",
+         f"{qa['documents']} (local)"),
+        ("`silver.rag_pages`", "document page", "`(doc_id, page_num)`", "`doc_id` → `rag_documents`", "-"),
+        ("`gold.rag_chunks`", "passage", "`chunk_id`", "`doc_id`, `country`, `project_id`",
+         f"{qa['passages']:,} (local), {sum(v['passages'] for v in dq['countries'].values()):,} (Databricks)"),
+        ("`ai.rag_chunks_index`", "passage vector", "`chunk_id`", "synced from `gold.rag_chunks`",
+         f"{n_cats} category filters + country"),
+    ]
+    dbx_rows = [
+        ("`bronze.contract_awards_raw` (Health Goods awards of the domain projects)", f"{dp['health_goods_contract_rows']:,}"),
+        ("`bronze.domain_projects`", f"{dp['domain_projects']}"),
+        ("`bronze.proc_notices_raw`", f"{dp['notices']:,}"),
+        ("`gold.v_lab_contracts` (lab and diagnostic contract rows)", f"{dp['lab_contract_rows']:,} ({money(dp['lab_value_usd'])})"),
+        ("`gold.fact_tender` / with an invitation-to-award time", f"{dp['tenders']:,} / {dp['tenders_with_cycle']:,}"),
+        ("`gold.dim_supplier`", f"{dp['suppliers']:,}"),
+        ("`bronze.project_docs_meta` / `gold.proj_doc_chunks`", f"{dp['project_documents']} / {dp['passages']:,}"),
+        ("`gold.lessons` (quote-verified)", f"{dp['lessons']} ({dp['lessons_quote_verified']})"),
+        ("`gold.kg_edges`", f"{dp['kg_edges']:,}"),
+        ("`gold.rag_chunks` (" + ", ".join(f"{k} {v['passages']:,}" for k, v in dq["countries"].items()) + ")",
+         f"{sum(v['passages'] for v in dq['countries'].values()):,}"),
+    ]
 
     text = f"""# Deliverable 1: Data Model
 
@@ -451,9 +478,10 @@ def data_model(stats):
 
 | Item | Detail |
 |---|---|
-| Physical platform | Databricks Delta tables in Unity Catalog: `bronze`, `silver`, `gold`, `ops` schemas |
+| Physical platform | Databricks Delta tables in Unity Catalog, catalog `{dbx['catalog']}`: `bronze`, `silver`, `gold`, `ai`, `ops` schemas |
+| Try it | chatbot: {dbx['public_links']['chatbot']} |
 | Domain | {CFG['label']} |
-| Verified on | local prototype run on public World Bank data, {date.today():%d %B %Y}. Row counts below are from that run |
+| Verified on | local prototype run on public World Bank data, {date.today():%d %B %Y} (row counts below are from that run); the same tables were built on Databricks on {dbx['run_date']} (§10) |
 | Companion files | `er_diagram.svg` (diagram), `01_DATA_MODEL_DDL.sql` (full Gold DDL with keys and column comments) |
 
 ## 1. Design principles
@@ -490,10 +518,11 @@ taxonomy rather than a table: every contract and tender carries its `item_type` 
 
 | Layer | Tables | Role |
 |---|---|---|
-| **Bronze** | `contract_awards`, `procurement_notices`, `projects`, `governance_indicators`, `project_docs_meta` + PDF volume | API records and PDFs exactly as received, with ingest timestamp; Change Data Feed on |
-| **Silver** | `contracts`, `notices`, `projects`, `governance`, `tenders`, `proj_doc_pages` | typed, de-duplicated, keys normalised (ISO codes, bid references, supplier names); one page of text per row |
-| **Gold** | facts, dimensions, documents and knowledge, ML tables, `kg_edges` (below) | resolved entities and links; what the models, the vector index and the copilot read |
-| **Ops** | `proc_briefs`, `proc_feedback`, `v_proc_kpis` | every brief generated, user feedback, realised award dates: the inputs of the learning loop |
+| **Bronze** | `contract_awards_raw`, `proc_notices_raw`, `projects_raw`, `governance_raw`, `country_ref`, `domain_projects`, `project_docs_meta` + volume `raw_docs`; `rag_documents` + volume `rag_docs` (§7.1) | API records and PDFs exactly as received, with ingest timestamp; Change Data Feed on |
+| **Silver** | `contracts`, `notices`, `projects`, `governance`, `tenders`, `proj_doc_pages`, `rag_pages` | typed, de-duplicated, keys normalised (ISO codes, bid references, supplier names); one page of text per row |
+| **Gold** | facts, dimensions, documents and knowledge, ML tables, `kg_edges` (below), view `v_lab_contracts`, `rag_chunks` (§7.1) | resolved entities and links; what the models, the vector indexes, the copilot and the chatbot read |
+| **AI** | UC function tools (`proc_*`), vector indexes `proj_doc_chunks_index` and `rag_chunks_index`, registered models `proc_*` | what the copilot and chatbot call; governed by Unity Catalog grants |
+| **Ops** | `app_logs`, `proc_briefs`, `proc_feedback`, `v_proc_kpis`, `rag_countries`, `rag_eval_results` | run log, every brief generated, user feedback, realised award dates, the country registry of the document Q&A and its evaluation history |
 
 ## 4. Table catalogue
 
@@ -550,6 +579,24 @@ DOCUMENT (PAD / ISR / ICR / PPAR, 60-150 pages)
 Prototype: {stats['documents_parsed']} reports → {stats['chunks']:,} chunks → {stats['lessons']} lessons and
 {stats['rating_evidence']} dated ratings.
 
+### 7.1 Document Q&A by country
+
+The document Q&A keeps its own, country-partitioned copy of the document hierarchy, so a country can be added or
+refreshed without touching the others. It joins the rest of the model through **Project ID** and **country ISO-3**.
+
+```
+RAG_COUNTRY (ops.rag_countries)            iso3, iso2, name, pinned projects
+  └─ RAG_DOCUMENT (bronze.rag_documents)   country + doc_id; doc type, title, date, project_id → dim_project, file in rag_docs/<country>/<type>/
+      └─ PAGE (silver.rag_pages)           doc_id + page_num
+          └─ PASSAGE (gold.rag_chunks)     chunk_id = <country>_<doc_id>_<order>; section, pages, text, 1/0 category columns
+              └─ (ai.rag_chunks_index)     Vector Search on search_text, filtered by country and category
+```
+
+{md_table(rag_rows, ["Table", "Grain (one row per)", "Key", "Joins", "Rows"])}
+
+Category columns (`cat_*`, 1/0) mark which equipment types a passage mentions (the same taxonomy as `item_type`)
+and whether it is about the procurement process; the chatbot's category menu filters on them.
+
 ## 8. Data dictionary
 
 Null shares and examples are measured on the prototype tables. High null shares are expected where an event has not
@@ -568,6 +615,12 @@ The full DDL for all Gold tables is in `01_DATA_MODEL_DDL.sql`. Example:
 **Scaling.** The full public corpus is about 300k contract rows, about 425k notices, about 22k projects and tens of
 thousands of documents. That is small for Delta. Liquid clustering on country and year keeps scans narrow, Change Data
 Feed makes Silver → Gold and the vector index incremental, and supplier resolution uses blocking so it stays near-linear.
+
+## 10. Built on Databricks
+
+The model was created on Databricks on {dbx['run_date']} by notebooks 00 and 20-34, in catalog `{dbx['catalog']}`:
+
+{md_table(dbx_rows, ["Object", "Rows on Databricks"])}
 """
     render(text, "01_DATA_MODEL", "Data Model: Procurement Intelligence Platform", svg)
 
@@ -663,6 +716,28 @@ def report(ev):
         "What problems did projects have with laboratory equipment maintenance?",
     ])
 
+    dbx, qa = platform_facts()
+    dp, dm, dq, links = dbx["procurement"], dbx["models"], dbx["document_qa"], dbx["public_links"]
+    qa_rows = [(qa["names"][k], v["projects"], v["documents"], f"{v['passages']:,}") for k, v in qa["countries"].items()]
+    qe = qa["eval"]
+    dbx_rows = [
+        ("Lab and diagnostic contract rows / value", f"{dp['lab_contract_rows']:,} / {money(dp['lab_value_usd'])}", f"{len(dom):,} / {money(total)}"),
+        ("Domain projects", dp["domain_projects"], projects.shape[0]),
+        ("Tenders / with an invitation-to-award time", f"{dp['tenders']:,} / {dp['tenders_with_cycle']:,}", f"{b['tenders']:,} / {b['tenders_with_cycle']:,}"),
+        ("Resolved suppliers", f"{dp['suppliers']:,}", f"{b['supplier_suppliers']:,}"),
+        ("Lessons extracted / quote-verified", f"{dp['lessons']} (LLM) / {dp['lessons_quote_verified'] / dp['lessons']:.0%}",
+         f"{le['extracted']} (rules) / {pct(le['verification_rate'] or 0)}"),
+        ("Projects with conflicting ratings", f"{dp['rating_conflicts']} of {dp['projects_with_ratings']}",
+         f"{cf['with_conflict']} of {cf['projects_with_rating_evidence']}"),
+        ("Days-to-award MAE, P50 model vs single median", f"{dm['cycle_mae_p50_days']:.0f} vs {dm['cycle_mae_global_median_days']:.0f} days",
+         f"{c['mae_days_model_p50']:.0f} vs {c['mae_days_global_median']:.0f} days"),
+        ("Single-bid AUC / amendment AUC", f"{dm['single_bid_auc']:.2f} / {dm['amendment_auc']:.2f}",
+         f"{sb.get('auc', float('nan')):.2f} / {am.get('auc', float('nan')):.2f}"),
+        ("Copilot brief: statements kept / removed by the verifier",
+         f"{dbx['copilot_brief']['statements_kept']} / {dbx['copilot_brief']['statements_dropped']}", "see §8"),
+        ("Document Q&A evaluation", f"{dq['evaluation']['passed']}/{dq['evaluation']['questions']}", f"{qe['passed']}/{qe['questions']}"),
+    ]
+
     def model_row(name, d):
         if "auc" not in d:
             return f"| {name} | {d.get('status', 'not enough data')} | base rate {d.get('base_rate_train', 'n/a')} | {d.get('n_train', 0):,} / {d.get('n_test', 0):,} |"
@@ -680,6 +755,8 @@ projects: what was built, what the data shows, and what comes next**
 | Domain | {CFG['label']} |
 | Data | public World Bank APIs only: Major Contract Awards, Procurement Notices, Projects, Documents & Reports, WDI (CPIA, WGI) |
 | Coverage | {len(dom):,} lab and diagnostic contracts ({usd_m(total)}), {dom.country_iso3.nunique()} countries, {dom.project_id.nunique()} projects, FY{MIN_YEAR} onwards |
+| Platform | local prototype, and the same pipeline run end to end on Databricks ({dbx['run_date']}) |
+| Try it | chatbot: {links['chatbot']} · code: {links['code']} |
 | Companion deliverables | 1 Data Model · 2 Approach (technical proposal) · 3 Prototype (pipeline + chatbot) |
 
 ## 1. Summary
@@ -699,6 +776,8 @@ procurement team can use, through a cited chatbot and package briefs.
 | Does the chatbot answer correctly? | It routed **{pct(chat.get('route_accuracy', 0))}** of {chat.get('questions', 0)} labelled questions to the right tool; ranked and aggregate answers matched an independent query in **{chat.get('exact_accuracy', 0) * chat.get('exact_checks', 0):.0f} of {chat.get('exact_checks', 0)}** checks; {pct(chat.get('cited_share', 0))} of statements cited |
 | Can hallucination be controlled? | Yes, by design. 100% of {g['statements_kept']} brief statements cite evidence; the verifier blocked **{g['caught']} of {g['injected_hallucinations']}** deliberately injected false statements |
 | Are the risk models ready to drive decisions? | Not yet. {risk_line}. Use as indicators only |
+| Can users ask their own questions of a country's documents? | Yes. A document Q&A answers from {", ".join(qa["names"][k] for k in qa["countries"])} project documents ({qa['documents']} documents, {qa['passages']:,} passages) with country and category menus; **{qe['passed']}/{qe['questions']}** evaluation questions passed and every source came from the selected country. A new country is one command (§7) |
+| Does it run on the target platform? | Yes. All notebooks ran end to end on Databricks ({dbx['run_date']}) with results matching the local prototype (§5.5) |
 
 ## 2. What was built
 
@@ -707,8 +786,9 @@ procurement team can use, through a cited chatbot and package briefs.
 | 1. Ingestion and knowledge representation | contract-first domain selection, multilingual equipment taxonomy, entity resolution, Gold star schema, knowledge-graph edge table, section-aware PDF chunking | built and run |
 | 2. Predictive and prescriptive engines | Kaplan-Meier benchmarks by equipment type, gradient-boosted P50/P80 model, single-bid / re-tender / amendment classifiers, hybrid retrieval, package briefs | built and run |
 | 2. Retrieval for users | **chatbot** (`python -m streamlit run procurement_demo/app.py`): SQL for prices, suppliers and spend; benchmarks for timelines; retrieval for lessons; graph diagrams for relationships | built, run and evaluated |
+| 2. Document Q&A by country | per-country document pipeline (fetch → chunk → embed → vector index), cited answers, country and category menus | built, run and evaluated locally (ChromaDB) and on Databricks (Vector Search) |
 | 3. Guardrails and attribution | evidence registry, verifier (citations, numbers, quotes, pages), rating-conflict resolver incl. IEG reviews | built, run and red-teamed |
-| 4. Continuous learning and rollout | incremental ingestion, monitoring and retrain gate, feedback tables, KPI view | designed and written as Databricks notebooks 21-29; **not yet executed** (trial workspace blocked job runs) |
+| 4. Continuous learning and rollout | incremental ingestion, monitoring and retrain gate, feedback tables, KPI view, pipeline jobs | built and run on Databricks (notebooks 21-29); jobs created with the schedule paused, so the loop has run once, not yet over weeks |
 
 ## 3. Data: how the domain was assembled
 
@@ -824,6 +904,18 @@ supervision; the final rating, from the {conf['resolved_from']}, is *{conf['reso
 The resolver keeps the most authoritative source as the headline (IEG PPAR > IEG ICR Review > ICR > latest ISR),
 stores the full trajectory, and the chatbot and briefs cite both sides.
 
+### 5.5 The same pipeline on Databricks
+
+Notebooks 00 and 20-34 were run end to end on {dbx['platform'].split(' (')[0]} on {dbx['run_date']}, on fresh downloads from
+the World Bank APIs, into the Unity Catalog catalog `{dbx['catalog']}`. Lessons there are extracted by an LLM
+(`{dp['llm'].split(' ')[0]}`) and checked against their source quote; models are tracked in MLflow and registered in
+Unity Catalog as `@champion`; retrieval uses Vector Search.
+
+{md_table(dbx_rows, ["Measure", "Databricks run", "Local prototype"])}
+
+Small differences in counts come from contracts the World Bank published between the two runs. The Databricks run
+needed a few platform adjustments, all in the notebooks: {"; ".join(dbx["free_edition_adjustments"])}.
+
 ## 6. The chatbot
 
 {md_table(chat_rows, ["Question", "Expected tool", "Chosen", "Route ok", "Exact", "Statements", "Dropped by verifier"])}
@@ -833,45 +925,80 @@ Route accuracy **{pct(chat.get('route_accuracy', 0))}**, exact answers **{chat.g
 
 {examples}
 
-## 7. Example output: a brief for a new package
+The chatbot is public at {links['chatbot']} (tabs: Chat, Ask the documents, Data model, Explore).
+
+## 7. Document Q&A by country
+
+Users pick a **country** and a **category** (ten equipment types, or the procurement process) and ask their own
+question; the answer is built only from that country's World Bank project documents and lists its sources (document
+type, title, project, page, link).
+
+| Step | What happens |
+|---|---|
+| Fetch | projects that bought lab equipment in the country, lab-related health projects from the Projects API, and pinned regional programmes; for each, the newest appraisal document, project papers, procurement plans, supervision report, completion report and IEG reviews, stored as `<country>/<document type>/<id>.pdf` |
+| Process | text per page, section-aware passages that keep section and pages, tagged with the categories they mention |
+| Index | embeddings in a vector database (ChromaDB locally, Databricks Vector Search on the platform), filtered by country and category |
+| Answer | hybrid retrieval (meaning + exact words), then the sentences that answer the question, each with its source; or a short written summary that is shown only if every citation and number is in the cited sources |
+
+{md_table(qa_rows, ["Country", "Projects", "Documents", "Passages"])}
+
+Evaluation: {qe['questions']} questions with a known correct source (a project, document type or phrase) and one the
+documents cannot answer. **{qe['passed']}/{qe['questions']} passed**: {qe['answered']} answered with the expected source in the top
+five, {qe['declined']} correctly declined, every source from the selected country, about {qe['seconds']:.1f} s per answer locally
+and about {dq['evaluation']['seconds_per_answer']} s on Databricks. Adding a country does not rebuild the others: Nigeria was
+added with one command in under four minutes, and Kenya and India were not re-embedded.
+
+Answers are sentences quoted from the documents, so they are only as specific as the documents: TB projects in India
+describe "newer and quicker diagnostic equipment (including … rapid technology)" rather than naming machines.
+
+## 8. Example output: a brief for a new package
 
 Input: *{pkg['description']}* ({pkg['procurement_category']}, {pkg['method_code']}, {pkg['country_iso3']},
 est. US${pkg.get('contract_usd', 0):,.0f}).
 
 {brief_body}
 
-## 8. Limitations
+## 9. Limitations
 
 | Limitation | Effect | What would fix it |
 |---|---|---|
 | Public data only | no bid prices per unit, technical evaluation reports, service contracts or equipment downtime | Phase 2: STEP procurement records, asset registers, maintenance logs |
 | Keyword taxonomy | a residue of contracts stays "Other goods"; a few generic items are misclassified | labelled set of about 500 descriptions; LLM classifier for the residue |
 | Few completion reports for COVID-era projects | lessons skew to older projects | add IEG thematic evaluations and the next ICR cohort as they publish |
-| Rule-based lesson extraction locally | lessons limited to numbered paragraphs in Lessons / Key-factor sections | LLM extraction with quote check (notebook 24) |
+| Rule-based lesson extraction locally | lessons limited to numbered paragraphs in Lessons / Key-factor sections | the Databricks path uses LLM extraction with a quote check ({dp['lessons']} lessons) |
 | Thin risk-model labels | single-bid, re-tender and amendment models are indicative only | more countries and internal records; recalibration |
 | Verifier misses a fabricated number that appears elsewhere in the evidence | 1 of {g['injected_hallucinations']} injected errors can pass | number-unit binding + entailment judge |
-| Databricks path not executed | continuous-learning loop designed, not measured | run notebooks 21-29 when the workspace allows jobs |
+| Learning loop run once | retraining and drift triggers work, but have not yet run over weeks of new data | un-pause the `proc_lab_pipeline` job schedule |
+| Document Q&A quotes rather than summarises | answers read as quotations; a vague question gets a "not found" | written-summary mode (checked); specific questions |
+| Documents chosen by project | country studies and documents not linked to a project are not fetched | add a keyword search of the Documents API per country |
+| Free hosting limits | the public chatbot sleeps after a few days idle; the Databricks app needs a workspace sign-in; the first Vector Search build took about {dq['first_index_build_hours']} hours on the free tier | paid tier or provisioned throughput |
 
-## 9. Recommendations and next steps
+## 10. Recommendations and next steps
 
 1. **Pilot the chatbot with procurement specialists and biomedical engineers** in two or three health programmes
    that are about to buy lab equipment. Measure plan-preparation time and evidence usefulness.
 2. **Add the equipment's life cycle:** service and maintenance contracts, reagent purchases after equipment purchases,
    and asset registers. These answer the domain's real question, whether the equipment was still working a year later.
 3. **Build a labelled taxonomy set and an evaluation set** of about 200 question-answer pairs with the domain experts.
-4. **Run the Databricks pipeline** to switch on LLM lesson extraction, vector search and the monitoring job.
+4. **Switch on the learning loop** on Databricks (un-pause the weekly job) and add the next countries to the document
+   Q&A (`add_country` in notebook 30, then the `proc_rag_pipeline` job).
 5. **Extend the scope configuration** to the next domain (e.g. medicines, or civil works). The pipeline already runs on
    an India roads scope and a three-country scope with no code changes.
 
-## 10. Reproducing these numbers
+## 11. Reproducing these numbers
 
 ```bash
 python -m procurement_demo.run_all
+python -m procurement_rag.pipeline --countries KEN IND NGA
+python -m procurement_rag.evaluate
 python src/build_proposal.py
 python src/build_deliverables.py
 ```
 
-All figures come from the run outputs (`procurement_demo/output/{SCOPE}/eval_results.json` and the Gold tables); none are typed by hand.
+On Databricks: import the `notebooks/` folder and run `00_proc_config`, 21-29 and 30-34 in order (README, "Run it on
+Databricks"). All figures come from run outputs (`procurement_demo/output/{SCOPE}/eval_results.json`, the Gold tables,
+`procurement_rag/eval_results.json` and `procurement_rag/databricks_run.json`, recorded from the Databricks run);
+none are typed by hand.
 """
     render(text, "04_REPORT", "Assessment Report: Lab and Diagnostic Procurement Intelligence")
 
@@ -894,6 +1021,28 @@ def money(x):
     return f"US${x:,.0f}"
 
 
+def platform_facts():
+    """(Databricks run results recorded in procurement_rag/databricks_run.json, local document Q&A facts measured now:
+    passages and projects per country from the pipeline's files, and its evaluation)."""
+    rag = ROOT / "procurement_rag"
+    dbx = json.loads((rag / "databricks_run.json").read_text(encoding="utf-8"))
+    reg = json.loads((rag / "countries.json").read_text(encoding="utf-8"))["countries"]
+    countries = {}
+    for iso3 in reg:
+        f = rag / "data" / iso3 / "chunks.parquet"
+        if f.exists():
+            ch = pd.read_parquet(f, columns=["doc_id", "project_id"])
+            countries[iso3] = {"projects": ch.project_id.nunique(), "documents": ch.doc_id.nunique(), "passages": len(ch)}
+    ev = json.loads((rag / "eval_results.json").read_text(encoding="utf-8"))["summary"]
+    qa = {"countries": countries, "names": {k: v["name"] for k, v in reg.items()},
+          "documents": sum(v["documents"] for v in countries.values()),
+          "passages": sum(v["passages"] for v in countries.values()),
+          "eval": {"questions": ev["questions"], "passed": round(ev["hit_rate_top5"] * ev["questions"]),
+                   "answered": ev["answered"], "declined": ev.get("correctly_declined", 0),
+                   "seconds": ev["median_latency_ms"] / 1000}}
+    return dbx, qa
+
+
 # --------------------------------------------------------------------------- 02 approach, 03 prototype, index
 
 def approach():
@@ -909,22 +1058,30 @@ def prototype(ev):
     pdir.mkdir(exist_ok=True)
     for f in ("prototype_report.html", "demo_brief.md", "eval_results.json"):
         shutil.copyfile(OUT / f, pdir / f)
-    (ROOT / "requirements_procurement.txt").write_text(
-        "pandas\npyarrow\nscikit-learn\npypdf\nrequests\njoblib\nmarkdown\nstreamlit\nchromadb>=1.5,<2\nfastembed>=0.9,<1\n# optional: anthropic (LLM wording)\n",
-        encoding="utf-8")
+    reqs = "pandas\npyarrow\nscikit-learn\npypdf\nrequests\njoblib\nmarkdown\nstreamlit\nchromadb>=1.5,<2\nfastembed>=0.9,<1\n"
+    (ROOT / "requirements_procurement.txt").write_text(reqs, encoding="utf-8")
+    (ROOT / "requirements.txt").write_text(reqs, encoding="utf-8")          # read by Streamlit Community Cloud
+    rag = ROOT / "procurement_rag"
     files = ([p for p in (ROOT / "procurement_demo").glob("*.py")] + sorted((ROOT / "notebooks").glob("2[0-9]_proc*.py"))
-             + sorted((ROOT / "notebooks").glob("2[0-9]_ingest*.py")) + [ROOT / "src" / "test_proc_lib.py",
-             ROOT / "src" / "build_proposal.py", ROOT / "src" / "build_deliverables.py", ROOT / "src" / "proposal_template.md",
-             ROOT / "requirements_procurement.txt"])
+             + sorted((ROOT / "notebooks").glob("2[0-9]_ingest*.py")) + sorted((ROOT / "notebooks").glob("3[0-9]_rag*.py"))
+             + [ROOT / "notebooks" / "00_proc_config.py"] + sorted(rag.glob("*.py")) + sorted(rag.glob("*.json"))
+             + sorted(rag.glob("*.md")) + sorted((rag / "databricks_app").glob("*.*"))
+             + [ROOT / "src" / "test_proc_lib.py", ROOT / "src" / "build_proposal.py", ROOT / "src" / "build_deliverables.py",
+                ROOT / "src" / "proposal_template.md", ROOT / "requirements_procurement.txt"])
     with zipfile.ZipFile(pdir / "prototype_source.zip", "w", zipfile.ZIP_DEFLATED) as z:
         for f in files:
             z.write(f, f.relative_to(ROOT).as_posix())
     b, chat = ev["build"], ev.get("chatbot", {})
+    dbx, qa = platform_facts()
+    links = dbx["public_links"]
     text = f"""# Deliverable 3: Prototype
 
 A working, end-to-end prototype of the Procurement Intelligence Platform for **medical laboratory and diagnostic
 equipment in World Bank-financed health projects**, on real public World Bank data from {b['countries']} countries.
-It includes a **chatbot** that answers questions with cited evidence.
+It includes a **chatbot** that answers questions with cited evidence, and a **document Q&A** that answers from a
+selected country's World Bank project documents. It runs locally and on Databricks.
+
+**Try it:** {links['chatbot']} (public; tab "Ask the documents" for the country menus) · code: {links['code']}
 
 ## What is in this folder
 
@@ -933,7 +1090,7 @@ It includes a **chatbot** that answers questions with cited evidence.
 | `prototype_report.html` | results page: data coverage, knowledge graph, models, retrieval, guardrails, an example brief |
 | `demo_brief.md` | the copilot's brief for a new PCR / GeneXpert package (every line cited) |
 | `eval_results.json` | every measured number used in the report and approach, including the chatbot evaluation |
-| `prototype_source.zip` | source code: pipeline and chatbot (`procurement_demo/`), Databricks notebooks 20-29, tests, build scripts |
+| `prototype_source.zip` | source code: pipeline and chatbot (`procurement_demo/`), document Q&A (`procurement_rag/`, incl. the Databricks App), Databricks notebooks 00, 20-34, tests, build scripts |
 
 ## The chatbot
 
@@ -953,8 +1110,19 @@ Ask in plain English, for example:
 Each answer shows its evidence (contract rows, benchmarks, report pages with links), the result table, and any
 sentence the verifier removed. On {chat.get('questions', 0)} labelled questions it chose the right tool for
 {pct(chat.get('route_accuracy', 0))} and matched an independent query in {chat.get('exact_accuracy', 0) * chat.get('exact_checks', 0):.0f} of
-{chat.get('exact_checks', 0)} exactness checks. Optional: `pip install anthropic`, set credentials and
-`PROC_CHAT_LLM=1` to have an LLM rephrase verified answers. Its text is discarded if it adds any number.
+{chat.get('exact_checks', 0)} exactness checks. An LLM can optionally rephrase verified answers (`PROC_CHAT_LLM=1`, see
+`chatbot.py`); its text is discarded if it adds any number.
+
+**Ask the documents** (second tab): choose a **country** ({", ".join(qa['names'][k] for k in qa['countries'])}) and a
+**category** (ten equipment types or the procurement process), then ask your own question. The answer is built from
+that country's World Bank project documents ({qa['documents']} documents, {qa['passages']:,} passages), each sentence with
+its source and page. Evaluation: {qa['eval']['passed']}/{qa['eval']['questions']}. Build or extend it:
+
+```bash
+python -m procurement_rag.pipeline --countries KEN IND      # download, chunk, embed, index
+python -m procurement_rag.pipeline --add-country NGA       # register a country, then --countries NGA
+python -m procurement_rag.evaluate
+```
 
 ## What the pipeline does
 
@@ -1003,8 +1171,9 @@ and inter-urban roads, or `three_country` for Kenya, Nigeria and Bangladesh acro
 
 ## Two implementations, one core
 
-| Component | Local prototype (run and verified) | Databricks production path (written, not yet run) |
+| Component | Local prototype (run and verified) | Databricks (run end to end on {dbx['run_date']}) |
 |---|---|---|
+| Settings | `procurement_demo/common.py` | `notebooks/00_proc_config` (catalog `{dbx['catalog']}`) |
 | Ingestion | `procurement_demo/ingest.py` | `notebooks/21_ingest_procurement`, `22_ingest_project_docs` |
 | Gold tables, entity resolution, graph | `build.py` | `23_proc_silver_gold` |
 | Documents, lessons, ratings | `build.py` (rules + quote check) | `24_proc_docs_lessons` (LLM + quote check) |
@@ -1012,6 +1181,10 @@ and inter-urban roads, or `three_country` for Kenya, Nigeria and Bangladesh acro
 | Models | `models.py` | `26_proc_risk_models` (MLflow, Unity Catalog registry) |
 | Copilot and chatbot | `copilot.py`, `chatbot.py`, `app.py` | `27_proc_tools`, `28_proc_copilot` |
 | Monitoring / learning loop | `evaluate.py` | `29_proc_monitor_job` (Lakeflow Job, retrain gate) |
+| Document Q&A by country | `procurement_rag/` (ChromaDB) and the "Ask the documents" tab | `30_rag_registry` → `34_rag_ask` (Vector Search, job `proc_rag_pipeline`), Databricks App in `procurement_rag/databricks_app/` |
+
+The shared logic (parsers, entity resolution, survival estimates, verifier, equipment taxonomy, document categories
+and answer-sentence rules) is one file, `notebooks/20_proc_lib.py`, used by both columns.
 """
     (pdir / "README.md").write_text(text, encoding="utf-8")
     body = markdown.markdown(text, extensions=["tables", "fenced_code"])
@@ -1021,9 +1194,12 @@ and inter-urban roads, or `three_country` for Kenya, Nigeria and Bangladesh acro
 
 
 def index():
+    links = platform_facts()[0]["public_links"]
     text = f"""# Procurement Intelligence for Laboratory and Diagnostic Equipment: Assessment Deliverables
 
 Domain: {CFG['label']}. Prepared {date.today():%d %B %Y}.
+
+Chatbot (public): {links['chatbot']} · Report online: {links['report']} · Code: {links['code']}
 
 | # | Deliverable | Open | What it answers |
 |---|---|---|---|

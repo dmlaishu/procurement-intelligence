@@ -18,7 +18,11 @@ blockquote{border-left:4px solid #0969da;margin:12px 0;padding:4px 14px;backgrou
 <tbody>
 <tr>
 <td>Physical platform</td>
-<td>Databricks Delta tables in Unity Catalog: <code>bronze</code>, <code>silver</code>, <code>gold</code>, <code>ops</code> schemas</td>
+<td>Databricks Delta tables in Unity Catalog, catalog <code>proc_demo</code>: <code>bronze</code>, <code>silver</code>, <code>gold</code>, <code>ai</code>, <code>ops</code> schemas</td>
+</tr>
+<tr>
+<td>Try it</td>
+<td>chatbot: https://dmlaishu.github.io/procurement-intelligence/chat/</td>
 </tr>
 <tr>
 <td>Domain</td>
@@ -26,7 +30,7 @@ blockquote{border-left:4px solid #0969da;margin:12px 0;padding:4px 14px;backgrou
 </tr>
 <tr>
 <td>Verified on</td>
-<td>local prototype run on public World Bank data, 22 October 2026. Row counts below are from that run</td>
+<td>local prototype run on public World Bank data, 26 October 2026 (row counts below are from that run); the same tables were built on Databricks on 2026-10-27 (§10)</td>
 </tr>
 <tr>
 <td>Companion files</td>
@@ -286,23 +290,28 @@ taxonomy rather than a table: every contract and tender carries its <code>item_t
 <tbody>
 <tr>
 <td><strong>Bronze</strong></td>
-<td><code>contract_awards</code>, <code>procurement_notices</code>, <code>projects</code>, <code>governance_indicators</code>, <code>project_docs_meta</code> + PDF volume</td>
+<td><code>contract_awards_raw</code>, <code>proc_notices_raw</code>, <code>projects_raw</code>, <code>governance_raw</code>, <code>country_ref</code>, <code>domain_projects</code>, <code>project_docs_meta</code> + volume <code>raw_docs</code>; <code>rag_documents</code> + volume <code>rag_docs</code> (§7.1)</td>
 <td>API records and PDFs exactly as received, with ingest timestamp; Change Data Feed on</td>
 </tr>
 <tr>
 <td><strong>Silver</strong></td>
-<td><code>contracts</code>, <code>notices</code>, <code>projects</code>, <code>governance</code>, <code>tenders</code>, <code>proj_doc_pages</code></td>
+<td><code>contracts</code>, <code>notices</code>, <code>projects</code>, <code>governance</code>, <code>tenders</code>, <code>proj_doc_pages</code>, <code>rag_pages</code></td>
 <td>typed, de-duplicated, keys normalised (ISO codes, bid references, supplier names); one page of text per row</td>
 </tr>
 <tr>
 <td><strong>Gold</strong></td>
-<td>facts, dimensions, documents and knowledge, ML tables, <code>kg_edges</code> (below)</td>
-<td>resolved entities and links; what the models, the vector index and the copilot read</td>
+<td>facts, dimensions, documents and knowledge, ML tables, <code>kg_edges</code> (below), view <code>v_lab_contracts</code>, <code>rag_chunks</code> (§7.1)</td>
+<td>resolved entities and links; what the models, the vector indexes, the copilot and the chatbot read</td>
+</tr>
+<tr>
+<td><strong>AI</strong></td>
+<td>UC function tools (<code>proc_*</code>), vector indexes <code>proj_doc_chunks_index</code> and <code>rag_chunks_index</code>, registered models <code>proc_*</code></td>
+<td>what the copilot and chatbot call; governed by Unity Catalog grants</td>
 </tr>
 <tr>
 <td><strong>Ops</strong></td>
-<td><code>proc_briefs</code>, <code>proc_feedback</code>, <code>v_proc_kpis</code></td>
-<td>every brief generated, user feedback, realised award dates: the inputs of the learning loop</td>
+<td><code>app_logs</code>, <code>proc_briefs</code>, <code>proc_feedback</code>, <code>v_proc_kpis</code>, <code>rag_countries</code>, <code>rag_eval_results</code></td>
+<td>run log, every brief generated, user feedback, realised award dates, the country registry of the document Q&amp;A and its evaluation history</td>
 </tr>
 </tbody>
 </table>
@@ -686,6 +695,65 @@ WHERE a.rel = 'AWARDED_TO' AND a.dst_id = :supplier_key;
 </code></pre>
 <p>Prototype: 131 reports → 6,187 chunks → 150 lessons and
 301 dated ratings.</p>
+<h3>7.1 Document Q&amp;A by country</h3>
+<p>The document Q&amp;A keeps its own, country-partitioned copy of the document hierarchy, so a country can be added or
+refreshed without touching the others. It joins the rest of the model through <strong>Project ID</strong> and <strong>country ISO-3</strong>.</p>
+<pre><code>RAG_COUNTRY (ops.rag_countries)            iso3, iso2, name, pinned projects
+  └─ RAG_DOCUMENT (bronze.rag_documents)   country + doc_id; doc type, title, date, project_id → dim_project, file in rag_docs/&lt;country&gt;/&lt;type&gt;/
+      └─ PAGE (silver.rag_pages)           doc_id + page_num
+          └─ PASSAGE (gold.rag_chunks)     chunk_id = &lt;country&gt;_&lt;doc_id&gt;_&lt;order&gt;; section, pages, text, 1/0 category columns
+              └─ (ai.rag_chunks_index)     Vector Search on search_text, filtered by country and category
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Grain (one row per)</th>
+<th>Key</th>
+<th>Joins</th>
+<th>Rows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ops.rag_countries</code></td>
+<td>country</td>
+<td><code>iso3</code></td>
+<td>-</td>
+<td>3 (local), 2 (Databricks)</td>
+</tr>
+<tr>
+<td><code>bronze.rag_documents</code></td>
+<td>country × document</td>
+<td><code>(country, doc_id)</code></td>
+<td><code>project_id</code> → <code>dim_project</code></td>
+<td>111 (local)</td>
+</tr>
+<tr>
+<td><code>silver.rag_pages</code></td>
+<td>document page</td>
+<td><code>(doc_id, page_num)</code></td>
+<td><code>doc_id</code> → <code>rag_documents</code></td>
+<td>-</td>
+</tr>
+<tr>
+<td><code>gold.rag_chunks</code></td>
+<td>passage</td>
+<td><code>chunk_id</code></td>
+<td><code>doc_id</code>, <code>country</code>, <code>project_id</code></td>
+<td>4,761 (local), 3,795 (Databricks)</td>
+</tr>
+<tr>
+<td><code>ai.rag_chunks_index</code></td>
+<td>passage vector</td>
+<td><code>chunk_id</code></td>
+<td>synced from <code>gold.rag_chunks</code></td>
+<td>11 category filters + country</td>
+</tr>
+</tbody>
+</table>
+<p>Category columns (<code>cat_*</code>, 1/0) mark which equipment types a passage mentions (the same taxonomy as <code>item_type</code>)
+and whether it is about the procurement process; the chatbot's category menu filters on them.</p>
 <h2>8. Data dictionary</h2>
 <p>Null shares and examples are measured on the prototype tables. High null shares are expected where an event has not
 happened yet (e.g. <code>award_date</code> for open tenders) or a field is not published for older projects.</p>
@@ -2737,4 +2805,56 @@ TBLPROPERTIES (delta.enableChangeDataFeed = true);
 </code></pre>
 <p><strong>Scaling.</strong> The full public corpus is about 300k contract rows, about 425k notices, about 22k projects and tens of
 thousands of documents. That is small for Delta. Liquid clustering on country and year keeps scans narrow, Change Data
-Feed makes Silver → Gold and the vector index incremental, and supplier resolution uses blocking so it stays near-linear.</p></body></html>
+Feed makes Silver → Gold and the vector index incremental, and supplier resolution uses blocking so it stays near-linear.</p>
+<h2>10. Built on Databricks</h2>
+<p>The model was created on Databricks on 2026-10-27 by notebooks 00 and 20-34, in catalog <code>proc_demo</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Object</th>
+<th>Rows on Databricks</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bronze.contract_awards_raw</code> (Health Goods awards of the domain projects)</td>
+<td>14,622</td>
+</tr>
+<tr>
+<td><code>bronze.domain_projects</code></td>
+<td>179</td>
+</tr>
+<tr>
+<td><code>bronze.proc_notices_raw</code></td>
+<td>15,164</td>
+</tr>
+<tr>
+<td><code>gold.v_lab_contracts</code> (lab and diagnostic contract rows)</td>
+<td>2,221 (US$1,375,796,408)</td>
+</tr>
+<tr>
+<td><code>gold.fact_tender</code> / with an invitation-to-award time</td>
+<td>10,407 / 1,068</td>
+</tr>
+<tr>
+<td><code>gold.dim_supplier</code></td>
+<td>7,543</td>
+</tr>
+<tr>
+<td><code>bronze.project_docs_meta</code> / <code>gold.proj_doc_chunks</code></td>
+<td>128 / 6,126</td>
+</tr>
+<tr>
+<td><code>gold.lessons</code> (quote-verified)</td>
+<td>733 (712)</td>
+</tr>
+<tr>
+<td><code>gold.kg_edges</code></td>
+<td>116,199</td>
+</tr>
+<tr>
+<td><code>gold.rag_chunks</code> (KEN 1,239, IND 2,556)</td>
+<td>3,795</td>
+</tr>
+</tbody>
+</table></body></html>

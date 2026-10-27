@@ -5,10 +5,12 @@ projects: what was built, what the data shows, and what comes next**
 
 | Item | Detail |
 |---|---|
-| Run date | 22 October 2026 |
+| Run date | 26 October 2026 |
 | Domain | Medical laboratory and diagnostic equipment in World Bank-financed health projects |
 | Data | public World Bank APIs only: Major Contract Awards, Procurement Notices, Projects, Documents & Reports, WDI (CPIA, WGI) |
 | Coverage | 2,220 lab and diagnostic contracts (US$1,375.4M), 91 countries, 179 projects, FY2015 onwards |
+| Platform | local prototype, and the same pipeline run end to end on Databricks (2026-10-27) |
+| Try it | chatbot: https://dmlaishu.github.io/procurement-intelligence/chat/ · code: https://github.com/dmlaishu/procurement-intelligence |
 | Companion deliverables | 1 Data Model · 2 Approach (technical proposal) · 3 Prototype (pipeline + chatbot) |
 
 ## 1. Summary
@@ -28,6 +30,8 @@ procurement team can use, through a cited chatbot and package briefs.
 | Does the chatbot answer correctly? | It routed **100%** of 16 labelled questions to the right tool; ranked and aggregate answers matched an independent query in **6 of 6** checks; 100% of statements cited |
 | Can hallucination be controlled? | Yes, by design. 100% of 360 brief statements cite evidence; the verifier blocked **124 of 125** deliberately injected false statements |
 | Are the risk models ready to drive decisions? | Not yet. Single-bid AUC 0.67; re-tender skipped: not enough positives; award amendment AUC 0.55. Use as indicators only |
+| Can users ask their own questions of a country's documents? | Yes. A document Q&A answers from Kenya, India, Nigeria project documents (111 documents, 4,761 passages) with country and category menus; **10/10** evaluation questions passed and every source came from the selected country. A new country is one command (§7) |
+| Does it run on the target platform? | Yes. All notebooks ran end to end on Databricks (2026-10-27) with results matching the local prototype (§5.5) |
 
 ## 2. What was built
 
@@ -36,8 +40,9 @@ procurement team can use, through a cited chatbot and package briefs.
 | 1. Ingestion and knowledge representation | contract-first domain selection, multilingual equipment taxonomy, entity resolution, Gold star schema, knowledge-graph edge table, section-aware PDF chunking | built and run |
 | 2. Predictive and prescriptive engines | Kaplan-Meier benchmarks by equipment type, gradient-boosted P50/P80 model, single-bid / re-tender / amendment classifiers, hybrid retrieval, package briefs | built and run |
 | 2. Retrieval for users | **chatbot** (`python -m streamlit run procurement_demo/app.py`): SQL for prices, suppliers and spend; benchmarks for timelines; retrieval for lessons; graph diagrams for relationships | built, run and evaluated |
+| 2. Document Q&A by country | per-country document pipeline (fetch → chunk → embed → vector index), cited answers, country and category menus | built, run and evaluated locally (ChromaDB) and on Databricks (Vector Search) |
 | 3. Guardrails and attribution | evidence registry, verifier (citations, numbers, quotes, pages), rating-conflict resolver incl. IEG reviews | built, run and red-teamed |
-| 4. Continuous learning and rollout | incremental ingestion, monitoring and retrain gate, feedback tables, KPI view | designed and written as Databricks notebooks 21-29; **not yet executed** (trial workspace blocked job runs) |
+| 4. Continuous learning and rollout | incremental ingestion, monitoring and retrain gate, feedback tables, KPI view, pipeline jobs | built and run on Databricks (notebooks 21-29); jobs created with the schedule paused, so the loop has run once, not yet over weeks |
 
 ## 3. Data: how the domain was assembled
 
@@ -235,6 +240,29 @@ supervision; the final rating, from the ICRR, is *Satisfactory*.
 The resolver keeps the most authoritative source as the headline (IEG PPAR > IEG ICR Review > ICR > latest ISR),
 stores the full trajectory, and the chatbot and briefs cite both sides.
 
+### 5.5 The same pipeline on Databricks
+
+Notebooks 00 and 20-34 were run end to end on Databricks Free Edition on 2026-10-27, on fresh downloads from
+the World Bank APIs, into the Unity Catalog catalog `proc_demo`. Lessons there are extracted by an LLM
+(`databricks-meta-llama-3-3-70b-instruct`) and checked against their source quote; models are tracked in MLflow and registered in
+Unity Catalog as `@champion`; retrieval uses Vector Search.
+
+| Measure | Databricks run | Local prototype |
+|---|---|---|
+| Lab and diagnostic contract rows / value | 2,221 / US$1,375,796,408 | 2,220 / US$1,375,387,988 |
+| Domain projects | 179 | 179 |
+| Tenders / with an invitation-to-award time | 10,407 / 1,068 | 10,403 / 1,068 |
+| Resolved suppliers | 7,543 | 7,540 |
+| Lessons extracted / quote-verified | 733 (LLM) / 97% | 150 (rules) / 98% |
+| Projects with conflicting ratings | 8 of 33 | 8 of 34 |
+| Days-to-award MAE, P50 model vs single median | 49 vs 73 days | 47 vs 73 days |
+| Single-bid AUC / amendment AUC | 0.64 / 0.56 | 0.67 / 0.55 |
+| Copilot brief: statements kept / removed by the verifier | 5 / 0 | see §8 |
+| Document Q&A evaluation | 10/10 | 10/10 |
+
+Small differences in counts come from contracts the World Bank published between the two runs. The Databricks run
+needed a few platform adjustments, all in the notebooks: scikit-learn models saved with cloudpickle (serverless has no skops); SQL function parameters qualified and kept out of subqueries; UC table functions called by their three-part names; model endpoints called through ai_query from notebooks; embedding requests in batches of 8 (larger requests are rejected by the rate limit); answer-sentence similarity thresholds calibrated for databricks-gte-large-en (0.65 / 0.75).
+
 ## 6. The chatbot
 
 | Question | Expected tool | Chosen | Route ok | Exact | Statements | Dropped by verifier |
@@ -290,7 +318,37 @@ Route accuracy **100%**, exact answers **6/6**,
 > - “Notwithstanding the cancellations, the project was still able to achieve the objectives.” (ICR, P131825, p. 36) - note: this project's supervision ratings fell to Unsatisfactory before the final ICRR rating of Moderately Satisfactory, so the lesson reflects a recovery. `L4 R3`
 
 
-## 7. Example output: a brief for a new package
+The chatbot is public at https://dmlaishu.github.io/procurement-intelligence/chat/ (tabs: Chat, Ask the documents, Data model, Explore).
+
+## 7. Document Q&A by country
+
+Users pick a **country** and a **category** (ten equipment types, or the procurement process) and ask their own
+question; the answer is built only from that country's World Bank project documents and lists its sources (document
+type, title, project, page, link).
+
+| Step | What happens |
+|---|---|
+| Fetch | projects that bought lab equipment in the country, lab-related health projects from the Projects API, and pinned regional programmes; for each, the newest appraisal document, project papers, procurement plans, supervision report, completion report and IEG reviews, stored as `<country>/<document type>/<id>.pdf` |
+| Process | text per page, section-aware passages that keep section and pages, tagged with the categories they mention |
+| Index | embeddings in a vector database (ChromaDB locally, Databricks Vector Search on the platform), filtered by country and category |
+| Answer | hybrid retrieval (meaning + exact words), then the sentences that answer the question, each with its source; or a short written summary that is shown only if every citation and number is in the cited sources |
+
+| Country | Projects | Documents | Passages |
+|---|---|---|---|
+| Kenya | 8 | 29 | 1,239 |
+| India | 12 | 55 | 2,556 |
+| Nigeria | 6 | 27 | 966 |
+
+Evaluation: 10 questions with a known correct source (a project, document type or phrase) and one the
+documents cannot answer. **10/10 passed**: 9 answered with the expected source in the top
+five, 1 correctly declined, every source from the selected country, about 1.4 s per answer locally
+and about 3 s on Databricks. Adding a country does not rebuild the others: Nigeria was
+added with one command in under four minutes, and Kenya and India were not re-embedded.
+
+Answers are sentences quoted from the documents, so they are only as specific as the documents: TB projects in India
+describe "newer and quicker diagnostic equipment (including … rapid technology)" rather than naming machines.
+
+## 8. Example output: a brief for a new package
 
 Input: *Supply, installation and commissioning of automated real-time PCR systems and GeneXpert analyzers for regional public health laboratories, Lot 2* (Goods, RFB, KEN,
 est. US$2,500,000).
@@ -321,35 +379,44 @@ est. US$2,500,000).
 - “These delays did not leave time for the related procurement and, finally resulted in a decision to cancel US$34.4 million from the loan.” (ICR, B. Key Factors During Implementation, p. 32) [P3]
 - “Performance on procurement arrangements and compliance was hindered by difficulties and delays encountered by the countries and regional institutions.” (ICR, B. Environmental, Social, And Fiduciary Compliance, p. 36) [P4]
 
-## 8. Limitations
+## 9. Limitations
 
 | Limitation | Effect | What would fix it |
 |---|---|---|
 | Public data only | no bid prices per unit, technical evaluation reports, service contracts or equipment downtime | Phase 2: STEP procurement records, asset registers, maintenance logs |
 | Keyword taxonomy | a residue of contracts stays "Other goods"; a few generic items are misclassified | labelled set of about 500 descriptions; LLM classifier for the residue |
 | Few completion reports for COVID-era projects | lessons skew to older projects | add IEG thematic evaluations and the next ICR cohort as they publish |
-| Rule-based lesson extraction locally | lessons limited to numbered paragraphs in Lessons / Key-factor sections | LLM extraction with quote check (notebook 24) |
+| Rule-based lesson extraction locally | lessons limited to numbered paragraphs in Lessons / Key-factor sections | the Databricks path uses LLM extraction with a quote check (733 lessons) |
 | Thin risk-model labels | single-bid, re-tender and amendment models are indicative only | more countries and internal records; recalibration |
 | Verifier misses a fabricated number that appears elsewhere in the evidence | 1 of 125 injected errors can pass | number-unit binding + entailment judge |
-| Databricks path not executed | continuous-learning loop designed, not measured | run notebooks 21-29 when the workspace allows jobs |
+| Learning loop run once | retraining and drift triggers work, but have not yet run over weeks of new data | un-pause the `proc_lab_pipeline` job schedule |
+| Document Q&A quotes rather than summarises | answers read as quotations; a vague question gets a "not found" | written-summary mode (checked); specific questions |
+| Documents chosen by project | country studies and documents not linked to a project are not fetched | add a keyword search of the Documents API per country |
+| Free hosting limits | the public chatbot sleeps after a few days idle; the Databricks app needs a workspace sign-in; the first Vector Search build took about 1.5 hours on the free tier | paid tier or provisioned throughput |
 
-## 9. Recommendations and next steps
+## 10. Recommendations and next steps
 
 1. **Pilot the chatbot with procurement specialists and biomedical engineers** in two or three health programmes
    that are about to buy lab equipment. Measure plan-preparation time and evidence usefulness.
 2. **Add the equipment's life cycle:** service and maintenance contracts, reagent purchases after equipment purchases,
    and asset registers. These answer the domain's real question, whether the equipment was still working a year later.
 3. **Build a labelled taxonomy set and an evaluation set** of about 200 question-answer pairs with the domain experts.
-4. **Run the Databricks pipeline** to switch on LLM lesson extraction, vector search and the monitoring job.
+4. **Switch on the learning loop** on Databricks (un-pause the weekly job) and add the next countries to the document
+   Q&A (`add_country` in notebook 30, then the `proc_rag_pipeline` job).
 5. **Extend the scope configuration** to the next domain (e.g. medicines, or civil works). The pipeline already runs on
    an India roads scope and a three-country scope with no code changes.
 
-## 10. Reproducing these numbers
+## 11. Reproducing these numbers
 
 ```bash
 python -m procurement_demo.run_all
+python -m procurement_rag.pipeline --countries KEN IND NGA
+python -m procurement_rag.evaluate
 python src/build_proposal.py
 python src/build_deliverables.py
 ```
 
-All figures come from the run outputs (`procurement_demo/output/health_lab/eval_results.json` and the Gold tables); none are typed by hand.
+On Databricks: import the `notebooks/` folder and run `00_proc_config`, 21-29 and 30-34 in order (README, "Run it on
+Databricks"). All figures come from run outputs (`procurement_demo/output/health_lab/eval_results.json`, the Gold tables,
+`procurement_rag/eval_results.json` and `procurement_rag/databricks_run.json`, recorded from the Databricks run);
+none are typed by hand.

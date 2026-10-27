@@ -29,7 +29,11 @@ health projects, built on public World Bank data</strong></p>
 </tr>
 <tr>
 <td>Evidence</td>
-<td>A working prototype, including a chatbot, on real public data: 2,220 laboratory and diagnostic equipment contracts in 91 countries. The results quoted in this document are measured, not projected (§7)</td>
+<td>A working prototype, including a chatbot and a document Q&amp;A by country, on real public data: 2,220 laboratory and diagnostic equipment contracts in 91 countries; run locally and end to end on Databricks. The results quoted in this document are measured, not projected (§7)</td>
+</tr>
+<tr>
+<td>Try it</td>
+<td>https://dmlaishu.github.io/procurement-intelligence/chat/ (public) · code: https://github.com/dmlaishu/procurement-intelligence</td>
 </tr>
 </tbody>
 </table>
@@ -85,6 +89,8 @@ tender take, what could go wrong, and what did past projects learn? Show me the 
 <li><strong>Chatbot:</strong> on 16 labelled questions it chose the right tool for <strong>100%</strong>, ranked and aggregate answers matched an independent query in <strong>6 of 6</strong> checks, and 100% of its statements are cited.</li>
 <li><strong>Retrieval:</strong> risk-topic precision@5 <strong>0.75</strong> (random 0.27). A project's own procurement history retrieves its own evaluation reports in the top 10 for <strong>88%</strong> of projects.</li>
 <li><strong>Faithfulness:</strong> 360 statements across 25 generated briefs, <strong>100% with valid citations</strong>. The verifier caught <strong>124 of 125</strong> injected hallucinations (fake numbers, quotes, pages, citations); 98% of extracted lessons have quotes verified against source.</li>
+<li><strong>Document Q&amp;A by country:</strong> users pick a country and a category and ask their own question; answers come from that country's project documents with sources (Kenya, India, Nigeria: 111 documents, 4,761 passages). <strong>10/10</strong> evaluation questions passed; a new country is one command and does not rebuild the others (§3.9).</li>
+<li><strong>On Databricks:</strong> every notebook ran end to end on 2026-10-27 with results matching the prototype (2,221 lab contract rows, 733 LLM-extracted lessons 97% quote-verified, models registered as <code>@champion</code>, document Q&amp;A 10/10 on Vector Search). Try it: https://dmlaishu.github.io/procurement-intelligence/chat/</li>
 </ul>
 <p><strong>Rubric map</strong></p>
 <table>
@@ -881,6 +887,85 @@ evidence. Measured on a labelled question set: <strong>100%</strong> of 16 quest
 - “At the Government’s request, the WB activated the CERC and reallocated USS$14 million to expedite implementation of the Master Plan.” (ICR, P157291, p. 27) <code>L3</code>
 - “Notwithstanding the cancellations, the project was still able to achieve the objectives.” (ICR, P131825, p. 36) - note: this project's supervision ratings fell to Unsatisfactory before the final ICRR rating of Moderately Satisfactory, so the lesson reflects a recovery. <code>L4 R3</code></p>
 </blockquote>
+<h3>3.9 Document Q&amp;A by country (reusable RAG pipeline)</h3>
+<p>The chatbot's second mode lets a user choose a <strong>country</strong> and a <strong>category</strong> and ask any question; the answer comes
+only from that country's World Bank project documents and shows its sources. It is a pipeline, not a one-off index, so
+a new country is configuration, not code:</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Local</th>
+<th>Databricks</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Registry</td>
+<td><code>procurement_rag/countries.json</code></td>
+<td><code>ops.rag_countries</code> (notebook 30)</td>
+<td>one row per country (ISO codes, name, pinned projects); shared defaults for document types and limits</td>
+</tr>
+<tr>
+<td>Fetch</td>
+<td><code>fetch.py</code></td>
+<td>notebook 31 → volume <code>rag_docs/&lt;country&gt;/&lt;type&gt;/&lt;id&gt;.pdf</code>, <code>bronze.rag_documents</code></td>
+<td>projects that bought lab equipment there, lab-related health projects (Projects API), pinned regional programmes; newest PAD, project papers, procurement plans, ISR, ICR, IEG review, PPAR per project</td>
+</tr>
+<tr>
+<td>Process</td>
+<td><code>process.py</code></td>
+<td>notebook 32 → <code>silver.rag_pages</code>, <code>gold.rag_chunks</code></td>
+<td>text per page once per PDF; section-aware passages (§2.5); category tags from the equipment taxonomy (§2.7)</td>
+</tr>
+<tr>
+<td>Index</td>
+<td><code>index.py</code> → ChromaDB</td>
+<td>notebook 33 → Vector Search Delta Sync index</td>
+<td>embeddings, filterable by country and category; incremental, other countries untouched</td>
+</tr>
+<tr>
+<td>Answer</td>
+<td><code>search.py</code>, chatbot tab</td>
+<td>notebook 34, Databricks App</td>
+<td>hybrid retrieval (meaning + exact words), at most two passages per document; answer = the sentences that answer the question, each with its source, or a written summary shown only if every citation and number is in the cited sources</td>
+</tr>
+</tbody>
+</table>
+<p>Answer sentences are chosen by meaning, weighted towards the question's distinctive words; for questions about
+equipment, sentences that name equipment come first. If nothing in the selected country's documents is close enough,
+the chatbot says so instead of guessing. Measured: 10/10 evaluation questions passed locally (9 answered with the expected source in the top five, 1 correctly declined, every source from the selected country, about 1.4 s per answer) and 10/10 on Databricks Vector Search. Nigeria was added with one command in under four minutes without re-embedding Kenya or India.</p>
+<table>
+<thead>
+<tr>
+<th>Country</th>
+<th>Projects</th>
+<th>Documents</th>
+<th>Passages</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Kenya</td>
+<td>8</td>
+<td>29</td>
+<td>1,239</td>
+</tr>
+<tr>
+<td>India</td>
+<td>12</td>
+<td>55</td>
+<td>2,556</td>
+</tr>
+<tr>
+<td>Nigeria</td>
+<td>6</td>
+<td>27</td>
+<td>966</td>
+</tr>
+</tbody>
+</table>
 <hr />
 <h2>4. Module 3: Guardrails, faithfulness and source attribution</h2>
 <h3>4.1 Layered controls</h3>
@@ -1181,7 +1266,7 @@ same KPIs, before and after, which gives a difference-in-differences estimate of
 <hr />
 <h2>7. Prototype: what was built and measured</h2>
 <p>All figures below come from <code>procurement_demo/output/eval_results.json</code>, produced by
-<code>python -m procurement_demo.run_all</code> on public World Bank data downloaded on 22 October 2026.</p>
+<code>python -m procurement_demo.run_all</code> on public World Bank data downloaded on 26 October 2026.</p>
 <table>
 <thead>
 <tr>
@@ -1229,7 +1314,49 @@ same KPIs, before and after, which gives a difference-in-differences estimate of
 </tbody>
 </table>
 <p>The full results page with the example brief and its evidence is <code>procurement_demo/output/prototype_report.html</code>.</p>
-<p><strong>Not yet demonstrated:</strong> LLM-based lesson extraction and LLM rewriting run only in the Databricks notebooks (24, 28), which are written but could not be executed here because new job runs on the trial workspace were disabled. The local prototype uses rule-based extraction and a deterministic composer, which the same verifier gates. Supplier performance, disbursement-lag warnings and contract amendments need non-public or Phase 2 data.</p>
+<p><strong>Run on Databricks (2026-10-27).</strong> Notebooks 00 and 20-34 ran end to end on Databricks Free Edition (catalog <code>proc_demo</code>), on fresh downloads from the World Bank APIs:</p>
+<table>
+<thead>
+<tr>
+<th>Measure</th>
+<th>Databricks</th>
+<th>Local prototype</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lab and diagnostic contract rows</td>
+<td>2,221</td>
+<td>2,220</td>
+</tr>
+<tr>
+<td>Tenders with an invitation-to-award time</td>
+<td>1,068</td>
+<td>1,068</td>
+</tr>
+<tr>
+<td>Lessons, quote-verified</td>
+<td>733 by LLM, 97%</td>
+<td>150 by rules, 98%</td>
+</tr>
+<tr>
+<td>Projects with conflicting ratings</td>
+<td>8 of 33</td>
+<td>8 of 34</td>
+</tr>
+<tr>
+<td>Days-to-award MAE, P50 model vs single median</td>
+<td>49 vs 73</td>
+<td>47 vs 73</td>
+</tr>
+<tr>
+<td>Document Q&amp;A evaluation</td>
+<td>10/10 (Vector Search)</td>
+<td>10/10 (ChromaDB)</td>
+</tr>
+</tbody>
+</table>
+<p>Small differences come from contracts published between the two runs. The weekly learning-loop job exists with its schedule paused, so retraining has run once, not yet over weeks of new data. Supplier performance, disbursement-lag warnings and contract amendments need non-public or Phase 2 data.</p>
 <p><strong>Two implementations, one core.</strong> The parsing, entity-resolution, censoring-aware benchmark, conflict-resolution and
 verifier code lives in <code>notebooks/20_proc_lib.py</code>. The Databricks notebooks (<code>%run ./20_proc_lib</code>) and the local
 prototype (<code>procurement_demo/</code>) both use it, and it is unit-tested against real notices, an ISR and an ICR
@@ -1238,11 +1365,16 @@ prototype (<code>procurement_demo/</code>) both use it, and it is unit-tested ag
 <thead>
 <tr>
 <th>Component</th>
-<th>Databricks (production path)</th>
+<th>Databricks (run end to end on 2026-10-27)</th>
 <th>Local prototype (verified)</th>
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>Settings</td>
+<td><code>00_proc_config</code> (own catalog, scope, endpoints)</td>
+<td><code>procurement_demo/common.py</code></td>
+</tr>
 <tr>
 <td>Ingestion</td>
 <td><code>21_ingest_procurement</code>, <code>22_ingest_project_docs</code></td>
@@ -1274,14 +1406,19 @@ prototype (<code>procurement_demo/</code>) both use it, and it is unit-tested ag
 <td><code>copilot.py</code></td>
 </tr>
 <tr>
-<td>Chatbot</td>
-<td>Databricks App over the same UC functions</td>
-<td><code>chatbot.py</code> + <code>app.py</code> (Streamlit)</td>
-</tr>
-<tr>
 <td>Monitoring, job</td>
 <td><code>29_proc_monitor_job</code></td>
 <td><code>evaluate.py</code></td>
+</tr>
+<tr>
+<td>Document Q&amp;A by country</td>
+<td><code>30_rag_registry</code> → <code>34_rag_ask</code>, Vector Search, job <code>proc_rag_pipeline</code>, Databricks App</td>
+<td><code>procurement_rag/</code> (ChromaDB)</td>
+</tr>
+<tr>
+<td>Chatbot</td>
+<td>Databricks App (document Q&amp;A, workspace sign-in)</td>
+<td><code>chatbot.py</code> + <code>app.py</code> (Streamlit), public at the link above</td>
 </tr>
 </tbody>
 </table>

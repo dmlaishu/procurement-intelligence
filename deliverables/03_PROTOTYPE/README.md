@@ -2,7 +2,10 @@
 
 A working, end-to-end prototype of the Procurement Intelligence Platform for **medical laboratory and diagnostic
 equipment in World Bank-financed health projects**, on real public World Bank data from 91 countries.
-It includes a **chatbot** that answers questions with cited evidence.
+It includes a **chatbot** that answers questions with cited evidence, and a **document Q&A** that answers from a
+selected country's World Bank project documents. It runs locally and on Databricks.
+
+**Try it:** https://dmlaishu.github.io/procurement-intelligence/chat/ (public; tab "Ask the documents" for the country menus) · code: https://github.com/dmlaishu/procurement-intelligence
 
 ## What is in this folder
 
@@ -11,7 +14,7 @@ It includes a **chatbot** that answers questions with cited evidence.
 | `prototype_report.html` | results page: data coverage, knowledge graph, models, retrieval, guardrails, an example brief |
 | `demo_brief.md` | the copilot's brief for a new PCR / GeneXpert package (every line cited) |
 | `eval_results.json` | every measured number used in the report and approach, including the chatbot evaluation |
-| `prototype_source.zip` | source code: pipeline and chatbot (`procurement_demo/`), Databricks notebooks 20-29, tests, build scripts |
+| `prototype_source.zip` | source code: pipeline and chatbot (`procurement_demo/`), document Q&A (`procurement_rag/`, incl. the Databricks App), Databricks notebooks 00, 20-34, tests, build scripts |
 
 ## The chatbot
 
@@ -31,8 +34,19 @@ Ask in plain English, for example:
 Each answer shows its evidence (contract rows, benchmarks, report pages with links), the result table, and any
 sentence the verifier removed. On 16 labelled questions it chose the right tool for
 100% and matched an independent query in 6 of
-6 exactness checks. Optional: `pip install anthropic`, set credentials and
-`PROC_CHAT_LLM=1` to have an LLM rephrase verified answers. Its text is discarded if it adds any number.
+6 exactness checks. An LLM can optionally rephrase verified answers (`PROC_CHAT_LLM=1`, see
+`chatbot.py`); its text is discarded if it adds any number.
+
+**Ask the documents** (second tab): choose a **country** (Kenya, India, Nigeria) and a
+**category** (ten equipment types or the procurement process), then ask your own question. The answer is built from
+that country's World Bank project documents (111 documents, 4,761 passages), each sentence with
+its source and page. Evaluation: 10/10. Build or extend it:
+
+```bash
+python -m procurement_rag.pipeline --countries KEN IND      # download, chunk, embed, index
+python -m procurement_rag.pipeline --add-country NGA       # register a country, then --countries NGA
+python -m procurement_rag.evaluate
+```
 
 ## What the pipeline does
 
@@ -81,8 +95,9 @@ and inter-urban roads, or `three_country` for Kenya, Nigeria and Bangladesh acro
 
 ## Two implementations, one core
 
-| Component | Local prototype (run and verified) | Databricks production path (written, not yet run) |
+| Component | Local prototype (run and verified) | Databricks (run end to end on 2026-10-27) |
 |---|---|---|
+| Settings | `procurement_demo/common.py` | `notebooks/00_proc_config` (catalog `proc_demo`) |
 | Ingestion | `procurement_demo/ingest.py` | `notebooks/21_ingest_procurement`, `22_ingest_project_docs` |
 | Gold tables, entity resolution, graph | `build.py` | `23_proc_silver_gold` |
 | Documents, lessons, ratings | `build.py` (rules + quote check) | `24_proc_docs_lessons` (LLM + quote check) |
@@ -90,3 +105,7 @@ and inter-urban roads, or `three_country` for Kenya, Nigeria and Bangladesh acro
 | Models | `models.py` | `26_proc_risk_models` (MLflow, Unity Catalog registry) |
 | Copilot and chatbot | `copilot.py`, `chatbot.py`, `app.py` | `27_proc_tools`, `28_proc_copilot` |
 | Monitoring / learning loop | `evaluate.py` | `29_proc_monitor_job` (Lakeflow Job, retrain gate) |
+| Document Q&A by country | `procurement_rag/` (ChromaDB) and the "Ask the documents" tab | `30_rag_registry` → `34_rag_ask` (Vector Search, job `proc_rag_pipeline`), Databricks App in `procurement_rag/databricks_app/` |
+
+The shared logic (parsers, entity resolution, survival estimates, verifier, equipment taxonomy, document categories
+and answer-sentence rules) is one file, `notebooks/20_proc_lib.py`, used by both columns.

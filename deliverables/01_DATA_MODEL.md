@@ -4,9 +4,10 @@
 
 | Item | Detail |
 |---|---|
-| Physical platform | Databricks Delta tables in Unity Catalog: `bronze`, `silver`, `gold`, `ops` schemas |
+| Physical platform | Databricks Delta tables in Unity Catalog, catalog `proc_demo`: `bronze`, `silver`, `gold`, `ai`, `ops` schemas |
+| Try it | chatbot: https://dmlaishu.github.io/procurement-intelligence/chat/ |
 | Domain | Medical laboratory and diagnostic equipment in World Bank-financed health projects |
-| Verified on | local prototype run on public World Bank data, 22 October 2026. Row counts below are from that run |
+| Verified on | local prototype run on public World Bank data, 26 October 2026 (row counts below are from that run); the same tables were built on Databricks on 2026-10-27 (§10) |
 | Companion files | `er_diagram.svg` (diagram), `01_DATA_MODEL_DDL.sql` (full Gold DDL with keys and column comments) |
 
 ## 1. Design principles
@@ -43,10 +44,11 @@ taxonomy rather than a table: every contract and tender carries its `item_type` 
 
 | Layer | Tables | Role |
 |---|---|---|
-| **Bronze** | `contract_awards`, `procurement_notices`, `projects`, `governance_indicators`, `project_docs_meta` + PDF volume | API records and PDFs exactly as received, with ingest timestamp; Change Data Feed on |
-| **Silver** | `contracts`, `notices`, `projects`, `governance`, `tenders`, `proj_doc_pages` | typed, de-duplicated, keys normalised (ISO codes, bid references, supplier names); one page of text per row |
-| **Gold** | facts, dimensions, documents and knowledge, ML tables, `kg_edges` (below) | resolved entities and links; what the models, the vector index and the copilot read |
-| **Ops** | `proc_briefs`, `proc_feedback`, `v_proc_kpis` | every brief generated, user feedback, realised award dates: the inputs of the learning loop |
+| **Bronze** | `contract_awards_raw`, `proc_notices_raw`, `projects_raw`, `governance_raw`, `country_ref`, `domain_projects`, `project_docs_meta` + volume `raw_docs`; `rag_documents` + volume `rag_docs` (§7.1) | API records and PDFs exactly as received, with ingest timestamp; Change Data Feed on |
+| **Silver** | `contracts`, `notices`, `projects`, `governance`, `tenders`, `proj_doc_pages`, `rag_pages` | typed, de-duplicated, keys normalised (ISO codes, bid references, supplier names); one page of text per row |
+| **Gold** | facts, dimensions, documents and knowledge, ML tables, `kg_edges` (below), view `v_lab_contracts`, `rag_chunks` (§7.1) | resolved entities and links; what the models, the vector indexes, the copilot and the chatbot read |
+| **AI** | UC function tools (`proc_*`), vector indexes `proj_doc_chunks_index` and `rag_chunks_index`, registered models `proc_*` | what the copilot and chatbot call; governed by Unity Catalog grants |
+| **Ops** | `app_logs`, `proc_briefs`, `proc_feedback`, `v_proc_kpis`, `rag_countries`, `rag_eval_results` | run log, every brief generated, user feedback, realised award dates, the country registry of the document Q&A and its evaluation history |
 
 ## 4. Table catalogue
 
@@ -142,6 +144,30 @@ DOCUMENT (PAD / ISR / ICR / PPAR, 60-150 pages)
 
 Prototype: 131 reports → 6,187 chunks → 150 lessons and
 301 dated ratings.
+
+### 7.1 Document Q&A by country
+
+The document Q&A keeps its own, country-partitioned copy of the document hierarchy, so a country can be added or
+refreshed without touching the others. It joins the rest of the model through **Project ID** and **country ISO-3**.
+
+```
+RAG_COUNTRY (ops.rag_countries)            iso3, iso2, name, pinned projects
+  └─ RAG_DOCUMENT (bronze.rag_documents)   country + doc_id; doc type, title, date, project_id → dim_project, file in rag_docs/<country>/<type>/
+      └─ PAGE (silver.rag_pages)           doc_id + page_num
+          └─ PASSAGE (gold.rag_chunks)     chunk_id = <country>_<doc_id>_<order>; section, pages, text, 1/0 category columns
+              └─ (ai.rag_chunks_index)     Vector Search on search_text, filtered by country and category
+```
+
+| Table | Grain (one row per) | Key | Joins | Rows |
+|---|---|---|---|---|
+| `ops.rag_countries` | country | `iso3` | - | 3 (local), 2 (Databricks) |
+| `bronze.rag_documents` | country × document | `(country, doc_id)` | `project_id` → `dim_project` | 111 (local) |
+| `silver.rag_pages` | document page | `(doc_id, page_num)` | `doc_id` → `rag_documents` | - |
+| `gold.rag_chunks` | passage | `chunk_id` | `doc_id`, `country`, `project_id` | 4,761 (local), 3,795 (Databricks) |
+| `ai.rag_chunks_index` | passage vector | `chunk_id` | synced from `gold.rag_chunks` | 11 category filters + country |
+
+Category columns (`cat_*`, 1/0) mark which equipment types a passage mentions (the same taxonomy as `item_type`)
+and whether it is about the procurement process; the chatbot's category menu filters on them.
 
 ## 8. Data dictionary
 
@@ -515,3 +541,20 @@ TBLPROPERTIES (delta.enableChangeDataFeed = true);
 **Scaling.** The full public corpus is about 300k contract rows, about 425k notices, about 22k projects and tens of
 thousands of documents. That is small for Delta. Liquid clustering on country and year keeps scans narrow, Change Data
 Feed makes Silver → Gold and the vector index incremental, and supplier resolution uses blocking so it stays near-linear.
+
+## 10. Built on Databricks
+
+The model was created on Databricks on 2026-10-27 by notebooks 00 and 20-34, in catalog `proc_demo`:
+
+| Object | Rows on Databricks |
+|---|---|
+| `bronze.contract_awards_raw` (Health Goods awards of the domain projects) | 14,622 |
+| `bronze.domain_projects` | 179 |
+| `bronze.proc_notices_raw` | 15,164 |
+| `gold.v_lab_contracts` (lab and diagnostic contract rows) | 2,221 (US$1,375,796,408) |
+| `gold.fact_tender` / with an invitation-to-award time | 10,407 / 1,068 |
+| `gold.dim_supplier` | 7,543 |
+| `bronze.project_docs_meta` / `gold.proj_doc_chunks` | 128 / 6,126 |
+| `gold.lessons` (quote-verified) | 733 (712) |
+| `gold.kg_edges` | 116,199 |
+| `gold.rag_chunks` (KEN 1,239, IND 2,556) | 3,795 |

@@ -1,6 +1,8 @@
 # Procurement Intelligence for Laboratory and Diagnostic Equipment: Assessment Deliverables
 
-Domain: Medical laboratory and diagnostic equipment in World Bank-financed health projects. Prepared 22 October 2026.
+Domain: Medical laboratory and diagnostic equipment in World Bank-financed health projects. Prepared 26 October 2026.
+
+Chatbot (public): https://dmlaishu.github.io/procurement-intelligence/chat/ · Report online: https://dmlaishu.github.io/procurement-intelligence/report.html · Code: https://github.com/dmlaishu/procurement-intelligence
 
 | # | Deliverable | Open | What it answers |
 |---|---|---|---|

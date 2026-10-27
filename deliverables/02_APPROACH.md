@@ -8,7 +8,8 @@ health projects, built on public World Bank data**
 | Domain | Medical laboratory and diagnostic equipment (PCR and GeneXpert systems, imaging, analyzers, reagents and cartridges, rapid tests, microscopy, biosafety and cold chain, lab IT) in World Bank-financed health projects, all countries |
 | Scope | Modules 1-4 of the assessment: ingestion and knowledge representation, predictive and retrieval engines, guardrails, continuous learning and rollout |
 | Platform | Databricks lakehouse (Delta, Unity Catalog, Vector Search, MLflow, Model Serving, Lakeflow Jobs), extending an existing World Bank assistant built on the same platform |
-| Evidence | A working prototype, including a chatbot, on real public data: 2,220 laboratory and diagnostic equipment contracts in 91 countries. The results quoted in this document are measured, not projected (§7) |
+| Evidence | A working prototype, including a chatbot and a document Q&A by country, on real public data: 2,220 laboratory and diagnostic equipment contracts in 91 countries; run locally and end to end on Databricks. The results quoted in this document are measured, not projected (§7) |
+| Try it | https://dmlaishu.github.io/procurement-intelligence/chat/ (public) · code: https://github.com/dmlaishu/procurement-intelligence |
 
 ---
 
@@ -66,6 +67,8 @@ The platform answers one practical question for any new package, through a brief
 - **Chatbot:** on 16 labelled questions it chose the right tool for **100%**, ranked and aggregate answers matched an independent query in **6 of 6** checks, and 100% of its statements are cited.
 - **Retrieval:** risk-topic precision@5 **0.75** (random 0.27). A project's own procurement history retrieves its own evaluation reports in the top 10 for **88%** of projects.
 - **Faithfulness:** 360 statements across 25 generated briefs, **100% with valid citations**. The verifier caught **124 of 125** injected hallucinations (fake numbers, quotes, pages, citations); 98% of extracted lessons have quotes verified against source.
+- **Document Q&A by country:** users pick a country and a category and ask their own question; answers come from that country's project documents with sources (Kenya, India, Nigeria: 111 documents, 4,761 passages). **10/10** evaluation questions passed; a new country is one command and does not rebuild the others (§3.9).
+- **On Databricks:** every notebook ran end to end on 2026-10-27 with results matching the prototype (2,221 lab contract rows, 733 LLM-extracted lessons 97% quote-verified, models registered as `@champion`, document Q&A 10/10 on Vector Search). Try it: https://dmlaishu.github.io/procurement-intelligence/chat/
 
 **Rubric map**
 
@@ -467,6 +470,30 @@ evidence. Measured on a labelled question set: **100%** of 16 questions routed t
 > - “Notwithstanding the cancellations, the project was still able to achieve the objectives.” (ICR, P131825, p. 36) - note: this project's supervision ratings fell to Unsatisfactory before the final ICRR rating of Moderately Satisfactory, so the lesson reflects a recovery. `L4 R3`
 
 
+### 3.9 Document Q&A by country (reusable RAG pipeline)
+
+The chatbot's second mode lets a user choose a **country** and a **category** and ask any question; the answer comes
+only from that country's World Bank project documents and shows its sources. It is a pipeline, not a one-off index, so
+a new country is configuration, not code:
+
+| Stage | Local | Databricks | What it does |
+|---|---|---|---|
+| Registry | `procurement_rag/countries.json` | `ops.rag_countries` (notebook 30) | one row per country (ISO codes, name, pinned projects); shared defaults for document types and limits |
+| Fetch | `fetch.py` | notebook 31 → volume `rag_docs/<country>/<type>/<id>.pdf`, `bronze.rag_documents` | projects that bought lab equipment there, lab-related health projects (Projects API), pinned regional programmes; newest PAD, project papers, procurement plans, ISR, ICR, IEG review, PPAR per project |
+| Process | `process.py` | notebook 32 → `silver.rag_pages`, `gold.rag_chunks` | text per page once per PDF; section-aware passages (§2.5); category tags from the equipment taxonomy (§2.7) |
+| Index | `index.py` → ChromaDB | notebook 33 → Vector Search Delta Sync index | embeddings, filterable by country and category; incremental, other countries untouched |
+| Answer | `search.py`, chatbot tab | notebook 34, Databricks App | hybrid retrieval (meaning + exact words), at most two passages per document; answer = the sentences that answer the question, each with its source, or a written summary shown only if every citation and number is in the cited sources |
+
+Answer sentences are chosen by meaning, weighted towards the question's distinctive words; for questions about
+equipment, sentences that name equipment come first. If nothing in the selected country's documents is close enough,
+the chatbot says so instead of guessing. Measured: 10/10 evaluation questions passed locally (9 answered with the expected source in the top five, 1 correctly declined, every source from the selected country, about 1.4 s per answer) and 10/10 on Databricks Vector Search. Nigeria was added with one command in under four minutes without re-embedding Kenya or India.
+
+| Country | Projects | Documents | Passages |
+|---|---|---|---|
+| Kenya | 8 | 29 | 1,239 |
+| India | 12 | 55 | 2,556 |
+| Nigeria | 6 | 27 | 966 |
+
 ---
 
 ## 4. Module 3: Guardrails, faithfulness and source attribution
@@ -576,7 +603,7 @@ same KPIs, before and after, which gives a difference-in-differences estimate of
 ## 7. Prototype: what was built and measured
 
 All figures below come from `procurement_demo/output/eval_results.json`, produced by
-`python -m procurement_demo.run_all` on public World Bank data downloaded on 22 October 2026.
+`python -m procurement_demo.run_all` on public World Bank data downloaded on 26 October 2026.
 
 | Area | Result |
 |---|---|
@@ -592,23 +619,36 @@ All figures below come from `procurement_demo/output/eval_results.json`, produce
 
 The full results page with the example brief and its evidence is `procurement_demo/output/prototype_report.html`.
 
-**Not yet demonstrated:** LLM-based lesson extraction and LLM rewriting run only in the Databricks notebooks (24, 28), which are written but could not be executed here because new job runs on the trial workspace were disabled. The local prototype uses rule-based extraction and a deterministic composer, which the same verifier gates. Supplier performance, disbursement-lag warnings and contract amendments need non-public or Phase 2 data.
+**Run on Databricks (2026-10-27).** Notebooks 00 and 20-34 ran end to end on Databricks Free Edition (catalog `proc_demo`), on fresh downloads from the World Bank APIs:
+
+| Measure | Databricks | Local prototype |
+|---|---|---|
+| Lab and diagnostic contract rows | 2,221 | 2,220 |
+| Tenders with an invitation-to-award time | 1,068 | 1,068 |
+| Lessons, quote-verified | 733 by LLM, 97% | 150 by rules, 98% |
+| Projects with conflicting ratings | 8 of 33 | 8 of 34 |
+| Days-to-award MAE, P50 model vs single median | 49 vs 73 | 47 vs 73 |
+| Document Q&A evaluation | 10/10 (Vector Search) | 10/10 (ChromaDB) |
+
+Small differences come from contracts published between the two runs. The weekly learning-loop job exists with its schedule paused, so retraining has run once, not yet over weeks of new data. Supplier performance, disbursement-lag warnings and contract amendments need non-public or Phase 2 data.
 
 **Two implementations, one core.** The parsing, entity-resolution, censoring-aware benchmark, conflict-resolution and
 verifier code lives in `notebooks/20_proc_lib.py`. The Databricks notebooks (`%run ./20_proc_lib`) and the local
 prototype (`procurement_demo/`) both use it, and it is unit-tested against real notices, an ISR and an ICR
 (`python src/test_proc_lib.py`).
 
-| Component | Databricks (production path) | Local prototype (verified) |
+| Component | Databricks (run end to end on 2026-10-27) | Local prototype (verified) |
 |---|---|---|
+| Settings | `00_proc_config` (own catalog, scope, endpoints) | `procurement_demo/common.py` |
 | Ingestion | `21_ingest_procurement`, `22_ingest_project_docs` | `procurement_demo/ingest.py` |
 | Silver / Gold, entity resolution, graph | `23_proc_silver_gold` | `build.py` |
 | Document structure, lessons, ratings | `24_proc_docs_lessons` (LLM extraction + quote check) | `build.py` (rule-based extraction + quote check) |
 | Vector index | `25_proc_vector_index` (hybrid Vector Search) | `retrieval.py` (BM25 + filters + RRF) |
 | Models | `26_proc_risk_models` (MLflow, UC registry, champion gate) | `models.py` |
 | Tools / copilot | `27_proc_tools`, `28_proc_copilot` | `copilot.py` |
-| Chatbot | Databricks App over the same UC functions | `chatbot.py` + `app.py` (Streamlit) |
 | Monitoring, job | `29_proc_monitor_job` | `evaluate.py` |
+| Document Q&A by country | `30_rag_registry` → `34_rag_ask`, Vector Search, job `proc_rag_pipeline`, Databricks App | `procurement_rag/` (ChromaDB) |
+| Chatbot | Databricks App (document Q&A, workspace sign-in) | `chatbot.py` + `app.py` (Streamlit), public at the link above |
 
 ## Appendix A: Glossary
 
