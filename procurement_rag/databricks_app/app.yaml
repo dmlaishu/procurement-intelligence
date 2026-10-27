@@ -1,0 +1,14 @@
+command: ["streamlit", "run", "app.py", "--server.headless", "true"]
+env:
+  - name: RAG_INDEX
+    value: proc_demo.ai.rag_chunks_index
+  - name: WAREHOUSE_ID
+    valueFrom: sql-warehouse
+  - name: EMBEDDING_ENDPOINT
+    valueFrom: embeddings
+  - name: LLM_ENDPOINT
+    valueFrom: chat-model
+  - name: RAG_MIN_SIM
+    value: "0.65"
+  - name: RAG_MIN_SIM_NO_OVERLAP
+    value: "0.75"

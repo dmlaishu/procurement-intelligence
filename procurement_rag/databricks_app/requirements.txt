@@ -1,0 +1,2 @@
+databricks-sdk>=0.50
+streamlit>=1.38
