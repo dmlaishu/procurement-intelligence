@@ -189,11 +189,13 @@ name = ctry[iso3]["country_name"]
 cat = None if category == "All categories" else category
 st.markdown(f"#### Ask about laboratory and diagnostic equipment procurement in {name}")
 st.session_state.setdefault("chat", [])
-if not st.session_state.chat:
+typed = st.chat_input(f"Ask a question about {name}…")
+if not st.session_state.chat and not typed and "pending" not in st.session_state:   # only before the first question
     cols = st.columns(2)
     for i, q in enumerate(EXAMPLES):
         if cols[i % 2].button(q, key=f"ex{i}", use_container_width=True):
             st.session_state.pending = q
+            st.rerun()
 for turn in st.session_state.chat:
     with st.chat_message("user"):
         st.markdown(turn["question"])
@@ -201,7 +203,7 @@ for turn in st.session_state.chat:
     with st.chat_message("assistant"):
         show(turn["result"])
 
-q = st.chat_input(f"Ask a question about {name}…") or st.session_state.pop("pending", None)
+q = typed or st.session_state.pop("pending", None)
 if q:
     with st.chat_message("user"):
         st.markdown(q)
