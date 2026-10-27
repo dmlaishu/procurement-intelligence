@@ -678,9 +678,11 @@ def rag_tags(text):
     return {rag_category_key(n): int(bool(_re.search(p, text or "", _re.I))) for n, p in RAG_CATEGORIES.items()}
 
 
-_RAG_SENT = _re.compile(r"(?<=[.!?])\s+(?=[A-Z(\"“])")
+_RAG_SENT = _re.compile(r"(?<=[.!?])(?<!i\.e\.)(?<!e\.g\.)(?<!\bNo\.)(?<!\bRs\.)(?<!\bvs\.)(?<!\bDr\.)(?<!\bMr\.)"
+                        r"\s+(?=[A-Z(\"“])")            # sentence ends, not abbreviations ("i.e. (", "No. 3")
 _RAG_NOT_SENTENCE = _re.compile(r"^(annex|table|figure|section|chapter|page|source|note)\b|et al\.|\(\d{4}\)|\bdoi\b|"
-                                r"journal|plos|health affairs|lancet", _re.I)       # headings and bibliography entries
+                                r"journal|plos|health affairs|lancet|discussion paper|working paper|report no\b",
+                                _re.I)                  # headings and bibliography entries
 _RAG_STOP = set("a an and are as at be by for from has have in is it its of on or that the this to was were will with which "
                 "their there been not but they into than these those also such other more most only over under per any all "
                 "each project projects bank world what how does did do why when where who".split())
@@ -729,24 +731,52 @@ def _unit(v):
     return [x / n for x in v]
 
 
+_RAG_EQUIPMENT_Q = _re.compile(r"equipment|machine|analy[sz]er|device|instrument|\bkits?\b|\btests?\b|microscop|x-?ray|"
+                               r"scanner|imaging|reagent|cartridge|diagnostic (technolog|tool)", _re.I)
+_RAG_EQUIPMENT_S = _re.compile("|".join(p for _, p in ITEM_TYPES_LAB[:9]) + r"|equipment|microscop|machine|instrument|"
+                               r"diagnostic (technolog|capacity|tool|test|kit|service)", _re.I)
+
+
 def rag_pick_sentences(question, question_vec, cands, cand_vecs, max_sentences=4, min_sim=0.55,
                        min_sim_no_overlap=0.70, max_duplicate=0.90, per_source=2):
     """Choose the answer sentences: closest in meaning to the question (cosine of the embeddings), a higher bar for
     sentences sharing no content word with the question, at most two per source, near-duplicates dropped
-    (the same statement repeated in an original and an additional-financing document)."""
+    (the same statement repeated in an original and an additional-financing document).
+
+    The ranking also rewards the question's distinctive words: a word that appears in most candidate sentences
+    ("TB" in a TB project) says little, so shared words are weighted by how rare they are among the candidates.
+    For questions about equipment, sentences that name equipment rank higher."""
     q = _unit(question_vec)
     units = [_unit(v) for v in cand_vecs]
     qt = set(rag_tokens(question))
+    toks = [set(rag_tokens(c[1])) for c in cands]
     sims = [sum(a * b for a, b in zip(u, q)) for u in units]
-    overlap = [len(qt & set(rag_tokens(c[1]))) for c in cands]
-    order = sorted(range(len(cands)), key=lambda i: -(sims[i] + 0.01 * overlap[i]))
+    overlap = [len(qt & t) for t in toks]
+    n = max(len(cands), 1)
+    idf = {w: _math.log(1 + n / (1 + sum(w in t for t in toks))) for w in qt}
+    total = sum(idf.values()) or 1.0
+    focus = [sum(idf[w] for w in qt & t) / total for t in toks]           # 0..1, distinctive question words present
+    wants_equipment = bool(_RAG_EQUIPMENT_Q.search(question))
+    score = [sims[i] + 0.30 * focus[i] + (0.08 if wants_equipment and _RAG_EQUIPMENT_S.search(cands[i][1]) else 0.0)
+             for i in range(len(cands))]
+    order = sorted(range(len(cands)), key=lambda i: -score[i])
+    if wants_equipment:
+        # a question about equipment is answered by sentences that name equipment (or hold its distinctive words);
+        # sentences that only share the theme ("TB elimination") are left out, unless nothing else qualifies
+        names_it = [i for i in order if _RAG_EQUIPMENT_S.search(cands[i][1]) or focus[i] >= 0.3]
+        order = names_it or order
     out, per, chosen = [], {}, []
     for i in order:
         sid, sent = cands[i]
-        if sims[i] < (min_sim if overlap[i] else min_sim_no_overlap) or per.get(sid, 0) >= per_source:
+        # a sentence holding the question's distinctive words may sit a little below the similarity floor: embeddings
+        # score sentences on the same theme ("TB elimination") close to sentences that actually answer the question
+        floor = (min_sim if overlap[i] else min_sim_no_overlap) - (0.10 if focus[i] >= 0.3 else 0.0)
+        if sims[i] < floor or per.get(sid, 0) >= per_source:
             continue
         if any(sum(a * b for a, b in zip(units[i], units[j])) > max_duplicate for j in chosen):
             continue
+        if any(len(toks[i] & toks[j]) / max(1, min(len(toks[i]), len(toks[j]))) > 0.7 for j in chosen):
+            continue                       # mostly repeats a sentence already chosen (one contains the other)
         per[sid] = per.get(sid, 0) + 1
         chosen.append(i)
         out.append({"text": sent, "source": sid, "similarity": round(sims[i], 3)})
