@@ -14,7 +14,7 @@ import streamlit as st  # noqa: E402
 from procurement_demo.chatbot import EXAMPLES, SCHEMA_DOT, ProcurementChat  # noqa: E402
 from procurement_demo.common import CFG, GOLD  # noqa: E402
 
-st.set_page_config(page_title="Procurement Intelligence", page_icon="🔬", layout="wide")
+st.set_page_config(page_title="Lab Equipment Procurement Assistant", page_icon="🔬", layout="wide")
 
 
 @st.cache_resource(show_spinner="Loading the document index…")
@@ -37,7 +37,7 @@ bot, stats = load()
 
 # ── sidebar ─────────────────────────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("### Procurement Intelligence")
+    st.markdown("### Lab Equipment Procurement")
     st.caption(CFG["label"])
     a, b = st.columns(2)
     a.metric("Domain contracts", f"{stats.get('contracts_in_domain', stats['contracts']):,}")
@@ -50,32 +50,20 @@ with st.sidebar:
     b.metric("Reports indexed", stats["documents_parsed"])
     st.caption(f"{stats['chunks']:,} report passages · {stats['kg_edges']:,} knowledge-graph links · "
                f"{stats['contracts']:,} health-goods contracts in the same projects")
-    st.markdown("**Try a question**")
-    for q in EXAMPLES:
-        if st.button(q, use_container_width=True):
-            st.session_state.pending = q
     st.divider()
     st.caption("Every sentence cites its evidence ([C] contract, [B] benchmark, [L] lesson, [P] report passage, "
                "[R] rating, [D] derived figure). A verifier removes any sentence whose numbers or quotes are not in "
                "the cited evidence.")
 
 # ── what this is (always visible) ───────────────────────────────────────────────────────────────
-st.markdown("## Lab & diagnostic equipment procurement intelligence")
-st.markdown(
-    f"Health projects financed by the World Bank buy a lot of laboratory and diagnostic equipment: PCR and GeneXpert "
-    f"machines, X-ray and ultrasound, analyzers, test kits and reagents. What was bought, how it was bought and how it "
-    f"turned out are recorded in separate places: contract awards, procurement notices and long project reports. "
-    f"**This tool joins them** for {stats.get('contracts_in_domain', 0):,} contracts in "
-    f"{stats.get('countries_in_domain', '-')} countries, so a procurement officer can ask a question and get an answer "
-    f"that **shows exactly where each fact comes from**.")
+st.markdown("## Lab Equipment Procurement Assistant")
+st.markdown("Ask about the laboratory and diagnostic equipment bought in World Bank health projects. "
+            "**Every answer shows its source.**")
 c1, c2, c3, c4 = st.columns(4)
-c1.markdown("**💬 Chat**  \nPrices, suppliers, spend, tender times and lessons across all countries, every sentence "
-            "with its evidence.")
-c2.markdown("**📄 Ask the documents**  \nPick a country and a category, ask your own question, and get the answer "
-            "from that country's project documents, with page and link.")
-c3.markdown("**🔗 Data model**  \nHow contracts, tenders, suppliers, projects and reports are connected.")
-c4.markdown("**📊 Explore**  \nFilter contracts by equipment type and country; charts and tables.")
-st.caption("Public World Bank data only (FY2015 onwards). More in the **About** tab.")
+c1.markdown("**💬 Chat**  \nPrices, suppliers, spending and tender times.")
+c2.markdown("**📄 Ask the documents**  \nAnswers from one country's project reports.")
+c3.markdown("**🔗 Data model**  \nHow the data is connected.")
+c4.markdown("**📊 Explore**  \nCharts and tables of the contracts.")
 
 chat_tab, docs_tab, model_tab, explore_tab, about_tab = st.tabs(
     ["Chat", "Ask the documents", "Data model", "Explore", "About"])
@@ -104,6 +92,13 @@ def show_answer(ans):
 
 with chat_tab:
     st.session_state.setdefault("history", [])
+    if not st.session_state.history and "pending" not in st.session_state:     # examples until the first question
+        st.markdown("**Example questions**")
+        cols = st.columns(2)
+        for i, ex in enumerate(EXAMPLES[:6]):
+            if cols[i % 2].button(ex, key=f"chatq{i}", use_container_width=True):
+                st.session_state.pending = ex
+                st.rerun()
     for turn in st.session_state.history:
         with st.chat_message("user"):
             st.markdown(turn["question"])
