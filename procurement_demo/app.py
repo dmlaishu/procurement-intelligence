@@ -42,7 +42,8 @@ with st.sidebar:
     a, b = st.columns(2)
     a.metric("Domain contracts", f"{stats.get('contracts_in_domain', stats['contracts']):,}")
     v = stats.get("domain_usd", 0)
-    b.metric("Value", f"US${v / 1e9:.2f}B" if v >= 1e9 else f"US${v / 1e6:,.0f}M")
+    b.metric("Value (US$)", f"{v / 1e9:.2f}B" if v >= 1e9 else f"{v / 1e6:,.0f}M",
+             help=f"Total value of the lab and diagnostic equipment contracts: US${v:,.0f}")
     a.metric("Countries", stats.get("countries_in_domain", "-"))
     b.metric("Projects", stats["projects"])
     a.metric("Suppliers", f"{stats['supplier_suppliers']:,}")
