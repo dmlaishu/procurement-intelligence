@@ -59,7 +59,26 @@ with st.sidebar:
                "[R] rating, [D] derived figure). A verifier removes any sentence whose numbers or quotes are not in "
                "the cited evidence.")
 
-chat_tab, docs_tab, model_tab, explore_tab = st.tabs(["Chat", "Ask the documents", "Data model", "Explore"])
+# ── what this is (always visible) ───────────────────────────────────────────────────────────────
+st.markdown("## Lab & diagnostic equipment procurement intelligence")
+st.markdown(
+    f"Health projects financed by the World Bank buy a lot of laboratory and diagnostic equipment: PCR and GeneXpert "
+    f"machines, X-ray and ultrasound, analyzers, test kits and reagents. What was bought, how it was bought and how it "
+    f"turned out are recorded in separate places: contract awards, procurement notices and long project reports. "
+    f"**This tool joins them** for {stats.get('contracts_in_domain', 0):,} contracts in "
+    f"{stats.get('countries_in_domain', '-')} countries, so a procurement officer can ask a question and get an answer "
+    f"that **shows exactly where each fact comes from**.")
+c1, c2, c3, c4 = st.columns(4)
+c1.markdown("**💬 Chat**  \nPrices, suppliers, spend, tender times and lessons across all countries, every sentence "
+            "with its evidence.")
+c2.markdown("**📄 Ask the documents**  \nPick a country and a category, ask your own question, and get the answer "
+            "from that country's project documents, with page and link.")
+c3.markdown("**🔗 Data model**  \nHow contracts, tenders, suppliers, projects and reports are connected.")
+c4.markdown("**📊 Explore**  \nFilter contracts by equipment type and country; charts and tables.")
+st.caption("Public World Bank data only (FY2015 onwards). More in the **About** tab.")
+
+chat_tab, docs_tab, model_tab, explore_tab, about_tab = st.tabs(
+    ["Chat", "Ask the documents", "Data model", "Explore", "About"])
 
 
 def show_answer(ans):
@@ -186,3 +205,55 @@ with explore_tab:
     st.dataframe(sel.sort_values("amount_usd", ascending=False)[
         ["wb_contract_number", "supplier_name", "supplier_country", "amount_usd", "signing_date", "country_iso3",
          "project_id", "item_type", "procurement_method", "description"]].head(500), use_container_width=True, hide_index=True)
+
+with about_tab:
+    v = stats.get("domain_usd", 0)
+    st.markdown("### What this is")
+    st.markdown(
+        "An AI-assisted procurement intelligence tool for **medical laboratory and diagnostic equipment bought in World "
+        "Bank-financed health projects**. It helps people who plan or review these purchases answer practical questions: "
+        "who supplies this kind of equipment and at what price, how long tenders usually take, what went wrong in past "
+        "projects, and what a country's project documents say about a topic.")
+    st.markdown("### Why it is needed")
+    st.markdown(
+        "The information exists but is scattered. **Contract awards** say what was bought and from whom; **procurement "
+        "notices** say when a tender opened and how many firms bid; **project reports** (appraisal, supervision, "
+        "completion and independent evaluation reports, often 100+ pages) explain why things worked or failed. Nothing "
+        "links a GeneXpert contract in one country to the lesson about cartridge stock-outs in another. This tool does.")
+    st.markdown("### What is inside")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Lab & diagnostic contracts", f"{stats.get('contracts_in_domain', 0):,}", help=f"US${v:,.0f} in total")
+    c2.metric("Countries / projects", f"{stats.get('countries_in_domain', '-')} / {stats['projects']}")
+    c3.metric("Project reports read", stats["documents_parsed"], help=f"{stats['chunks']:,} passages")
+    docs = load_docs()
+    if docs:
+        names = docs.countries()
+        st.caption("Ask the documents covers " + ", ".join(
+            f"{names[k]} ({docs.stats(k)['documents']} documents)" for k in names) + ".")
+    st.markdown("### How it works")
+    st.markdown(
+        "1. **Collect:** contract awards, procurement notices, project records and project PDFs are downloaded from the "
+        "World Bank's public APIs.\n"
+        "2. **Connect:** contracts are classified by equipment type (descriptions in English, French, Spanish and "
+        "Portuguese), supplier name variants are merged, and contracts, tenders, projects and reports are linked through "
+        f"shared identifiers into one knowledge graph ({stats['kg_edges']:,} links).\n"
+        "3. **Analyse:** tender durations are benchmarked by equipment type, and simple models estimate time to award "
+        "and risks such as a single bid.\n"
+        "4. **Answer:** the Chat tab looks up the exact figures (prices, suppliers, totals) in the data; the Ask the "
+        "documents tab searches a country's reports by meaning and by keyword and quotes the sentences that answer the "
+        "question.")
+    st.markdown("### Why you can trust an answer")
+    st.markdown(
+        "- Every sentence cites its source: a contract, a benchmark or a report page with a link.\n"
+        "- A checker removes any sentence whose numbers or quotes are not in the cited source.\n"
+        "- If the documents do not answer a question, the tool says so instead of guessing.\n"
+        "- Rankings and totals are calculated from the data, never written by a language model.")
+    st.markdown("### Limits")
+    st.markdown(
+        "- Public data only: no internal bid evaluations, unit prices or maintenance records.\n"
+        "- The risk models are indicative, not decision-grade.\n"
+        "- Document answers are quotations, so they are only as specific as the reports.")
+    st.markdown("### Links")
+    st.markdown(
+        "- Full report: https://dmlaishu.github.io/procurement-intelligence/report.html\n"
+        "- Code and documentation: https://github.com/dmlaishu/procurement-intelligence")
