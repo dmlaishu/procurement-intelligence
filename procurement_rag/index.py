@@ -43,8 +43,32 @@ def passage_text(r):
     return f"{r['doc_type']} | {r['title']} | {r['section']}\n{r['text']}"
 
 
+def stored_vectors(iso3):
+    """{chunk_id: vector} saved next to the passages (embeddings.npz), or {} if there is none."""
+    f = country_dir(iso3) / "embeddings.npz"
+    if not f.exists():
+        return {}
+    z = np.load(f)
+    return dict(zip(z["ids"].tolist(), z["vectors"].astype(np.float32)))
+
+
+def export_vectors(iso3):
+    """Save the country's embeddings next to its passages, so another machine (e.g. a hosted copy of the app) can load
+    the index without embedding anything. float16 halves the size; cosine ranking is unaffected at this precision."""
+    chunks = pd.read_parquet(country_dir(iso3) / "chunks.parquet")
+    col = collection()
+    ids, vecs = [], []
+    for i in range(0, len(chunks), 1000):
+        got = col.get(ids=chunks.chunk_id.iloc[i:i + 1000].tolist(), include=["embeddings"])
+        ids += got["ids"]
+        vecs += list(got["embeddings"])
+    np.savez_compressed(country_dir(iso3) / "embeddings.npz", ids=np.array(ids), vectors=np.array(vecs, dtype=np.float16))
+    print(f"{iso3}: {len(ids):,} vectors saved to embeddings.npz")
+
+
 def index_country(iso3, batch=128):
     chunks = pd.read_parquet(country_dir(iso3) / "chunks.parquet")
+    saved = stored_vectors(iso3)                   # vectors computed earlier (or on another machine): no re-embedding
     col = collection()
     have = set(col.get(where={"country": iso3}, include=[])["ids"])
     stale = sorted(have - set(chunks.chunk_id))
@@ -71,7 +95,10 @@ def index_country(iso3, batch=128):
             retagged += len(ids)
     for i in range(0, len(new), batch):
         part = new.iloc[i:i + batch]
-        vecs = embed_passages([passage_text(r) for r in part.to_dict("records")])
+        if all(cid in saved for cid in part.chunk_id):
+            vecs = np.array([saved[cid] for cid in part.chunk_id])
+        else:
+            vecs = embed_passages([passage_text(r) for r in part.to_dict("records")])
         metas = []
         for r in part.to_dict("records"):
             m = {c: ("" if r[c] is None else r[c]) for c in META_COLS}
@@ -79,7 +106,21 @@ def index_country(iso3, batch=128):
             m["page_start"], m["page_end"] = int(m["page_start"]), int(m["page_end"])
             metas.append(m)
         col.upsert(ids=part.chunk_id.tolist(), embeddings=vecs.tolist(), documents=part.text.tolist(), metadatas=metas)
-        print(f"  {iso3}: embedded {min(i + batch, len(new)):,} / {len(new):,}", flush=True)
+        print(f"  {iso3}: indexed {min(i + batch, len(new)):,} / {len(new):,}", flush=True)
     total = len(col.get(where={"country": iso3}, include=[])["ids"])
-    print(f"{iso3}: {len(new):,} new chunks embedded, {retagged:,} re-tagged, {len(stale):,} removed, {total:,} in the index")
+    print(f"{iso3}: {len(new):,} new chunks indexed, {retagged:,} re-tagged, {len(stale):,} removed, {total:,} in the index")
+    if len(new) or len(stale) or not saved:
+        export_vectors(iso3)
     return total
+
+
+def ensure_index(countries):
+    """Load any country whose passages exist but which is missing from the vector database (a fresh machine), from
+    its saved vectors. Returns the countries that were loaded."""
+    col = collection()
+    loaded = []
+    for iso3 in countries:
+        if (country_dir(iso3) / "chunks.parquet").exists() and not col.get(where={"country": iso3}, limit=1, include=[])["ids"]:
+            index_country(iso3)
+            loaded.append(iso3)
+    return loaded

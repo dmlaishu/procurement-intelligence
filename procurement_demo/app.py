@@ -100,12 +100,20 @@ with chat_tab:
             show_answer(ans)
         st.session_state.history.append(ans)
 
-DOC_EXAMPLES = [
-    "What laboratory equipment does the project plan to procure?",
-    "What problems were found with the maintenance of laboratory or diagnostic equipment?",
-    "Which procurement methods are used for medical equipment and what are the thresholds?",
-    "What lessons were learned about strengthening public health laboratories?",
-]
+DOC_EXAMPLES = {
+    "KEN": ["How many laboratories received COVID-19 diagnostic equipment?",
+            "What equipment did the East Africa laboratory networking project provide?",
+            "Which procurement methods and thresholds apply to goods?",
+            "What problems delayed procurement of medical supplies?"],
+    "IND": ["What diagnostic equipment is planned for tuberculosis elimination?",
+            "How is the quality of sputum microscopy ensured?",
+            "What laboratory services are contracted out in public hospitals?",
+            "How will public health laboratories be strengthened for pandemic preparedness?"],
+}
+DOC_EXAMPLES_DEFAULT = ["What laboratory and diagnostic equipment is being procured?",
+                        "What lessons were learned about strengthening public health laboratories?",
+                        "Which procurement methods and thresholds apply to goods?",
+                        "What problems were found with the maintenance of laboratory equipment?"]
 
 with docs_tab:
     docs = load_docs()
@@ -122,7 +130,7 @@ with docs_tab:
                    f"{info['chunks']:,} indexed passages · " + ", ".join(f"{v} {k}" for k, v in info["by_type"].items()))
         st.markdown("**Example questions**")
         ex_cols = st.columns(2)
-        for i, q in enumerate(DOC_EXAMPLES):
+        for i, q in enumerate(DOC_EXAMPLES.get(iso3, DOC_EXAMPLES_DEFAULT)):
             if ex_cols[i % 2].button(q, key=f"docq{i}", use_container_width=True):
                 st.session_state.doc_question = q
         question = st.text_input("Your question", key="doc_question",

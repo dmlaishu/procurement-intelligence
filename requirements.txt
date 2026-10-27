@@ -1,0 +1,10 @@
+pandas
+pyarrow
+scikit-learn
+pypdf
+requests
+joblib
+markdown
+streamlit
+chromadb>=1.5,<2
+fastembed>=0.9,<1

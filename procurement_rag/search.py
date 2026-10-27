@@ -19,7 +19,7 @@ import requests
 from procurement_demo.retrieval import BM25, rrf
 
 from .config import category_key, country_dir, lib, load_registry
-from .index import collection, embed_passages, embed_query
+from .index import collection, embed_passages, embed_query, ensure_index
 
 # Thresholds calibrated for BAAI/bge-small-en-v1.5 on the Kenya / India evaluation set
 MIN_SIMILARITY = 0.55              # sentence shares a content word with the question
@@ -28,6 +28,7 @@ MIN_SIMILARITY_NO_OVERLAP = 0.70   # shares none: must be much closer in meaning
 
 class DocSearch:
     def __init__(self):
+        ensure_index(list(load_registry()["countries"]))   # fresh machine: load the saved vectors, nothing re-embedded
         self.col = collection()
         self._chunks, self._bm25 = {}, {}
 
