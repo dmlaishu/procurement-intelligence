@@ -116,8 +116,8 @@ def answer(question, iso3, category=None, style="Cited sentences"):
                                  RAG_MIN_SIM, RAG_MIN_SIM_NO_OVERLAP) if cands else []
     note = None if out else (f"The {name} documents don't answer this directly" + (f" for {category}" if category else "")
                              + ". The closest passages are below.")
-    used = {x for o in out for x in (o["source"] or "").split(", ")}
-    return {"answer": out, "sources": sorted(sources, key=lambda s: s["id"] not in used), "note": note, "method": method}
+    out, sources = rag_renumber(out, sources)               # S1, S2... in the order the answer cites them
+    return {"answer": out, "sources": sources, "note": note, "method": method}
 
 # COMMAND ----------
 

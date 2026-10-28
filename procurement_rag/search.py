@@ -88,10 +88,9 @@ class DocSearch:
                             "project_name": r["project_name"], "doc_date": r["doc_date"], "section": r["section"],
                             "pages": f"{r['page_start']}" + (f"-{r['page_end']}" if r["page_end"] != r["page_start"] else ""),
                             "url": r["url"], "text": r["text"]})
-        llm = generate(question, sources, name)
-        if llm:
-            return llm
-        return extractive(question, qv, sources, name, max_sentences, category)
+        res = generate(question, sources, name) or extractive(question, qv, sources, name, max_sentences, category)
+        res["answer"], res["sources"] = lib.rag_renumber(res["answer"], res["sources"])   # S1, S2... in reading order
+        return res
 
 
 def extractive(question, qv, sources, country_name, max_sentences=4, category=None):

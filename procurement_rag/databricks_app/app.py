@@ -151,8 +151,8 @@ def answer(question, iso3, country_name, category, style):
                              + ". The closest passages are below; try a more specific question.")
     if busy and out:
         note = "The meaning-matching service is busy, so these sentences were chosen by the words they share with your question."
-    used = {x for o in out for x in (o.get("source") or "").split(", ")}
-    return {"answer": out, "sources": sorted(sources, key=lambda s: s["id"] not in used), "note": note}
+    out, sources = lib.rag_renumber(out, sources)          # S1, S2... in the order the answer cites them
+    return {"answer": out, "sources": sources, "note": note}
 
 
 def show(res):

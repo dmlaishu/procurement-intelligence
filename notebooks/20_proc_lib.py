@@ -708,14 +708,44 @@ def rag_clean_sentence(sent):
     return " ".join(sent.split())
 
 
+def _rag_is_heading(raw):
+    """A section heading followed by the next paragraph's number ("D. Lessons Learned and Reflected in the Project
+    Design 37."), which the sentence splitter would otherwise take for a sentence."""
+    m = _re.match(r"^\s*(?:(?:[A-Z]|[IVX]{1,4}|\d{1,2})\.\s+)?(.+?)\s+\d{1,3}\.\s*$", raw)
+    if not m:
+        return False
+    words = [w for w in m.group(1).split() if w[0].isalpha()]
+    small = {"and", "of", "the", "in", "for", "to", "on", "a", "an", "by", "with"}
+    return bool(words) and sum(w[0].isupper() or w in small for w in words) / len(words) >= 0.9
+
+
+def rag_renumber(answer, sources):
+    """Number the sources in the order the answer first cites them (S1, S2, ...), cited sources first, so the
+    numbers in the answer and the list underneath read in the same order."""
+    order = []
+    for a in answer:
+        for sid in (a.get("source") or "").split(", "):
+            if sid and sid not in order:
+                order.append(sid)
+    order += [s["id"] for s in sources if s["id"] not in order]
+    new_id = {old: f"S{i}" for i, old in enumerate(order, start=1)}
+    by_old = {s["id"]: s for s in sources}
+    sources = [{**by_old[old], "id": new_id[old]} for old in order if old in by_old]
+    answer = [{**a, "source": ", ".join(new_id.get(x, x) for x in (a.get("source") or "").split(", ") if x)}
+              for a in answer]
+    return answer, sources
+
+
 def rag_candidate_sentences(sources, category=None, max_sources=6):
     """[(source id, sentence)] that can stand alone as an answer sentence: complete, not a heading, table row,
     bibliography entry or fragment, and (with a category selected) mentioning that category."""
     cat_re = _re.compile(RAG_CATEGORIES[category], _re.I) if category else None
     out = []
     for s in sources[:max_sources]:
-        for sent in _RAG_SENT.split(s["text"]):
-            sent = rag_clean_sentence(sent)
+        for raw in _RAG_SENT.split(s["text"]):
+            if _rag_is_heading(raw):
+                continue
+            sent = rag_clean_sentence(raw)
             words = sent.split()
             digits = sum(ch.isdigit() for ch in sent)
             numbers = sum(bool(_re.fullmatch(r"[\d.,%()-]+", w)) for w in words)

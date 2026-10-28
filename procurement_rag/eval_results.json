@@ -5,7 +5,7 @@
   "answered": 9,
   "correctly_declined": 1,
   "all_sources_in_selected_country": true,
-  "median_latency_ms": 1377
+  "median_latency_ms": 1317
  },
  "cases": [
   {
@@ -16,8 +16,8 @@
    "hit_top5": true,
    "answer_sentences": 4,
    "sources_in_country": true,
-   "latency_ms": 2605,
-   "first_source": "ICRR Kenya - Transforming Health Systems"
+   "latency_ms": 2401,
+   "first_source": "PPR Kenya - COVID-19 Health Emergency Response Project : Second Additional"
   },
   {
    "country": "KEN",
@@ -27,8 +27,8 @@
    "hit_top5": true,
    "answer_sentences": 4,
    "sources_in_country": true,
-   "latency_ms": 1531,
-   "first_source": "ICR Africa Region - Eastern Africa Public Health Laboratory Network Projec"
+   "latency_ms": 1711,
+   "first_source": "PPR Disclosable Restructuring Paper - AFR RI-East Africa Public Health Lab"
   },
   {
    "country": "KEN",
@@ -38,8 +38,8 @@
    "hit_top5": true,
    "answer_sentences": 4,
    "sources_in_country": true,
-   "latency_ms": 986,
-   "first_source": "PAD Kenya - Health Sector Support Project"
+   "latency_ms": 1109,
+   "first_source": "PPR Kenya - Additional Financing for the Total War against HIV and AIDS Pr"
   },
   {
    "country": "KEN",
@@ -49,8 +49,8 @@
    "hit_top5": true,
    "answer_sentences": 4,
    "sources_in_country": true,
-   "latency_ms": 761,
-   "first_source": "PAD Africa - East Africa Public Health Laboratory Networking Project"
+   "latency_ms": 817,
+   "first_source": "ICRR Eastern Africa - East Afr Publ Hlth Laborat Net (FY10)"
   },
   {
    "country": "KEN",
@@ -60,7 +60,7 @@
    "hit_top5": true,
    "answer_sentences": 0,
    "sources_in_country": true,
-   "latency_ms": 76,
+   "latency_ms": 86,
    "first_source": "PP Kenya - EASTERN AND SOUTHERN AFRICA- P173820- KENYA COVID-19 HEALTH EM"
   },
   {
@@ -71,8 +71,8 @@
    "hit_top5": true,
    "answer_sentences": 4,
    "sources_in_country": true,
-   "latency_ms": 2229,
-   "first_source": "ICR India - Accelerating Universal Access to Early and Effective Tuberculo"
+   "latency_ms": 2601,
+   "first_source": "ICRR India - Accelerating Universal Access to TB Care"
   },
   {
    "country": "IND",
@@ -82,7 +82,7 @@
    "hit_top5": true,
    "answer_sentences": 4,
    "sources_in_country": true,
-   "latency_ms": 1377,
+   "latency_ms": 1317,
    "first_source": "PAD India - COVID-19 Emergency Response and Health Systems Preparedness Pr"
   },
   {
@@ -93,7 +93,7 @@
    "hit_top5": true,
    "answer_sentences": 4,
    "sources_in_country": true,
-   "latency_ms": 606,
+   "latency_ms": 838,
    "first_source": "ICR India - Uttar Pradesh Health Systems Strengthening Project"
   },
   {
@@ -104,8 +104,8 @@
    "hit_top5": true,
    "answer_sentences": 3,
    "sources_in_country": true,
-   "latency_ms": 1639,
-   "first_source": "PAD India - Animal Health System Support for One Health Program-for-Result"
+   "latency_ms": 1987,
+   "first_source": "PAD India - Uttar Pradesh Health Systems Strengthening Project"
   },
   {
    "country": "IND",
@@ -115,7 +115,7 @@
    "hit_top5": true,
    "answer_sentences": 4,
    "sources_in_country": true,
-   "latency_ms": 292,
+   "latency_ms": 279,
    "first_source": "ICR India - Accelerating Universal Access to Early and Effective Tuberculo"
   }
  ]
