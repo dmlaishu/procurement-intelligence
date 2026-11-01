@@ -37,7 +37,19 @@ in the browser: open `index.html`, or host the folder on any static host.
 | Chatbot with document Q&A by country (public) | https://procurement-intelligence-gkhea5oeh3lwtbbs6yganq.streamlit.app/ |
 | Chatbot and report, static site (public) | https://dmlaishu.github.io/procurement-intelligence/ |
 
-The Streamlit app is `procurement_demo/app.py`; the "Ask the documents" tab has the country and category dropdowns.
+The Streamlit app is `procurement_demo/app.py`. Its tabs:
+
+| Tab | What it does |
+|---|---|
+| Chat | Free questions; every citation links to the contract's project page or the report page, with a source table |
+| Plan a purchase | Pick a country and equipment type (or describe the purchase in a sentence): typical time to award, contract values, methods, suppliers, recent comparable contracts, and a cited brief with the model estimate, risks and lessons |
+| Estimate time | Tender details in, P50/P80 days to award out, next to what comparable tenders took and the model's measured test accuracy; the single-bid risk is shown as indicative and the amendment model (AUC 0.55) is not shown |
+| Countries | India, Kenya and Nigeria (or any countries) side by side: spend, contract values, suppliers, durations, competition and methods |
+| Suppliers | Supplier track records (contracts, value, countries served, competition in their tenders) and a side-by-side comparison |
+| Documents | Document Q&A by country and category (below) |
+| Explore, How it's built, About | Charts and tables; the architecture (deployed app vs the Databricks pipeline) and data model; scope and limits |
+
+The planning, comparison and estimate logic is in `procurement_demo/insights.py` (tests: `python src/test_insights.py`).
 
 ## Document Q&A by country (RAG)
 
@@ -56,6 +68,7 @@ Needs Python 3.11+.
 ```bash
 pip install -r requirements_procurement.txt
 python src/test_proc_lib.py                     # shared library tests, ends with ALL PASSED
+python src/test_insights.py                     # planning / comparison / citation tests, ends with ALL PASSED
 python -m procurement_demo.run_all              # downloads the public World Bank data and rebuilds everything
 python -m streamlit run procurement_demo/app.py # the chatbot
 ```
@@ -79,6 +92,7 @@ python src/build_web_chatbot.py && python src/build_share_page.py && python src/
 
 ```
 procurement_demo/                  local pipeline: ingest, build, models, retrieval, copilot, chatbot, evaluate, report
+  insights.py                      planning, estimate, country and supplier comparisons, citation links (used by app.py)
   common.py                        scope settings (PROC_SCOPE) and the equipment taxonomy
   chatbot.py, app.py               chatbot engine and its Streamlit UI
 notebooks/00_proc_config           Databricks settings: catalog proc_demo, the lab-equipment scope, endpoints

@@ -62,7 +62,10 @@ def build_brief(package, kb, rewrite=None):
     # ── 1. Schedule: benchmark + model ──
     bench = pd.read_parquet(GOLD / "tender_benchmarks.parquet")
     b = km_lookup(bench, package)
-    if b is not None and b["n"] >= MIN_BENCHMARK_N:
+    if b is not None and b["n"] < MIN_BENCHMARK_N:
+        b = None                 # too few tenders to cite: no benchmark statements, no benchmark comparisons below
+    bid = None
+    if b is not None:
         scope = {"country+category+method": f"{category} tenders using {package['method_code']} in {country}",
                  "item_type+method": f"{package.get('item_type')} tenders using {package['method_code']} (all countries)",
                  "item_type": f"{package.get('item_type')} tenders (all countries and methods)",
