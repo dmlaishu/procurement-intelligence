@@ -43,19 +43,17 @@ static host.
 | Chatbot with document Q&A by country (public) | https://procurement-intelligence-gkhea5oeh3lwtbbs6yganq.streamlit.app/ |
 | Chatbot and report, static site (public) | https://dmlaishu.github.io/procurement-intelligence/ |
 
-The Streamlit app is `procurement_demo/app.py` (**LabProcure**). Every figure carries its basis: **Derived · n** (a
-statistic over stored records and how many), **Model** (an estimate with its tested accuracy), **Evidence** (quoted
-or counted from project documents, with a link) or **Missing** (not in public data, said plainly).
+The Streamlit app is `procurement_demo/app.py` (**LabProcure**), kept deliberately simple, with three tabs:
 
 | Tab | What it does |
 |---|---|
-| Start | One-click examples, the lifecycle at a glance, and the trust scoreboard (hallucinations caught, tested error) |
-| Plan my purchase | The flagship. Country, equipment type, method, value, dates (or one sentence): a **dated timeline** (bidding → award P50/P80 → delivery); the **lifecycle stage by stage** (planning, tender design, bidding and evaluation, award, delivery, monitoring, learning) with badges; a **what-if tender optimizer** that scores 36 combinations of method, bid window and lots; a **pre-mortem** of how comparable tenders went wrong, with completion-report quotes; the cited brief |
-| Ask | Chat. Planning questions get the lifecycle card; follow-ups ("and in Nigeria?") keep the context; other questions are answered from the data with clickable citations |
-| My plan | Packages saved from anywhere, a portfolio timeline, and an Excel export with one evidence sheet per package |
-| Countries, Suppliers | India / Kenya / Nigeria (or any) side by side; supplier track records and side-by-side comparison |
-| Documents | Document Q&A by country and category (below) |
-| Explore, How it's built & tested | Charts; the evaluation scoreboard; the architecture (deployed app vs the Databricks pipeline) and data model |
+| Ask | Country and category, four sample questions, one question box. The answer is 1-3 sentences with its source; "More detail and all sources" opens the rest. Questions about suppliers, prices, totals and timelines are answered exactly from the contract tables by the chatbot; other questions from the country's project documents. Both cite and verify their sources |
+| Plan | Country (Kenya or India), equipment, budget, invitation date (method, bid window and review under "Advanced options"). Three dates: likely award and safer planning date (model) and estimated delivery (an assumption), a short explanation, the sample size and the typical error; then the seven-stage journey with one figure per stage (historical, model, assumption or a verified report quote); "See supporting evidence" holds the comparable contracts, sample size and model accuracy |
+| How it's built | Evaluation results, architecture (deployed app vs the Databricks pipeline), scope, data model |
+
+The full workspace with every tab (lifecycle table, optimizer, pre-mortem, cited brief, My plan with Excel export,
+country and supplier comparisons, document Q&A, explore) is still available: `python -m streamlit run
+procurement_demo/app_full.py`.
 
 Logic lives outside the UI so it is tested and reusable: `procurement_demo/insights.py` (benchmarks, comparisons,
 citations), `procurement_demo/lifecycle.py` (lifecycle figures, timeline, optimizer, pre-mortem),
@@ -94,7 +92,7 @@ python src/test_proc_lib.py                     # shared library tests, ends wit
 python src/test_insights.py                     # planning / comparison / citation tests, ends with ALL PASSED
 python src/test_lifecycle.py                    # lifecycle, optimizer, pre-mortem and API tests
 python -m procurement_demo.run_all              # downloads the public World Bank data and rebuilds everything
-python -m streamlit run procurement_demo/app.py # the chatbot
+python -m streamlit run procurement_demo/app.py # the app (app_full.py: every tab)
 ```
 
 Then rebuild the documents from the measured results:
