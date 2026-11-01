@@ -27,8 +27,10 @@ questions in which every statement cites its evidence and is checked against it.
 | 3 | Prototype: pipeline, chatbot and how to run them | [deliverables/03_PROTOTYPE/README.md](deliverables/03_PROTOTYPE/README.md) |
 | 4 | Report: findings, measured results, limitations, next steps | [deliverables/04_REPORT.pdf](deliverables/04_REPORT.pdf) |
 
-The chatbot is also a static website in [deliverables/site/](deliverables/site/) (chatbot + report). It runs entirely
-in the browser: open `index.html`, or host the folder on any static host.
+The static website in [deliverables/site/](deliverables/site/) has three pages: the **LabProcure landing page**
+(`index.html`, built by `python src/build_landing.py` from `src/landing_template.html`; its timeline, optimizer heatmap,
+pre-mortem and trust figures are computed from the stored records), the browser-only chatbot (`ask/`) and the report
+(`report.html`). Host the folder on any static host.
 
 ## Try it
 
@@ -97,6 +99,7 @@ Then rebuild the documents from the measured results:
 python src/build_proposal.py
 python src/build_deliverables.py
 python src/build_web_chatbot.py && python src/build_share_page.py && python src/build_site.py
+python src/build_landing.py
 ```
 
 ## Data in this repository

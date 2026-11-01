@@ -10,6 +10,18 @@ TAGLINE = "Procurement intelligence for laboratory and diagnostic equipment in W
 
 CSS = """
 <style>
+html,body,[class*="css"],.stMarkdown,.stButton button{font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+@property --a{syntax:"<angle>";inherits:false;initial-value:0deg}
+@keyframes lp-swirl{to{--a:360deg}}
+.lp-card,.lp-win{position:relative;transition:transform .35s cubic-bezier(.22,.61,.36,1),box-shadow .35s}
+.lp-card:hover{transform:translateY(-3px);box-shadow:0 22px 44px -24px rgba(79,70,229,.45)}
+.lp-card::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;pointer-events:none;opacity:0;transition:opacity .3s;
+  background:conic-gradient(from var(--a),#7c7cff,#a855f7,#22d3ee,#34d399,#f59e0b,#7c7cff);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.lp-card:hover::after{opacity:1;animation:lp-swirl 2s linear infinite}
+.stButton button{border-radius:999px;transition:transform .25s,box-shadow .25s}
+.stButton button:hover{transform:translateY(-2px);box-shadow:0 10px 24px -12px rgba(79,70,229,.6)}
+.lp-title{letter-spacing:-.04em}
 .lp-hero{border-radius:18px;padding:26px 30px 22px;margin:4px 0 14px;
   background:linear-gradient(120deg,rgba(79,70,229,.14),rgba(16,185,129,.12) 60%,rgba(14,165,233,.10));
   border:1px solid rgba(79,70,229,.25)}
