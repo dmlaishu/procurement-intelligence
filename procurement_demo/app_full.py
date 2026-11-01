@@ -4,6 +4,7 @@ documents. The default app (app.py) is the simplified three-tab version; this on
     python -m streamlit run procurement_demo/app_full.py
 """
 import io
+import hashlib
 import json
 import re
 import sys
@@ -11,6 +12,17 @@ from datetime import date, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+# When the backend code changes (a redeploy can keep this Python process running), import the backend afresh and
+# rebuild the cached objects. Otherwise objects built by the previous code stay in memory and newly added methods are
+# missing (AttributeError).
+_ROOT = Path(__file__).resolve().parent.parent
+CODE_VERSION = hashlib.md5(b"".join(p.read_bytes() for d in ("procurement_demo", "procurement_rag")
+                                    for p in sorted((_ROOT / d).glob("*.py")) if not p.name.startswith("app"))).hexdigest()
+if getattr(sys, "_labprocure_code_version", None) != CODE_VERSION:
+    for _name in [n for n in sys.modules if n.startswith(("procurement_demo.", "procurement_rag"))]:
+        del sys.modules[_name]
+    sys._labprocure_code_version = CODE_VERSION
 
 import altair as alt  # noqa: E402
 import pandas as pd  # noqa: E402
@@ -30,8 +42,8 @@ LINK = st.column_config.LinkColumn
 USD = st.column_config.NumberColumn
 
 
-@st.cache_resource(show_spinner="Loading the document index…")
-def load_docs():
+@st.cache_resource(show_spinner="Loading the document index…", max_entries=1)
+def load_docs(code_version):
     from procurement_rag.search import DocSearch
     try:
         return DocSearch()
@@ -41,8 +53,8 @@ def load_docs():
         return None
 
 
-@st.cache_resource(show_spinner="Loading the knowledge base…")
-def load():
+@st.cache_resource(show_spinner="Loading the knowledge base…", max_entries=1)
+def load(code_version):
     bot = ProcurementChat()
     ins = Insights.load(country_name=bot.country_name)
     lc = Lifecycle(ins, bot.kb, GOLD)
@@ -54,7 +66,7 @@ def load():
     return bot, ins, lc, stats, evals, rag_eval
 
 
-bot, ins, lc, stats, evals, rag_eval = load()
+bot, ins, lc, stats, evals, rag_eval = load(CODE_VERSION)
 
 
 @st.cache_data(show_spinner=False, max_entries=64)
@@ -678,7 +690,7 @@ DOC_EXAMPLES_DEFAULT = ["What laboratory and diagnostic equipment is being procu
                         "What problems were found with the maintenance of laboratory equipment?"]
 
 with docs_tab:
-    docs = load_docs()
+    docs = load_docs(CODE_VERSION)
     countries = docs.countries() if docs else {}
     if not countries:
         st.info("No countries indexed yet. Build them with: python -m procurement_rag.pipeline --countries KEN IND")

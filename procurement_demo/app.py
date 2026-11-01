@@ -6,6 +6,7 @@
 Front end only: the chatbot, document search, models, lifecycle figures and verifier are the same modules as before.
 """
 import html
+import hashlib
 import json
 import re
 import sys
@@ -13,6 +14,17 @@ from datetime import date, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+# When the backend code changes (a redeploy can keep this Python process running), import the backend afresh and
+# rebuild the cached objects. Otherwise objects built by the previous code stay in memory and newly added methods are
+# missing (AttributeError).
+_ROOT = Path(__file__).resolve().parent.parent
+CODE_VERSION = hashlib.md5(b"".join(p.read_bytes() for d in ("procurement_demo", "procurement_rag")
+                                    for p in sorted((_ROOT / d).glob("*.py")) if not p.name.startswith("app"))).hexdigest()
+if getattr(sys, "_labprocure_code_version", None) != CODE_VERSION:
+    for _name in [n for n in sys.modules if n.startswith(("procurement_demo.", "procurement_rag"))]:
+        del sys.modules[_name]
+    sys._labprocure_code_version = CODE_VERSION
 
 import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
@@ -81,8 +93,8 @@ html,body,[class*="css"],.stMarkdown{font-family:-apple-system,BlinkMacSystemFon
 </style>""", unsafe_allow_html=True)
 
 
-@st.cache_resource(show_spinner="Loading the document index…")
-def load_docs():
+@st.cache_resource(show_spinner="Loading the document index…", max_entries=1)
+def load_docs(code_version):
     from procurement_rag.search import DocSearch
     try:
         return DocSearch()
@@ -90,8 +102,8 @@ def load_docs():
         return None
 
 
-@st.cache_resource(show_spinner="Loading the knowledge base…")
-def load():
+@st.cache_resource(show_spinner="Loading the knowledge base…", max_entries=1)
+def load(code_version):
     bot = ProcurementChat()
     ins = Insights.load(country_name=bot.country_name)
     lc = Lifecycle(ins, bot.kb, GOLD)
@@ -102,7 +114,7 @@ def load():
     return bot, ins, lc, evals, rag_eval
 
 
-bot, ins, lc, evals, rag_eval = load()
+bot, ins, lc, evals, rag_eval = load(CODE_VERSION)
 g, m = evals.get("guardrails", {}), ins.metrics.get("cycle", {})
 esc = html.escape
 
@@ -343,7 +355,7 @@ def ask(question, iso3, cname, category):
         if category and category != "Procurement process and contracts" and not parsed["item_types"]:
             q += f" ({category.lower()})"
         return present_bot(bot.ask(q), cname)
-    docs = load_docs()
+    docs = load_docs(CODE_VERSION)
     if docs is not None:
         try:
             return present_docs(docs.answer(question, iso3, category), cname)
@@ -453,7 +465,7 @@ def show_answer(p, cname, category):
 
 
 with ask_tab:
-    docs = load_docs()
+    docs = load_docs(CODE_VERSION)
     countries = docs.countries() if docs else {}
     countries = countries or {"KEN": "Kenya", "IND": "India", "NGA": "Nigeria"}
     order = [k for k in ("KEN", "IND") if k in countries] + [k for k in countries if k not in ("KEN", "IND")]
