@@ -4,8 +4,9 @@
     python src/build_web_chatbot.py && python src/build_share_page.py
     python src/build_site.py
 
-    site/index.html    the chatbot (exact, cited answers; runs entirely in the browser, no server needed)
-    site/report.html   the assessment report
+    site/ask/index.html  the chatbot (exact, cited answers; runs entirely in the browser, no server needed)
+    site/report.html     the assessment report
+    site/index.html      the LabProcure landing page (python src/build_landing.py)
 """
 import re
 from pathlib import Path
@@ -37,16 +38,19 @@ def main():
     report = (DEL / "share" / "index.html").read_text(encoding="utf-8")
     nav_css = ("<style>.sitenav{max-width:920px;margin:0 auto;padding-top:14px;font:14px 'IBM Plex Sans',system-ui,sans-serif}"
                ".sitenav a{color:var(--accent)}</style>")
-    (SITE / "index.html").write_text(standalone(
+    (SITE / "ask").mkdir(exist_ok=True)
+    (SITE / "ask" / "index.html").write_text(standalone(
         chat.replace("</style>", "</style>" + nav_css, 1),
-        '<nav class="sitenav"><a href="report.html">Read the full assessment report &rarr;</a></nav>', '<div class="wrap">'),
+        '<nav class="sitenav"><a href="../">&larr; LabProcure</a> · <a href="../report.html">Read the full assessment '
+        'report &rarr;</a></nav>', '<div class="wrap">'),
         encoding="utf-8")
     (SITE / "report.html").write_text(standalone(
         report.replace("</style>", "</style>" + nav_css.replace("920px", "980px"), 1),
-        '<nav class="sitenav"><a href="index.html">&larr; Ask the procurement assistant</a></nav>', '<div class="page">'),
+        '<nav class="sitenav"><a href="./">&larr; LabProcure</a> · <a href="ask/">Ask the procurement assistant</a></nav>',
+        '<div class="page">'),
         encoding="utf-8")
-    left = [f.name for f in SITE.glob("*.html") if re.search(r"claude|anthropic|@hosted|mode-ai", f.read_text(encoding="utf-8"), re.I)]
-    print(f"wrote {SITE}: index.html (chatbot), report.html; files with hosting references left: {left or 'none'}")
+    left = [f.name for f in SITE.rglob("*.html") if re.search(r"claude|anthropic|@hosted|mode-ai", f.read_text(encoding="utf-8"), re.I)]
+    print(f"wrote {SITE}: ask/index.html (chatbot), report.html; files with hosting references left: {left or 'none'}")
 
 
 if __name__ == "__main__":
