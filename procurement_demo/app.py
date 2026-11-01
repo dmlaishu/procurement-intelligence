@@ -126,6 +126,8 @@ def short_from_bot(ans):
     if not stm:
         return None, [], ans
     first = [s for s in stm if s["section"] == stm[0]["section"]][:3]
+    if len(first) == 1:                    # e.g. a total followed by its breakdown: take the next two lines too
+        first = stm[:3]
     text = " ".join(re.sub(r"\s+", " ", s["text"]).strip() for s in first)
     ids = list(dict.fromkeys(c for s in first for c in s["citations"]))[:2]
     srcs = []
@@ -135,9 +137,11 @@ def short_from_bot(ans):
             continue
         row = evidence_rows({i: e}, ins.project_name).iloc[0]
         label = row["project"] or row["source"]
+        if "fact_contract" in label or "dim_supplier" in label:
+            label = "World Bank contract awards (calculated from the records)"
         label += f", contract {row['contract']}" if row["contract"] else ""
         label += f", p. {row['page']}" if row["page"] else ""
-        srcs.append((f"{row['type']}: {label}", evidence_link(e)))
+        srcs.append((label if label.startswith("World Bank") else f"{row['type']}: {label}", evidence_link(e)))
     return text, srcs, ans
 
 
@@ -156,8 +160,15 @@ def short_from_docs(res):
     return text, srcs, res
 
 
+PURCHASED = re.compile(r"\b(what|which)\b.*\b(purchased|bought|procured)\b", re.I)
+
+
 def ask(question, iso3, cname, category):
     parsed = bot.parse(question)
+    if PURCHASED.search(question):    # "what was bought" is a question for the contract tables, answered exactly
+        where = parsed["countries"][0] if parsed["countries"] else None
+        question = f"Breakdown of laboratory equipment spending by equipment type in {ins.name(where) if where else cname}"
+        parsed = bot.parse(question)
     if bot.intent(question, parsed) in DATA_INTENTS:
         q = question if parsed["countries"] else f"{question} in {cname}"
         if category and category != "Procurement process and contracts" and not parsed["item_types"]:
@@ -289,11 +300,14 @@ with plan_tab:
       <div class="dcard"><small>Estimated delivery<span class="tag t-assumed">assumption</span></small><b>{fmt(ddel)}</b>
         <span>Not a prediction: the usual contracted delivery period added to the safer date.</span></div>
     </div>""", unsafe_allow_html=True)
+    mae = m.get("mae_days_model_p50", 0)
+    safer = (f"For safer planning, allow until {d80:%B %Y}." if (d80 - d50).days >= 7 else
+             f"For this purchase the safer estimate is the same date, so allow the typical margin of about {mae:.0f} days.")
     st.markdown(f'<p class="explain">Based on similar World Bank tenders, your contract could be awarded around '
-                f'{d50:%B %Y}. For safer planning, allow until {d80:%B %Y}. Delivery may take another '
-                f'{months} month{"s" if months != 1 else ""}.</p>', unsafe_allow_html=True)
+                f'{d50:%B %Y}. {safer} Delivery may take another {months} month{"s" if months != 1 else ""}.</p>',
+                unsafe_allow_html=True)
     st.markdown(f'<p class="small">Based on {bench["n"]:,} comparable historical tenders ({esc(bench["scope"])}) · '
-                f'Typical prediction error: ±{m.get("mae_days_model_p50", 0):.0f} days</p>', unsafe_allow_html=True)
+                f'Typical prediction error: ±{mae:.0f} days</p>', unsafe_allow_html=True)
 
     # ── your procurement journey: seven stages, one figure each where the data supports it ──
     figs = {f.figure: f for f in lc.figures(country, item, method, value, s)}
