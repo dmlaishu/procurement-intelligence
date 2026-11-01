@@ -249,11 +249,12 @@ class ProcurementChat:
         did = ev.add("D", f"Derived from gold.fact_contract grouped by resolved supplier (gold.dim_supplier) for "
                           f"{self.scope_text(f)}: {len(c)} contracts, {g.shape[0]} suppliers, total {money(total)}. "
                           f"Top suppliers: {rows}.", source="gold.fact_contract + gold.dim_supplier")
-        st.append(("Answer", f"{g.shape[0]} suppliers won {len(c)} contracts worth {money(total)} for "
+        st.append(("Answer", f"{plural(g.shape[0], 'supplier')} won {plural(len(c), 'contract')} worth {money(total)} for "
                              f"{self.scope_text(f)}.", [did]))
         for r in g.head(5).itertuples():
+            reach = f", {r.countries} countries" if r.countries > 1 else ""      # one country is implied by the scope
             st.append(("Top suppliers by value", f"{r.supplier} ({r.base}): {plural(r.contracts, 'contract')}, {money(r.total_usd)} "
-                                                 f"({r.total_usd / total:.0%} of value), {plural(r.countries, 'country', 'countries')}.", [did]))
+                                                 f"({r.total_usd / total:.0%} of value){reach}.", [did]))
         top5 = g.head(5).total_usd.sum() / total
         did2 = ev.add("D", f"Derived: top 5 suppliers hold {top5:.0%} of contract value ({money(g.head(5).total_usd.sum())} "
                            f"of {money(total)}).", inputs=[did])
@@ -281,12 +282,14 @@ class ProcurementChat:
                           f"{len(c)} contracts, {money(c.amount_usd.sum())}, {c.supplier_key.nunique()} suppliers, "
                           f"{c.project_id.nunique()} projects, {c.country_iso3.nunique()} countries. Groups: {rows}.",
                      source="gold.fact_contract")
-        st.append(("Answer", f"{len(c)} contracts worth {money(c.amount_usd.sum())} match {self.scope_text(f)}, "
-                             f"awarded to {c.supplier_key.nunique()} suppliers in {c.project_id.nunique()} projects and "
-                             f"{c.country_iso3.nunique()} countries.", [did]))
+        n_ctry = c.country_iso3.nunique()
+        st.append(("Answer", f"{plural(len(c), 'contract')} worth {money(c.amount_usd.sum())} match {self.scope_text(f)}, "
+                             f"awarded to {plural(c.supplier_key.nunique(), 'supplier')} across "
+                             f"{plural(c.project_id.nunique(), 'project')}"
+                             + (f" in {n_ctry} countries." if n_ctry > 1 else "."), [did]))
         shown = g if by == "year" else g.head(6)
         for k, r in shown.iterrows():
-            st.append((f"By {by.replace('_iso3', '').replace('_', ' ')}", f"{label(k)}: {int(r.contracts)} contracts, "
+            st.append((f"By {by.replace('_iso3', '').replace('_', ' ')}", f"{label(k)}: {plural(r.contracts, 'contract')}, "
                                                                            f"{money(r.total_usd)}.", [did]))
         out["table"] = g.reset_index()
 
