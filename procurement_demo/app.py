@@ -116,9 +116,39 @@ st.markdown(ui.hero([
        "tender, how it is likely to go wrong, and what past projects learned. Every figure says how it was worked out "
        "and how many records it rests on; where public data says nothing, it says Missing."), unsafe_allow_html=True)
 
-(start_tab, plan_tab, chat_tab, my_tab, ctry_tab, sup_tab, docs_tab, explore_tab, build_tab) = st.tabs(
-    ["🏠 Start", "🧭 Plan my purchase", "💬 Ask", f"📋 My plan ({len(st.session_state.my_plan)})", "🌍 Countries",
-     "🏭 Suppliers", "📄 Documents", "📊 Explore", "🏗️ How it's built & tested"])
+TAB_LABELS = ["🏠 Start", "🧭 Plan my purchase", "💬 Ask", f"📋 My plan ({len(st.session_state.my_plan)})", "🌍 Countries",
+              "🏭 Suppliers", "📄 Documents", "📊 Explore", "🏗️ How it's built & tested"]
+# deep links from the website: ?view=ask opens the assistant, ?view=plan the planner, and so on
+VIEWS = {"start": 0, "plan": 1, "design": 1, "anticipate": 1, "ask": 2, "chat": 2, "myplan": 3, "learn": 6, "countries": 4,
+         "suppliers": 5, "documents": 6, "explore": 7, "built": 8}
+view = str(st.query_params.get("view", "")).lower()
+VIEW_NOTE = {"plan": "**Stage 1 · Plan:** pick the country, equipment type and invitation date below, then read the timeline.",
+             "design": "**Stage 2 · Design:** set the method, value and bid window, then scroll to the 🔧 Tender optimizer.",
+             "anticipate": "**Stage 3 · Anticipate:** scroll to ⚠️ Pre-mortem for the ways comparable tenders went wrong.",
+             "learn": "**Stage 4 · Learn:** ask what completion reports learned; try an example question below.",
+             "ask": "**AI Assistant:** type a question, or click an example. Planning questions get a full lifecycle card."}
+if view in VIEW_NOTE and not st.session_state.get("view_note_shown"):
+    st.info(VIEW_NOTE[view] + "  Need a guide? [How to use LabProcure](https://dmlaishu.github.io/procurement-intelligence/learn/)",
+            icon="🎓")
+    st.session_state.view_note_shown = True
+q_link = str(st.query_params.get("q", ""))[:300]
+if q_link and not st.session_state.get("q_used"):        # an example sent from the website's guide: run it once
+    st.session_state.q_used = True
+    if view in ("ask", "chat"):
+        st.session_state.pending = q_link
+    elif view in ("plan", "design", "anticipate"):
+        st.session_state.plan_text = q_link
+        req = planning_request(q_link, bot.parse(q_link), require_intent=False)
+        if req:
+            st.session_state.plan_country, st.session_state.plan_item = req["country"], req["item_type"]
+            st.session_state.plan_note = f"Read as: {req['item_type']} in {ins.name(req['country'])}."
+    elif view == "learn":
+        st.session_state.doc_question = q_link
+try:
+    _tabs = st.tabs(TAB_LABELS, default=TAB_LABELS[VIEWS[view]] if view in VIEWS else None)
+except TypeError:                     # Streamlit without st.tabs(default=...)
+    _tabs = st.tabs(TAB_LABELS)
+(start_tab, plan_tab, chat_tab, my_tab, ctry_tab, sup_tab, docs_tab, explore_tab, build_tab) = _tabs
 
 
 def country_select(label, key, default="KEN", container=st):
@@ -632,8 +662,13 @@ with docs_tab:
         question = st.text_input("Your question", key="doc_question",
                                  placeholder=f"Ask anything about lab and diagnostic equipment procurement in {countries[iso3]}…")
         if question:
-            with st.spinner(f"Searching {countries[iso3]} documents…"):
-                res = docs.answer(question, iso3, None if category == "All categories" else category)
+            try:
+                with st.spinner(f"Searching {countries[iso3]} documents…"):
+                    res = docs.answer(question, iso3, None if category == "All categories" else category)
+            except Exception as e:              # e.g. the embedding model could not be downloaded on this host
+                st.error(f"Document search is unavailable right now ({str(e)[:140]}). The 💬 Ask tab still answers "
+                         "from verified lessons and report passages.")
+                res = {"note": "", "answer": [], "sources": []}       # keep rendering the other tabs
             if res["note"]:
                 st.info(res["note"])
             by_id = {src["id"]: src for src in res["sources"]}

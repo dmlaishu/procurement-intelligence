@@ -29,8 +29,11 @@ questions in which every statement cites its evidence and is checked against it.
 
 The static website in [deliverables/site/](deliverables/site/) has three pages: the **LabProcure landing page**
 (`index.html`, built by `python src/build_landing.py` from `src/landing_template.html`; its timeline, optimizer heatmap,
-pre-mortem and trust figures are computed from the stored records), the browser-only chatbot (`ask/`) and the report
-(`report.html`). Host the folder on any static host.
+pre-mortem and trust figures are computed from the stored records) with two entry points, **AI Assistant** (opens the
+app on the Ask tab) and **Learn how to use it** (`learn/`, an interactive four-stage guide: Plan, Design, Anticipate,
+Learn, each with steps and an example that opens the app pre-filled), the browser-only chatbot (`ask/`) and the report
+(`report.html`). The app accepts deep links: `?view=ask|plan|design|anticipate|learn|countries|suppliers|myplan` and
+an optional `&q=` example to run. Host the folder on any static host.
 
 ## Try it
 
