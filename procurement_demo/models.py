@@ -246,29 +246,35 @@ def _load(name):
     return _LOADED[key]
 
 
-def score(package: dict, t_features: pd.DataFrame | None = None):
-    """Score one new package (dict with the CAT/NUM feature inputs we know at planning time)."""
+def score_many(packages: list[dict]) -> pd.DataFrame:
+    """Score many packages in one pass (same models and rules as score(); one row per package)."""
     enc = Encoder()
     enc.__dict__.update(_load("encoder"))
-    row = pd.DataFrame([package])
+    rows = pd.DataFrame(packages).reset_index(drop=True)
     for c in CAT_FEATURES:
-        v = str(row.at[0, c]) if c in row and pd.notna(row.at[0, c]) else "missing"
-        row[c] = v if v in enc.levels[c] else ("other" if "other" in enc.levels[c] else "missing")
+        vals = rows[c] if c in rows else pd.Series([np.nan] * len(rows))
+        fallback = "other" if "other" in enc.levels[c] else "missing"
+        rows[c] = [(str(v) if str(v) in enc.levels[c] else fallback) if pd.notna(v) else "missing" for v in vals]
     for c in NUM_FEATURES:
-        if c not in row:
-            row[c] = np.nan
-    x = enc.transform(row)
-    out = {f"cycle_p{q}": float(np.expm1(_load(f"cycle_p{q}").predict(x)[0])) for q in (50, 80)}
+        if c not in rows:
+            rows[c] = np.nan
+    x = enc.transform(rows)
+    out = pd.DataFrame({f"cycle_p{q}": np.expm1(_load(f"cycle_p{q}").predict(x)) for q in (50, 80)})
     # the two quantile models are trained separately and can cross; a P80 below the P50 is not a valid range
-    out["cycle_p80"] = max(out["cycle_p80"], out["cycle_p50"])
+    out["cycle_p80"] = np.maximum(out["cycle_p80"], out["cycle_p50"])
     for name in ("single_bid", "rebid", "amendment"):
         d = _load(name)
         if d is not None:
-            p = d["model"].predict_proba(x)[0, 1]
+            p = d["model"].predict_proba(x)[:, 1]
             odds = p / (1 - p + 1e-9) * (d["prior"] / (1 - d["prior"]))
-            out[f"{name}_prob"] = float(odds / (1 + odds))
+            out[f"{name}_prob"] = odds / (1 + odds)
             out[f"{name}_base_rate"] = d["prior"]
     return out
+
+
+def score(package: dict, t_features: pd.DataFrame | None = None):
+    """Score one new package (dict with the CAT/NUM feature inputs we know at planning time)."""
+    return {k: float(v) for k, v in score_many([package]).iloc[0].items()}
 
 
 if __name__ == "__main__":

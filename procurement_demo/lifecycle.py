@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 
 from .insights import MIN_N, build_package, km, project_url
-from .models import score
+from .models import score, score_many
 
 STAGES = ["Planning", "Tender design", "Bidding & evaluation", "Award & contract", "Delivery", "Monitoring", "Learning"]
 SATISFACTORY = {"highly satisfactory", "satisfactory", "moderately satisfactory"}
@@ -220,29 +220,31 @@ class Lifecycle:
             {"step": "1 Bidding period", "start": od, "end": deadline, "kind": "Derived", "note": f"median bid window {window:.0f} days"},
             {"step": "2 Evaluation → award (likely)", "start": deadline, "end": max(p50, deadline), "kind": "Model", "note": "to the P50 award date"},
             {"step": "3 Award risk window", "start": max(p50, deadline), "end": max(p80, deadline), "kind": "Model", "note": "P50 → P80: plan for this"},
-            {"step": "4 Delivery (after P80 award)", "start": max(p80, deadline),
-             "end": max(p80, deadline) + timedelta(days=round(months * 30.44)), "kind": "Derived",
-             "note": f"median contract duration {months:.1f} months"},
+            # an assumption, not a prediction: award notices give the contracted period, and actual delivery dates are
+            # not in public data
+            {"step": "4 Delivery (assumed)", "start": max(p80, deadline),
+             "end": max(p80, deadline) + timedelta(days=round(months * 30.44)), "kind": "Assumption",
+             "note": f"assumes the median contracted period of {months:.1f} months from award notices; actual delivery "
+                     "dates are not in public data"},
         ])
 
     # ── what-if optimizer ────────────────────────────────────────────────────────────────────────
     def optimize(self, country, item_type, method, value_usd, open_date, review="Post", bid_window=30):
         """Score the choices a planner controls. Review type is set by the Bank's thresholds, so it is held fixed."""
         methods = [m for m in ("RFB", "RFQ", "ICB") if m in dict(self.ins.methods())]
-        rows = []
+        rows, pkgs = [], []
         for m in methods:
             for w in (21, 30, 45, 60):
                 for lots in (1, 2, 3):
                     desc = (f"Supply and installation of {item_type.lower()} for public health laboratories"
                             + (f", {lots} lots" if lots > 1 else ""))
-                    pkg = build_package(country, item_type, m, value_usd / lots, description=desc, review_type=review,
-                                        planned_open_date=open_date, bid_window_days=w, projects=self.projects)
-                    s = score(pkg)
-                    rows.append({"method": m, "bid window (days)": w, "lots": lots, "value per lot": value_usd / lots,
-                                 "P50 days": s["cycle_p50"], "P80 days": s["cycle_p80"],
-                                 "single-bid risk": s.get("single_bid_prob", np.nan),
-                                 "base rate": s.get("single_bid_base_rate", np.nan)})
-        df = pd.DataFrame(rows)
+                    pkgs.append(build_package(country, item_type, m, value_usd / lots, description=desc, review_type=review,
+                                              planned_open_date=open_date, bid_window_days=w, projects=self.projects))
+                    rows.append({"method": m, "bid window (days)": w, "lots": lots, "value per lot": value_usd / lots})
+        sc = score_many(pkgs)
+        df = pd.DataFrame(rows).assign(**{"P50 days": sc.cycle_p50, "P80 days": sc.cycle_p80,
+                                          "single-bid risk": sc.get("single_bid_prob", np.nan),
+                                          "base rate": sc.get("single_bid_base_rate", np.nan)})
         # a method is only a realistic choice inside the contract sizes it has actually been used for (RFQ for small,
         # off-the-shelf purchases, RFB above that): the 10th-90th percentile of awarded goods tenders by method. A method
         # with fewer than 30 sized awards (ICB under the old guidelines) has no evidence and is not recommended.
@@ -313,7 +315,7 @@ def plan_record(country_name, item_type, method, value_usd, open_date, scores, t
     return {"package": f"{item_type} · {country_name}", "method": method, "estimated value (US$)": round(value_usd),
             "invitation": pd.Timestamp(open_date).date(), "award P50 (days)": round(scores["cycle_p50"]),
             "award P80 (days)": round(scores["cycle_p80"]), "award by (P80)": award80.date(),
-            "delivered by": delivered.date(), "single-bid risk vs usual":
+            "delivery, assumed (P80 award + contract period)": delivered.date(), "single-bid risk vs usual":
                 f"{scores.get('single_bid_prob', float('nan')):.0%} vs {scores.get('single_bid_base_rate', float('nan')):.0%}"}
 
 

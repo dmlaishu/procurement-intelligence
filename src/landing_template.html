@@ -4,238 +4,207 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>LabProcure · Procurement, predicted</title>
-<meta name="description" content="Plan a laboratory or diagnostic equipment purchase end to end, from invitation to delivery, with every figure traced to World Bank records.">
+<meta name="description" content="Enter the lab equipment, country and budget: get a dated procurement plan with its historical evidence and its uncertainty, from World Bank records.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --black:#000;--ink:#1d1d1f;--ink2:#6e6e73;--paper:#f5f5f7;--white:#fff;--line:rgba(0,0,0,.08);
-  --indigo:#5b5bf7;--violet:#a855f7;--emerald:#10b981;--cyan:#22d3ee;--amber:#f59e0b;--red:#ef4444;
+  --ink:#1d1d1f;--ink2:#6e6e73;--paper:#f5f5f7;--line:rgba(0,0,0,.09);--indigo:#5b5bf7;
   --grad:linear-gradient(100deg,#7c7cff 0%,#a855f7 30%,#22d3ee 65%,#34d399 100%);
   --font:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  --ease:cubic-bezier(.22,.61,.36,1);
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--ease:cubic-bezier(.22,.61,.36,1);
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
-body{margin:0;font-family:var(--font);color:var(--ink);background:var(--white);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body{margin:0;font-family:var(--font);color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 a{color:inherit;text-decoration:none}
-img,svg{display:block}
-.wrap{max-width:1080px;margin:0 auto;padding:0 22px}
-.dark{background:var(--black);color:#f5f5f7}
-.paper{background:var(--paper)}
-.center{text-align:center}
+.wrap{max-width:1140px;margin:0 auto;padding:0 20px}
+.dark{background:#000;color:#f5f5f7}.paper{background:var(--paper)}.center{text-align:center}
 section{position:relative}
 
 /* nav */
 nav.top{position:fixed;inset:0 0 auto 0;z-index:50;height:48px;display:flex;align-items:center;
-  background:rgba(22,22,23,.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);color:#e8e8ed}
-nav.top .wrap{display:flex;align-items:center;gap:26px;width:100%}
-nav.top .brand{font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+  background:rgba(22,22,23,.76);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);color:#e8e8ed}
+nav.top .wrap{display:flex;align-items:center;gap:22px;width:100%}
+nav.top .brand{font-weight:700;display:flex;align-items:center;gap:8px}
 nav.top .brand i{width:18px;height:18px;border-radius:6px;background:var(--grad);display:inline-block;animation:spin 8s linear infinite}
-nav.top .links{display:flex;gap:22px;font-size:12px;opacity:.85;margin-left:auto}
-nav.top .links a:hover{opacity:1;color:#fff}
-nav.top .cta{margin-left:18px;font-size:12px;background:var(--indigo);color:#fff;border-radius:999px;padding:5px 13px}
+nav.top .links{display:flex;gap:20px;font-size:12px;margin-left:auto}
+nav.top .links a{opacity:.85}nav.top .links a:hover{opacity:1;color:#fff}
+nav.top .cta{font-size:12px;background:var(--indigo);color:#fff;border-radius:999px;padding:5px 13px}
 @media (max-width:760px){nav.top .links{display:none}nav.top .cta{margin-left:auto}}
 
 /* type */
-.kicker{font-size:21px;font-weight:600;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin:0 0 8px}
-h1.hero{font-size:clamp(48px,9vw,104px);line-height:1.02;font-weight:800;letter-spacing:-.045em;margin:0}
-h2.big{font-size:clamp(38px,6vw,64px);line-height:1.06;font-weight:700;letter-spacing:-.035em;margin:0 0 14px}
-h3.mid{font-size:clamp(26px,3.4vw,40px);line-height:1.1;font-weight:700;letter-spacing:-.025em;margin:0 0 10px}
-.lede{font-size:clamp(19px,2.2vw,24px);line-height:1.38;color:var(--ink2);font-weight:500;max-width:760px;margin:0 auto}
+.kicker{font-size:17px;font-weight:600;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin:0 0 6px}
+h1.hero{font-size:clamp(44px,7.4vw,88px);line-height:1.02;font-weight:800;letter-spacing:-.045em;margin:0}
+h2.big{font-size:clamp(30px,4.4vw,48px);line-height:1.08;font-weight:700;letter-spacing:-.035em;margin:0 0 10px}
+.lede{font-size:clamp(17px,1.8vw,20px);line-height:1.45;color:var(--ink2);font-weight:500;max-width:780px;margin:0 auto}
 .dark .lede{color:#a1a1a6}
 .gradtext{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;background-size:200% auto;animation:sheen 8s linear infinite}
 
-/* buttons */
-.btns{display:flex;gap:18px;justify-content:center;align-items:center;margin-top:26px;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:12px 24px;font-size:17px;font-weight:500;
-  background:var(--indigo);color:#fff;transition:transform .25s var(--ease),box-shadow .25s;will-change:transform;position:relative;overflow:hidden}
-.btn:hover{box-shadow:0 10px 30px -8px rgba(91,91,247,.7)}
+/* hero */
+.hero-sec{padding:96px 0 44px;overflow:hidden}
+#swirl{position:absolute;inset:0;width:100%;height:100%}
+.hero-sec .wrap{position:relative;z-index:2}
+.hero-sub{font-size:clamp(17px,2vw,22px);font-weight:500;color:#a1a1a6;max-width:800px;margin:14px auto 0;line-height:1.4}
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:13px 26px;font-size:17px;font-weight:600;border:0;cursor:pointer;
+  background:var(--indigo);color:#fff;transition:transform .25s var(--ease),box-shadow .25s;font-family:inherit;position:relative;overflow:hidden}
+.btn:hover{box-shadow:0 10px 30px -8px rgba(91,91,247,.75);transform:translateY(-2px)}
+.btn.big{font-size:19px;padding:16px 32px}
 .btn::after{content:"";position:absolute;inset:-2px;background:conic-gradient(from var(--a,0deg),transparent 0 70%,rgba(255,255,255,.55) 80%,transparent 90%);
   opacity:0;transition:opacity .3s;animation:swirl 1.6s linear infinite;mix-blend-mode:overlay}
 .btn:hover::after{opacity:1}
-.link{font-size:17px;color:#2997ff}
-.paper .link,.light .link{color:#0066cc}
-.link:hover{text-decoration:underline}
-
-/* hero */
-.hero-sec{min-height:100vh;display:flex;align-items:center;padding:120px 0 60px;overflow:hidden}
-#swirl{position:absolute;inset:0;width:100%;height:100%}
-.hero-sec .wrap{position:relative;z-index:2}
-.hero-sub{font-size:clamp(20px,2.6vw,28px);font-weight:500;color:#a1a1a6;max-width:780px;margin:18px auto 0;line-height:1.3}
-.scrollcue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);font-size:12px;color:#86868b;z-index:2;animation:bob 2.4s ease-in-out infinite}
-
-/* two doors: assistant and guide */
-.doors{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:820px;margin:34px auto 0}
-@media (max-width:700px){.doors{grid-template-columns:1fr}}
-.door{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:30px 26px 26px;border-radius:28px;
-  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  transition:transform .45s var(--ease),background .3s;overflow:hidden;isolation:isolate}
-.door:hover{background:rgba(255,255,255,.08);transform:translateY(-6px)}
-.door::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:2px;pointer-events:none;
+.ctas{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:24px}
+.doors{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.door{position:relative;display:flex;align-items:center;gap:12px;padding:10px 18px 10px 10px;border-radius:999px;text-align:left;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);transition:transform .35s var(--ease),background .3s;isolation:isolate}
+.door:hover{transform:translateY(-3px);background:rgba(255,255,255,.1)}
+.door::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;pointer-events:none;
   background:conic-gradient(from var(--a,0deg),#7c7cff,#a855f7,#22d3ee,#34d399,#f59e0b,#7c7cff);
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .4s}
-.door:hover::after{opacity:1;animation:swirl 2s linear infinite}
-.door::before{content:"";position:absolute;inset:0;z-index:-1;opacity:0;transition:opacity .4s;
-  background:radial-gradient(300px circle at var(--mx,50%) var(--my,50%),rgba(124,124,255,.28),transparent 60%)}
-.door:hover::before{opacity:1}
-.door .orb{width:78px;height:78px;border-radius:50%;display:grid;place-items:center;position:relative;margin-bottom:6px;
-  background:radial-gradient(circle at 30% 30%,#2a2a6a,#0b0b1a)}
-.door .orb::before{content:"";position:absolute;inset:-5px;border-radius:50%;z-index:-1;filter:blur(6px);
-  background:conic-gradient(from var(--a,0deg),#7c7cff,#22d3ee,#34d399,#a855f7,#7c7cff);animation:swirl 4s linear infinite;opacity:.75}
-.door:hover .orb::before{animation-duration:1.1s;opacity:1}
-.door .orb svg{width:36px;height:36px;fill:none;stroke:#fff;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;transition:transform .9s var(--ease)}
-.door:hover .orb svg{transform:rotate(360deg) scale(1.08)}
-.door b{font-size:24px;letter-spacing:-.02em;color:#fff}
-.door small{color:#a1a1a6;font-size:15px;line-height:1.45;max-width:320px}
-.door em{font-style:normal;color:#2997ff;font-size:16px;margin-top:6px}
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .3s}
+.door:hover::after{opacity:1;animation:swirl 1.8s linear infinite}
+.orb{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;position:relative;flex:none;background:radial-gradient(circle at 30% 30%,#2a2a6a,#0b0b1a)}
+.orb::before{content:"";position:absolute;inset:-3px;border-radius:50%;z-index:-1;filter:blur(4px);
+  background:conic-gradient(from var(--a,0deg),#7c7cff,#22d3ee,#34d399,#a855f7,#7c7cff);animation:swirl 4s linear infinite;opacity:.8}
+.door:hover .orb::before{animation-duration:1s}
+.orb svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;transition:transform .8s var(--ease)}
+.door:hover .orb svg{transform:rotate(360deg)}
+.door b{display:block;font-size:15px;color:#fff}.door small{font-size:12.5px;color:#a1a1a6}
+.facts{margin-top:22px;font-size:13.5px;color:#86868b}
+.facts b{color:#e5e5ea;font-weight:600}
 
-/* stats strip */
-.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:rgba(255,255,255,.08);border-radius:22px;overflow:hidden;margin-top:56px}
-.stat{background:#0b0b0d;padding:26px 18px;text-align:center}
-.stat b{display:block;font-size:clamp(28px,3.6vw,44px);font-weight:700;letter-spacing:-.03em}
-.stat small{color:#86868b;font-size:14px}
-@media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.stat:last-child{grid-column:span 2}}
+/* planner */
+.planner{padding:56px 0 64px}
+.phead{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:18px}
+.phead p{margin:0;color:var(--ink2);font-size:16px;max-width:640px;line-height:1.45}
+.legend{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--ink2)}
+.form{display:grid;grid-template-columns:1.1fr 1.4fr 1fr 1fr .8fr 1fr;gap:12px;background:#fff;border-radius:22px;padding:16px;
+  box-shadow:0 1px 0 var(--line),0 24px 50px -30px rgba(0,0,0,.25)}
+@media (max-width:980px){.form{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:560px){.form{grid-template-columns:1fr 1fr}}
+.form label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:var(--ink2)}
+.form select,.form input{font:500 15px var(--font);color:var(--ink);background:var(--paper);border:1px solid transparent;border-radius:12px;padding:10px 11px;width:100%;min-width:0}
+.form select:focus,.form input:focus{outline:none;border-color:var(--indigo);background:#fff}
+.form .hint{font-weight:500;font-size:11.5px;color:#8e8e93;min-height:14px}
+.results{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media (max-width:900px){.results{grid-template-columns:1fr}}
+.panel{background:#fff;border-radius:22px;padding:22px;box-shadow:0 1px 0 var(--line),0 24px 50px -32px rgba(0,0,0,.25);position:relative;overflow:hidden}
+.panel h3{margin:0 0 14px;font-size:19px;letter-spacing:-.02em}
+.panel h3 small{font-weight:500;color:var(--ink2);font-size:13px;margin-left:6px}
+.dates{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:560px){.dates{grid-template-columns:1fr}}
+.date{border-radius:16px;padding:12px 13px;background:var(--paper);position:relative}
+.date.main{background:linear-gradient(135deg,rgba(91,91,247,.12),rgba(34,211,238,.1));outline:1.5px solid rgba(91,91,247,.35)}
+.date .lab{font-size:12px;font-weight:600;color:var(--ink2);display:block}
+.date b{display:block;font-size:22px;letter-spacing:-.02em;margin:3px 0 2px}
+.date .sub{font-size:12px;color:var(--ink2);line-height:1.35}
+.date .badge{margin-bottom:6px}
+.bar{position:relative;height:34px;margin:16px 0 6px;border-radius:10px;background:var(--paper);overflow:hidden}
+.seg{position:absolute;top:0;bottom:0;transition:left .5s var(--ease),width .5s var(--ease)}
+.seg.b{background:#34d399}.seg.e{background:linear-gradient(90deg,#5b5bf7,#8b5cf6)}
+.seg.r{background:repeating-linear-gradient(135deg,rgba(91,91,247,.5) 0 7px,rgba(91,91,247,.25) 7px 14px)}
+.seg.d{background:repeating-linear-gradient(135deg,#d1d5db 0 7px,#e5e7eb 7px 14px)}
+.err{position:absolute;top:6px;bottom:6px;border-left:2px solid #111;border-right:2px solid #111;opacity:.55;transition:left .5s,width .5s}
+.err::before{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px solid #111}
+.barkey{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink2)}
+.barkey i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.acc{margin-top:12px;border-radius:14px;padding:12px 14px;background:rgba(91,91,247,.07);font-size:13.5px;line-height:1.5}
+.warn{margin-top:10px;border-radius:12px;padding:9px 12px;background:rgba(245,158,11,.12);color:#92400e;font-size:13px;line-height:1.45;display:none}
+.badge{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:600;white-space:nowrap;vertical-align:1px}
+.b-d{background:rgba(16,185,129,.14);color:#047857}.b-m{background:rgba(91,91,247,.14);color:#4338ca}
+.b-e{background:rgba(245,158,11,.16);color:#b45309}.b-x{border:1.5px dashed #ef4444;color:#dc2626;padding:0 7px}
+.b-a{background:#eceff3;color:#4b5563;border:1px dashed #9ca3af;padding:0 7px}
+table.ev{width:100%;border-collapse:collapse;font-size:13.5px}
+table.ev td{padding:8px 6px;border-top:1px solid var(--line);vertical-align:top;line-height:1.4}
+table.ev td:first-child{color:var(--ink2);width:34%}
+table.ev td.v{font-family:var(--mono);font-weight:600;white-space:nowrap;width:20%}
+table.ev small{color:#8e8e93}
+.grid2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:16px}
+@media (max-width:980px){.grid2{grid-template-columns:1fr}}
+table.cmp{width:100%;border-collapse:collapse;font-size:13.5px}
+table.cmp th{font-size:11.5px;text-align:left;color:var(--ink2);font-weight:600;padding:4px 6px}
+table.cmp td{padding:7px 6px;border-top:1px solid var(--line)}
+table.cmp tr.row{cursor:pointer;transition:background .2s}
+table.cmp tr.row:hover{background:rgba(91,91,247,.06)}
+table.cmp tr.cur td{font-weight:700}
+table.cmp tr.best td:first-child::before{content:"★ ";color:#10b981}
+table.cmp tr.out td{color:#b0b0b5}
+.risk{margin:0 0 12px}
+.risk .row{display:flex;justify-content:space-between;font-weight:600;font-size:14px;margin-bottom:5px}
+.risk .meter{height:8px;border-radius:5px;background:var(--paper);overflow:hidden}
+.risk .meter i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,#f59e0b,#ef4444);transition:width .6s var(--ease)}
+.risk small{color:#8e8e93;font-size:11.5px}
+.rec{font-size:13px;padding:8px 0;border-top:1px solid var(--line);line-height:1.4}
+.rec b{font-weight:600}.rec a{color:#0066cc}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;align-items:center}
+.actions .btn{font-size:14.5px;padding:10px 16px}
+.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.ghost:hover{box-shadow:0 10px 26px -14px rgba(0,0,0,.35)}
+.saved{margin-top:14px;display:none}
+.saved table{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:14px;overflow:hidden}
+.saved th,.saved td{padding:8px 10px;text-align:left;border-top:1px solid var(--line)}
+.saved th{font-size:11.5px;color:var(--ink2);border-top:0}
+.saved td button{border:0;background:none;color:#dc2626;cursor:pointer;font:inherit}
+.loading{color:var(--ink2);font-size:14px;padding:30px;text-align:center}
 
-/* scroll statement */
-.statement{padding:150px 0}
-.statement p{font-size:clamp(30px,4.6vw,56px);line-height:1.12;font-weight:700;letter-spacing:-.03em;margin:0}
-.statement .w{color:#d2d2d7;transition:color .4s}
-.statement .w.on{color:var(--ink)}
-.statement .w.on.hl{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
-
-/* generic section spacing */
-.sec{padding:130px 0}
-.split{display:grid;grid-template-columns:1fr 1.25fr;gap:48px;align-items:center}
-@media (max-width:860px){.split{grid-template-columns:1fr}}
-
-/* glass card that follows the cursor */
-.card{position:relative;border-radius:28px;background:var(--white);padding:30px;overflow:hidden;
-  box-shadow:0 1px 0 var(--line),0 30px 60px -30px rgba(0,0,0,.18);transform-style:preserve-3d;transition:transform .35s var(--ease)}
-.dark .card{background:#101012;box-shadow:0 0 0 1px rgba(255,255,255,.07)}
+/* accuracy */
+.sec{padding:72px 0}
+.meaning{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:30px;text-align:left}
+@media (max-width:860px){.meaning{grid-template-columns:1fr}}
+.card{position:relative;border-radius:22px;background:#101012;padding:22px;box-shadow:0 0 0 1px rgba(255,255,255,.07);overflow:hidden}
 .card::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .35s;
-  background:radial-gradient(420px circle at var(--mx,50%) var(--my,50%),rgba(124,124,255,.16),transparent 45%)}
+  background:radial-gradient(360px circle at var(--mx,50%) var(--my,50%),rgba(124,124,255,.18),transparent 45%)}
 .card:hover::before{opacity:1}
+.card h4{margin:8px 0 6px;font-size:18px}.card p{margin:0;color:#a1a1a6;font-size:14.5px;line-height:1.5}
+.nums{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:14px}
+@media (max-width:860px){.nums{grid-template-columns:repeat(2,1fr)}}
+.nums .card b{display:block;font-size:clamp(30px,3.6vw,44px);font-weight:800;letter-spacing:-.04em;line-height:1.05}
+.nums .card span{display:block;margin-top:8px;color:#a1a1a6;font-size:13.5px;line-height:1.4}
 
-/* timeline */
-.gantt{display:grid;gap:14px}
-.grow{display:grid;grid-template-columns:150px 1fr;align-items:center;gap:14px;font-size:13px;color:var(--ink2)}
-.track{position:relative;height:30px;border-radius:9px;background:rgba(0,0,0,.04)}
-.dark .track{background:rgba(255,255,255,.05)}
-.bar{position:absolute;top:0;bottom:0;border-radius:9px;transform-origin:left;transform:scaleX(0);transition:transform 1.1s var(--ease)}
-.in .bar{transform:scaleX(1)}
-.bar.d{background:linear-gradient(90deg,#10b981,#34d399)}
-.bar.m{background:linear-gradient(90deg,#5b5bf7,#8b5cf6)}
-.bar.r{background:repeating-linear-gradient(135deg,rgba(91,91,247,.45) 0 8px,rgba(91,91,247,.25) 8px 16px)}
-.dates{display:flex;justify-content:space-between;font-size:12px;color:var(--ink2);margin:10px 0 0 164px}
-.milestones{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:22px}
-.ms{border-radius:16px;background:rgba(0,0,0,.035);padding:14px}
-.ms b{display:block;font-size:22px;letter-spacing:-.02em}
-.ms small{color:var(--ink2)}
-
-/* badges */
-.badges{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:46px}
-@media (max-width:860px){.badges{grid-template-columns:repeat(2,1fr)}}
-.badge{border-radius:999px;padding:3px 11px;font-size:13px;font-weight:600;display:inline-block}
-.b-d{background:rgba(16,185,129,.14);color:#059669}
-.b-m{background:rgba(91,91,247,.14);color:#4f46e5}
-.b-e{background:rgba(245,158,11,.16);color:#b45309}
-.b-x{border:1.5px dashed #ef4444;color:#ef4444}
-
-/* tiles (product grid) */
-.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+/* tiles */
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:28px}
 @media (max-width:900px){.tiles{grid-template-columns:repeat(2,1fr)}}
-@media (max-width:600px){.tiles{grid-template-columns:1fr}}
-.tile{position:relative;border-radius:28px;padding:34px 28px 30px;min-height:300px;background:var(--white);overflow:hidden;isolation:isolate;
-  display:flex;flex-direction:column;transition:transform .45s var(--ease),box-shadow .45s;transform-style:preserve-3d}
-.paper .tile{background:#fff}
-.tile:hover{box-shadow:0 40px 80px -40px rgba(60,60,120,.45)}
-/* swirling border */
+@media (max-width:560px){.tiles{grid-template-columns:1fr}}
+.tile{position:relative;border-radius:22px;padding:22px;background:#fff;overflow:hidden;isolation:isolate;display:flex;gap:14px;align-items:flex-start;
+  transition:transform .4s var(--ease),box-shadow .4s}
+.tile:hover{box-shadow:0 30px 60px -34px rgba(60,60,120,.5);transform:translateY(-4px)}
 .tile::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:2px;z-index:2;pointer-events:none;
   background:conic-gradient(from var(--a,0deg),#7c7cff,#a855f7,#22d3ee,#34d399,#f59e0b,#7c7cff);
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;
-  opacity:0;transition:opacity .4s}
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .4s}
 .tile:hover::after{opacity:1;animation:swirl 2.2s linear infinite}
-/* cursor glow */
-.tile::before{content:"";position:absolute;inset:0;z-index:-1;opacity:0;transition:opacity .4s;
-  background:radial-gradient(380px circle at var(--mx,50%) var(--my,50%),rgba(124,124,255,.18),rgba(34,211,238,.08) 40%,transparent 65%)}
-.tile:hover::before{opacity:1}
-.icon{width:62px;height:62px;border-radius:18px;display:grid;place-items:center;position:relative;margin-bottom:22px;
-  background:linear-gradient(145deg,#eef0ff,#f4fbff);transition:transform .7s var(--ease)}
-.icon::before{content:"";position:absolute;inset:-6px;border-radius:24px;background:conic-gradient(from var(--a,0deg),transparent,#7c7cff,#22d3ee,#34d399,transparent 70%);
-  filter:blur(8px);opacity:0;transition:opacity .4s;z-index:-1}
-.tile:hover .icon{transform:rotate(-8deg) scale(1.08)}
-.tile:hover .icon::before{opacity:.9;animation:swirl 1.4s linear infinite}
-.icon svg{width:30px;height:30px;stroke:url(#ig);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .9s var(--ease)}
+.icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;flex:none;background:linear-gradient(145deg,#eef0ff,#f0fbff);transition:transform .6s var(--ease)}
+.tile:hover .icon{transform:rotate(-10deg) scale(1.08)}
+.icon svg{width:24px;height:24px;stroke:url(#ig);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .9s var(--ease)}
 .tile:hover .icon svg{transform:rotate(360deg)}
-.tile h4{font-size:24px;letter-spacing:-.02em;margin:0 0 8px}
-.tile p{color:var(--ink2);margin:0 0 18px;line-height:1.45;font-size:16px}
-.tile .link{margin-top:auto}
+.tile h4{font-size:17px;margin:2px 0 4px}.tile p{color:var(--ink2);margin:0;font-size:14px;line-height:1.45}
+.tile em{font-style:normal;color:#0066cc;font-size:13.5px;display:block;margin-top:6px}
 
-/* heatmap */
-.heat{display:grid;grid-template-columns:60px repeat(4,1fr);gap:6px;font-size:12px;color:#86868b}
-.heat .cell{height:54px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:600;font-size:14px;
-  transform:scale(.6);opacity:0;transition:transform .6s var(--ease),opacity .6s,box-shadow .3s;cursor:default}
-.in .heat .cell{transform:scale(1);opacity:1}
-.heat .cell:hover{transform:scale(1.08)!important;box-shadow:0 0 0 2px #fff,0 0 30px rgba(124,124,255,.8)}
-.heat .cell.best{box-shadow:0 0 0 2px #fff,0 0 28px rgba(52,211,153,.9)}
-.heat .lab{display:grid;place-items:center}
-.winner{margin-top:22px;border-radius:18px;padding:16px 18px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.35);color:#d1fae5;font-size:15px;line-height:1.45}
-
-/* risks */
-.risk{margin:0 0 18px}
-.risk .row{display:flex;justify-content:space-between;font-weight:600;font-size:17px;margin-bottom:8px}
-.risk .meter{height:10px;border-radius:6px;background:rgba(0,0,0,.06);overflow:hidden}
-.risk .meter i{display:block;height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,#f59e0b,#ef4444);transition:width 1.2s var(--ease)}
-.risk small{color:var(--ink2)}
-.quote{border-left:3px solid var(--indigo);padding:6px 0 6px 16px;margin:0 0 16px;font-size:15px;line-height:1.5;color:#3a3a3c}
-.quote small{display:block;color:var(--ink2);margin-top:4px}
-
-/* trust numbers */
-.trust{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:56px}
-@media (max-width:860px){.trust{grid-template-columns:1fr}}
-.trust .card{padding:34px 28px}
-.trust b{display:block;white-space:nowrap;font-size:clamp(40px,5vw,64px);font-weight:800;letter-spacing:-.045em;line-height:1}
-.trust .desc{display:block;margin-top:12px;color:#a1a1a6;font-size:16px;line-height:1.4}
-
-/* tech chips */
-.chips{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:40px}
-.chip{position:relative;border-radius:999px;padding:12px 20px;background:#fff;font-weight:600;font-size:15px;box-shadow:0 1px 0 var(--line),0 10px 30px -18px rgba(0,0,0,.3);
-  transition:transform .35s var(--ease);isolation:isolate}
+.chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:24px}
+.chip{position:relative;border-radius:999px;padding:9px 16px;background:#fff;font-weight:600;font-size:14px;box-shadow:0 1px 0 var(--line),0 8px 24px -16px rgba(0,0,0,.3);transition:transform .3s}
 .chip::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:2px;pointer-events:none;
   background:conic-gradient(from var(--a,0deg),#7c7cff,#22d3ee,#34d399,#f59e0b,#a855f7,#7c7cff);
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;
-  opacity:0;transition:opacity .3s}
-.chip:hover{box-shadow:0 14px 34px -14px rgba(91,91,247,.55)}
-.chip:hover{transform:translateY(-3px)}
-.chip:hover::after{opacity:1;animation:swirl 1.2s linear infinite}
-.chip small{color:var(--ink2);font-weight:500;margin-left:6px}
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .3s}
+.chip:hover{transform:translateY(-3px)}.chip:hover::after{opacity:1;animation:swirl 1.2s linear infinite}
+.chip small{color:var(--ink2);font-weight:500;margin-left:5px}
+.link{color:#2997ff;font-size:16px}.paper .link{color:#0066cc}.link:hover{text-decoration:underline}
+footer{background:var(--paper);color:var(--ink2);font-size:12px;padding:22px 0 34px;line-height:1.5}
+footer .wrap{border-top:1px solid var(--line);padding-top:16px}
 
-/* click swirl */
+/* effects */
+#cursor{position:fixed;left:0;top:0;width:320px;height:320px;margin:-160px 0 0 -160px;border-radius:50%;pointer-events:none;z-index:1;
+  background:radial-gradient(circle,rgba(124,124,255,.12),rgba(34,211,238,.05) 40%,transparent 65%);opacity:0}
+@media (pointer:fine){#cursor{opacity:1}}
 .burst{position:fixed;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;pointer-events:none;z-index:99;
   background:conic-gradient(from var(--a,0deg),#7c7cff,#a855f7,#22d3ee,#34d399,#f59e0b,#7c7cff);
   -webkit-mask:radial-gradient(circle,transparent 55%,#000 57%);mask:radial-gradient(circle,transparent 55%,#000 57%);
   animation:burst .75s var(--ease) forwards,swirl .75s linear}
-/* cursor */
-#cursor{position:fixed;left:0;top:0;width:340px;height:340px;margin:-170px 0 0 -170px;border-radius:50%;pointer-events:none;z-index:1;
-  background:radial-gradient(circle,rgba(124,124,255,.13),rgba(34,211,238,.06) 40%,transparent 65%);transition:opacity .4s;opacity:0}
-@media (pointer:fine){#cursor{opacity:1}}
-
-/* reveal */
-.rv{opacity:0;transform:translateY(40px);transition:opacity 1s var(--ease),transform 1s var(--ease)}
-.rv.in{opacity:1;transform:none}
-.rv.d1{transition-delay:.1s}.rv.d2{transition-delay:.2s}.rv.d3{transition-delay:.3s}
-
-footer{background:var(--paper);color:var(--ink2);font-size:12px;padding:28px 0 40px;line-height:1.5}
-footer .wrap{border-top:1px solid var(--line);padding-top:18px}
-
+.flash{animation:flash .6s var(--ease)}
 @property --a{syntax:"<angle>";inherits:false;initial-value:0deg}
 @keyframes swirl{to{--a:360deg}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes sheen{to{background-position:200% center}}
 @keyframes burst{to{transform:scale(7);opacity:0}}
-@keyframes bob{50%{transform:translate(-50%,6px)}}
-@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.rv{opacity:1;transform:none}.bar{transform:none}.heat .cell{opacity:1;transform:none}}
+@keyframes flash{from{background:rgba(91,91,247,.18)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
@@ -245,287 +214,287 @@ footer .wrap{border-top:1px solid var(--line);padding-top:18px}
 
 <nav class="top"><div class="wrap">
   <a class="brand" href="#top"><i></i>LabProcure</a>
-  <div class="links"><a href="#plan">Plan</a><a href="#evidence">Evidence</a><a href="#optimizer">Optimizer</a><a href="#premortem">Pre-mortem</a><a href="#features">Features</a><a href="#trust">Trust</a><a href="#built">Built</a></div>
-  <a href="learn/" style="font-size:12px;opacity:.85">How to use</a><a class="cta" href="{{APP_URL}}?view=ask" target="_blank" rel="noopener">AI Assistant</a>
+  <div class="links"><a href="#planner">Planner</a><a href="#accuracy">Accuracy</a><a href="#features">Features</a><a href="learn/">How to use</a></div>
+  <a class="cta" href="{{APP_URL}}?view=ask" target="_blank" rel="noopener">AI Assistant</a>
 </div></nav>
 
-<!-- HERO -->
 <section class="hero-sec dark" id="top">
   <canvas id="swirl" aria-hidden="true"></canvas>
   <div class="wrap center">
-    <p class="kicker rv">LabProcure</p>
-    <h1 class="hero rv d1">Procurement.<br><span class="gradtext">Predicted.</span></h1>
-    <p class="hero-sub rv d2">An AI assistant for people who buy laboratory and diagnostic equipment in World Bank health projects. Ask it what to expect before you tender, and it answers from {{CONTRACTS_FMT}} past contracts and {{REPORTS}} project reports, citing each source.</p>
-    <div class="doors rv d3">
-      <a class="door" href="{{APP_URL}}?view=ask" target="_blank" rel="noopener">
-        <span class="orb"><svg viewBox="0 0 24 24"><path d="M12 3.5l1.6 3.9 3.9 1.6-3.9 1.6L12 14.5l-1.6-3.9L6.5 9l3.9-1.6z"/><path d="M18.5 14l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8zM6 15.5l.6 1.4 1.4.6-1.4.6L6 19.5l-.6-1.4-1.4-.6 1.4-.6z"/></svg></span>
-        <b>AI Assistant</b><small>Ask a question and get a cited answer: timelines, suppliers, prices, risks, lessons.</small>
-        <em>Open the assistant ›</em></a>
-      <a class="door" href="learn/">
-        <span class="orb"><svg viewBox="0 0 24 24"><path d="M3 18c4 0 5-3 7-6s4-7 11-7"/><circle cx="5" cy="17.5" r="1.6"/><circle cx="10" cy="12" r="1.6"/><circle cx="14.5" cy="7.6" r="1.6"/><circle cx="20" cy="5" r="1.6"/></svg></span>
-        <b>Learn how to use it</b><small>Four stages, two minutes: Plan, Design, Anticipate, Learn. Each with something to try.</small>
-        <em>Start the guide ›</em></a>
+    <p class="kicker">LabProcure</p>
+    <h1 class="hero">Procurement. <span class="gradtext">Predicted.</span></h1>
+    <p class="hero-sub">Enter the lab equipment, the country and your budget. Get a dated procurement plan, the World Bank records behind it, and how far to trust it.</p>
+    <div class="ctas"><a class="btn big" href="#planner">Try planning a purchase ↓</a></div>
+    <div class="doors">
+      <a class="door" href="{{APP_URL}}?view=ask" target="_blank" rel="noopener"><span class="orb"><svg viewBox="0 0 24 24"><path d="M12 3.5l1.6 3.9 3.9 1.6-3.9 1.6L12 14.5l-1.6-3.9L6.5 9l3.9-1.6z"/><path d="M18.5 14l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8z"/></svg></span>
+        <span><b>AI Assistant</b><small>Ask anything, get cited answers</small></span></a>
+      <a class="door" href="learn/"><span class="orb"><svg viewBox="0 0 24 24"><path d="M3 18c4 0 5-3 7-6s4-7 11-7"/><circle cx="5" cy="17.5" r="1.6"/><circle cx="10" cy="12" r="1.6"/><circle cx="14.5" cy="7.6" r="1.6"/><circle cx="20" cy="5" r="1.6"/></svg></span>
+        <span><b>Learn how to use it</b><small>Plan · Design · Anticipate · Learn</small></span></a>
     </div>
-    <p class="rv d3" style="margin-top:18px;font-size:14px;color:#86868b">Prefer instant answers in your browser? <a class="link" style="font-size:14px" href="ask/">Use the lightweight chatbot ›</a></p>
-    <div class="stats rv d3">
-      <div class="stat"><b data-count="{{CONTRACTS}}">0</b><small>lab & diagnostic contracts</small></div>
-      <div class="stat"><b data-count="{{VALUE_B}}" data-dec="2" data-pre="$" data-suf="B">0</b><small>contract value</small></div>
-      <div class="stat"><b data-count="{{COUNTRIES}}">0</b><small>countries</small></div>
-      <div class="stat"><b data-count="{{PROJECTS}}">0</b><small>projects</small></div>
-      <div class="stat"><b data-count="{{REPORTS}}">0</b><small>project reports read</small></div>
-    </div>
+    <p class="facts"><b>{{CONTRACTS_FMT}}</b> lab &amp; diagnostic contracts · <b>${{VALUE_B}}B</b> · <b>{{COUNTRIES}}</b> countries · <b>{{PROJECTS}}</b> projects · <b>{{REPORTS}}</b> project reports · public World Bank data</p>
   </div>
-  <div class="scrollcue">Scroll</div>
 </section>
 
-<!-- STATEMENT -->
-<section class="statement light"><div class="wrap">
-  <p id="statement">Contract awards say what was bought. Notices say how it was bought. Reports say why it worked, or didn't. <span class="hl">LabProcure connects all three into one record.</span></p>
+<!-- PLANNER -->
+<section class="planner paper" id="planner"><div class="wrap">
+  <div class="phead">
+    <div><p class="kicker">Planner</p><h2 class="big" style="margin:0">Plan a purchase. Get dated, sourced estimates.</h2>
+      <p style="margin-top:8px">Change any input and everything below updates. Every figure says how it was obtained and how many records it rests on.</p></div>
+    <div class="legend"><span class="badge b-m">Model</span> estimate, tested
+      <span class="badge b-d">Derived · n</span> from n records
+      <span class="badge b-a">Assumption</span> not validated
+      <span class="badge b-x">Missing</span> not in public data</div>
+  </div>
+  <form class="form" id="form" onsubmit="return false">
+    <label>Country<select id="f-country"></select><span class="hint" id="h-country"></span></label>
+    <label>Equipment<select id="f-item"></select><span class="hint" id="h-item"></span></label>
+    <label>Budget (US$)<input id="f-budget" type="number" min="1000" step="1000" inputmode="numeric"><span class="hint" id="h-budget"></span></label>
+    <label>Method<select id="f-method"></select><span class="hint" id="h-method"></span></label>
+    <label>Bid window<select id="f-window"></select><span class="hint">days to bid</span></label>
+    <label>Invitation date<input id="f-date" type="date"><span class="hint">when bids are invited</span></label>
+  </form>
+  <div id="out"><div class="loading">Loading the model results…</div></div>
+  <div class="saved" id="saved"></div>
 </div></section>
 
-<!-- PLAN -->
-<section class="sec paper" id="plan"><div class="wrap split">
-  <div class="rv">
-    <p class="kicker">Plan my purchase</p>
-    <h2 class="big">Know the award date before you invite bids.</h2>
-    <p class="lede" style="margin:0">Tell it what you're buying and where. It returns a dated timeline: the likely award, the date to plan for, and delivery. A model tested on tenders it never saw sets the dates.</p>
+<!-- ACCURACY -->
+<section class="sec dark center" id="accuracy"><div class="wrap">
+  <p class="kicker">How the dates are made</p>
+  <h2 class="big">Three dates. Three different promises.</h2>
+  <p class="lede">An interviewer, an auditor or a procurement officer will ask where a date comes from. Each one has its own basis and its own level of confidence.</p>
+  <div class="meaning">
+    <div class="card"><span class="badge b-m">Model</span><h4>Likely award (P50)</h4><p>A gradient-boosted quantile model trained on {{N_TRAIN}} World Bank tenders opened before {{SPLIT}} and tested on {{N_TEST}} opened after. Half of comparable tenders are awarded sooner than this.</p></div>
+    <div class="card"><span class="badge b-m">Model</span><h4>Conservative planning date (P80)</h4><p>The 80th-percentile model. On the later tenders, actual award came by this date {{COV}}% of the time (80% is the target). This is the date to put in a plan.</p></div>
+    <div class="card"><span class="badge b-a">Assumption</span><h4>Delivery</h4><p>The P80 award date plus the median contracted delivery period from award notices. Actual delivery dates are not published, so this is an assumption, not a validated prediction.</p></div>
   </div>
-  <div class="card rv d1" id="ganttcard">
-    <div style="font-size:13px;color:var(--ink2);margin-bottom:16px">Example · {{EX_LABEL}}</div>
-    <div class="gantt" id="gantt"></div>
-    <div class="dates" id="gdates"></div>
-    <div class="milestones" id="miles"></div>
-  </div>
-</div></section>
-
-<!-- EVIDENCE BADGES -->
-<section class="sec light center" id="evidence"><div class="wrap">
-  <p class="kicker rv">Evidence, built in</p>
-  <h2 class="big rv d1">Every number shows its work.</h2>
-  <p class="lede rv d2">Each figure says how it was obtained and how many records it rests on. Where public data is silent, it says so instead of guessing.</p>
-  <div class="badges">
-    <div class="card rv"><span class="badge b-d">Derived · n=283</span><p style="color:var(--ink2);margin:14px 0 0;line-height:1.45">A statistic over stored records, with how many.</p></div>
-    <div class="card rv d1"><span class="badge b-m">Model</span><p style="color:var(--ink2);margin:14px 0 0;line-height:1.45">An estimate, with its accuracy on unseen tenders.</p></div>
-    <div class="card rv d2"><span class="badge b-e">Evidence</span><p style="color:var(--ink2);margin:14px 0 0;line-height:1.45">Quoted from a project report, linked to the page.</p></div>
-    <div class="card rv d3"><span class="badge b-x">Missing</span><p style="color:var(--ink2);margin:14px 0 0;line-height:1.45">Not in public data, and it tells you.</p></div>
-  </div>
-</div></section>
-
-<!-- OPTIMIZER -->
-<section class="sec dark" id="optimizer"><div class="wrap split">
-  <div class="rv">
-    <p class="kicker">Tender optimizer</p>
-    <h2 class="big">{{OPT_N}} ways to run a tender.<br>One comes out on top.</h2>
-    <p class="lede" style="margin:0">Every combination of method, bid window and number of lots is scored for time to award and the chance of a single bid. It only suggests methods within the contract sizes they've actually been used for.</p>
-  </div>
-  <div class="card rv d1">
-    <div style="font-size:13px;color:#86868b;margin-bottom:14px">Days to award, slow case (P80) · {{OPT_METHOD}} · {{EX_LABEL}}</div>
-    <div class="heat" id="heat"></div>
-    <div class="winner" id="winner"></div>
+  <div class="nums">
+    <div class="card"><b class="gradtext">±{{MAE}} days</b><span>average P50 error on {{N_TEST}} later tenders it never saw</span></div>
+    <div class="card"><b class="gradtext">±{{MAE_BASE}} days</b><span>error of one overall median, for comparison ({{BENCH}} for the historical benchmark)</span></div>
+    <div class="card"><b class="gradtext">{{COV}}%</b><span>of actual award times fell inside the P80 (target 80%)</span></div>
+    <div class="card"><b class="gradtext">{{CAUGHT}}/{{PLANTED}}</b><span>planted wrong numbers and fake quotes caught by the verifier before display</span></div>
   </div>
 </div></section>
 
-<!-- PREMORTEM -->
-<section class="sec light" id="premortem"><div class="wrap split">
-  <div class="rv">
-    <p class="kicker">Pre-mortem</p>
-    <h2 class="big">See what could go wrong. Before it does.</h2>
-    <p class="lede" style="margin:0">The ways comparable tenders actually failed, ranked by how often, next to what completion reports said about it, quoted and linked to the page.</p>
+<!-- FEATURES -->
+<section class="sec paper" id="features"><div class="wrap center">
+  <p class="kicker">In the full app</p>
+  <h2 class="big">Go deeper when you need to.</h2>
+  <p class="lede">The full app runs the models live on every input, including the invitation month and prior review, and adds what a static page can't.</p>
+  <div class="tiles" style="text-align:left">
+    <a class="tile" href="{{APP_URL}}?view=plan" target="_blank" rel="noopener"><div class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M7 14h4M7 17h7"/></svg></div>
+      <div><h4>Full planner</h4><p>All seven lifecycle stages, with each figure's evidence and the cited brief.</p><em>Open ›</em></div></a>
+    <a class="tile" href="{{APP_URL}}?view=design" target="_blank" rel="noopener"><div class="icon"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></div>
+      <div><h4>Tender optimizer</h4><p>Also scores splitting into lots; only suggests methods used at your contract size.</p><em>Open ›</em></div></a>
+    <a class="tile" href="{{APP_URL}}?view=anticipate" target="_blank" rel="noopener"><div class="icon"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3z"/><path d="M12 10v4.5M12 17.5v.01"/></svg></div>
+      <div><h4>Pre-mortem with lessons</h4><p>The risks, plus quotes from completion reports, verified and linked to the page.</p><em>Open ›</em></div></a>
+    <a class="tile" href="{{APP_URL}}?view=ask" target="_blank" rel="noopener"><div class="icon"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12z"/><path d="M8.5 11h7M8.5 14h4.5"/></svg></div>
+      <div><h4>AI Assistant</h4><p>Questions in plain language; every sentence cites a contract, benchmark or page.</p><em>Open ›</em></div></a>
+    <a class="tile" href="{{APP_URL}}?view=countries" target="_blank" rel="noopener"><div class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.7 3 2.7 15 0 18M12 3c-2.7 3-2.7 15 0 18"/></svg></div>
+      <div><h4>Compare countries &amp; suppliers</h4><p>India, Kenya, Nigeria side by side; supplier track records head to head.</p><em>Open ›</em></div></a>
+    <a class="tile" href="learn/"><div class="icon"><svg viewBox="0 0 24 24"><path d="M3 18c4 0 5-3 7-6s4-7 11-7"/><circle cx="5" cy="17.5" r="1.6"/><circle cx="14.5" cy="7.6" r="1.6"/></svg></div>
+      <div><h4>How to use it</h4><p>Four stages in two minutes, each with an example that opens in the app.</p><em>Start the guide ›</em></div></a>
   </div>
-  <div class="card rv d1" id="risks"></div>
+  <div class="chips">
+    <span class="chip">Knowledge graph<small>{{EDGES}} links</small></span><span class="chip">Databricks Delta · Unity Catalog</span><span class="chip">Vector Search</span>
+    <span class="chip">MLflow</span><span class="chip">Hybrid RAG<small>BM25 + vectors</small></span><span class="chip">Quantile models</span><span class="chip">FastAPI</span><span class="chip">Docker</span><span class="chip">Streamlit</span>
+  </div>
+  <p style="margin-top:26px"><a class="link" href="report.html">Read the full report ›</a> &nbsp; <a class="link" href="ask/">Lightweight browser chatbot ›</a> &nbsp; <a class="link" href="{{REPO_URL}}" target="_blank" rel="noopener">Code on GitHub ›</a></p>
 </div></section>
 
-<!-- FEATURE TILES -->
-<section class="sec paper" id="features"><div class="wrap">
-  <h2 class="big center rv" style="margin-bottom:46px">Everything a procurement team needs.<br><span class="gradtext">In one place.</span></h2>
-  <div class="tiles">
-    <a class="tile rv" href="{{APP_URL}}" target="_blank" rel="noopener"><div class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M7 14h4M7 17h7"/></svg></div>
-      <h4>Plan my purchase</h4><p>A dated timeline and all seven lifecycle stages, from planning to learning.</p><span class="link">Open the planner ›</span></a>
-    <a class="tile rv d1" href="{{APP_URL}}" target="_blank" rel="noopener"><div class="icon"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></div>
-      <h4>Tender optimizer</h4><p>What-if scoring of method, bid window and lots, within realistic contract sizes.</p><span class="link">Try a what-if ›</span></a>
-    <a class="tile rv d2" href="{{APP_URL}}" target="_blank" rel="noopener"><div class="icon"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3z"/><path d="M12 10v4.5M12 17.5v.01"/></svg></div>
-      <h4>Pre-mortem</h4><p>Ranked failure modes from comparable tenders, with verified lessons.</p><span class="link">See the risks ›</span></a>
-    <a class="tile rv" href="{{APP_URL}}" target="_blank" rel="noopener"><div class="icon"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12z"/><path d="M8.5 11h7M8.5 14h4.5"/></svg></div>
-      <h4>Ask</h4><p>Plain-language questions, cited answers, and follow-ups like “and in Nigeria?”.</p><span class="link">Ask a question ›</span></a>
-    <a class="tile rv d1" href="{{APP_URL}}" target="_blank" rel="noopener"><div class="icon"><svg viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="18" rx="2.5"/><path d="M9 3.5h6v3H9zM8.5 11l2 2 4-4M8.5 17h7"/></svg></div>
-      <h4>My plan</h4><p>Save packages, see the portfolio timeline, export to Excel with evidence.</p><span class="link">Build a plan ›</span></a>
-    <a class="tile rv d2" href="{{APP_URL}}" target="_blank" rel="noopener"><div class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.7 3 2.7 15 0 18M12 3c-2.7 3-2.7 15 0 18"/></svg></div>
-      <h4>Compare</h4><p>India, Kenya and Nigeria side by side. Supplier track records head to head.</p><span class="link">Compare ›</span></a>
-  </div>
-</div></section>
-
-<!-- TRUST -->
-<section class="sec dark center" id="trust"><div class="wrap">
-  <p class="kicker rv">Tested, not just built</p>
-  <h2 class="big rv d1">Numbers you can defend.</h2>
-  <p class="lede rv d2">Wrong numbers and fake quotes were deliberately planted in its answers. Here's how many it caught, and how far its forecasts landed from reality.</p>
-  <div class="trust">
-    <div class="card rv"><b class="gradtext"><span data-count="{{CAUGHT}}">0</span>/{{PLANTED}}</b><span class="desc">planted errors caught by the verifier before display</span></div>
-    <div class="card rv d1"><b class="gradtext">±<span data-count="{{MAE}}">0</span> days</b><span class="desc">average award-date error on later tenders the model never saw (a simple median: ±{{MAE_BASE}})</span></div>
-    <div class="card rv d2"><b class="gradtext"><span data-count="{{QUOTES}}">0</span>%</b><span class="desc">of lesson quotes found word for word on the cited page</span></div>
-  </div>
-</div></section>
-
-<!-- BUILT -->
-<section class="sec paper center" id="built"><div class="wrap">
-  <p class="kicker rv">Under the hood</p>
-  <h2 class="big rv d1">Built like production.</h2>
-  <p class="lede rv d2">One pipeline, two runtimes: a Databricks lakehouse and a lightweight Python app, sharing the same parsing, taxonomy and guardrails.</p>
-  <div class="chips rv d3">
-    <span class="chip">Knowledge graph<small>{{EDGES}} links</small></span><span class="chip">Databricks Delta<small>bronze · silver · gold</small></span>
-    <span class="chip">Unity Catalog</span><span class="chip">Mosaic AI Vector Search</span><span class="chip">MLflow registry</span>
-    <span class="chip">Lakeflow Jobs</span><span class="chip">Hybrid RAG<small>BM25 + vectors</small></span><span class="chip">Kaplan-Meier benchmarks</span>
-    <span class="chip">Quantile models</span><span class="chip">FastAPI<small>REST</small></span><span class="chip">Docker</span><span class="chip">Streamlit</span><span class="chip">ChromaDB</span>
-  </div>
-</div></section>
-
-<!-- FINAL CTA -->
-<section class="sec dark center"><div class="wrap">
-  <h2 class="big rv">Plan your next purchase.</h2>
-  <p class="lede rv d1">Free to try. Built on public World Bank data.</p>
-  <div class="btns rv d2">
-    <a class="btn magnetic" href="{{APP_URL}}?view=ask" target="_blank" rel="noopener">Open the AI Assistant</a>
-    <a class="link" href="learn/">Learn how to use it ›</a>
-    <a class="link" href="report.html">Read the report ›</a>
-    <a class="link" href="ask/">Browser chatbot ›</a>
-    <a class="link" href="{{REPO_URL}}" target="_blank" rel="noopener">Code on GitHub ›</a>
-  </div>
-</div></section>
-
-<footer><div class="wrap">LabProcure is an independent demonstration built on World Bank open data. It is not a World Bank Group product. Figures on this page are computed from the stored records when the site is built ({{BUILT}}); the live app recomputes them for your inputs.</div></footer>
+<footer><div class="wrap">LabProcure is an independent demonstration built on World Bank open data. It is not a World Bank Group product. Model estimates on this page were computed in advance for these inputs on {{BUILT}}; the full app recomputes them live and also uses the invitation month and review type.</div></footer>
 
 <script>
-const D = {{DATA}};
+const APP = "{{APP_URL}}";
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const usd = v => v >= 1e6 ? "US$" + (v / 1e6).toFixed(v >= 1e7 ? 0 : 2) + "M" : "US$" + Math.round(v).toLocaleString("en-US");
+const pct = p => Math.round(p * 100) + "%";
+const fmt = d => d.toLocaleDateString("en-GB", {day: "numeric", month: "short", year: "numeric"});
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + Math.round(n)); return x; };
+const badge = (t, c) => `<span class="badge ${c}">${esc(t)}</span>`;
+const dBadge = n => badge("Derived · n=" + n, "b-d");
 
-/* ── hero swirl: particles flow around the centre and swirl around the cursor ── */
+/* ── hero swirl ── */
 (() => {
-  const c = document.getElementById("swirl"), x = c.getContext("2d");
-  let W, H, P = [], mouse = {x: -1e4, y: -1e4, on: false}, t = 0;
+  const c = $("swirl"), x = c.getContext("2d"); let W, H, P = [], m = {x: -1e4, y: -1e4, on: false}, t = 0;
   const cols = ["124,124,255", "168,85,247", "34,211,238", "52,211,153"];
-  function size() {
-    const r = devicePixelRatio || 1; W = c.clientWidth; H = c.clientHeight;
-    c.width = W * r; c.height = H * r; x.setTransform(r, 0, 0, r, 0, 0);
-    const n = Math.min(900, Math.floor(W * H / 1600));
-    P = Array.from({length: n}, () => ({x: Math.random() * W, y: Math.random() * H, v: Math.random() * .6 + .4,
-      c: cols[Math.floor(Math.random() * cols.length)], a: Math.random()}));
-  }
+  function size() { const r = devicePixelRatio || 1; W = c.clientWidth; H = c.clientHeight; c.width = W * r; c.height = H * r; x.setTransform(r, 0, 0, r, 0, 0);
+    P = Array.from({length: Math.min(700, Math.floor(W * H / 1500))}, () => ({x: Math.random() * W, y: Math.random() * H, v: Math.random() * .6 + .4, c: cols[Math.random() * 4 | 0], a: Math.random()})); }
   addEventListener("resize", size); size();
-  c.parentElement.addEventListener("pointermove", e => { const b = c.getBoundingClientRect(); mouse = {x: e.clientX - b.left, y: e.clientY - b.top, on: true}; });
-  c.parentElement.addEventListener("pointerleave", () => mouse.on = false);
-  function frame() {
-    t += .004;
-    x.fillStyle = "rgba(0,0,0,0.12)"; x.fillRect(0, 0, W, H);
-    const cx = W / 2, cy = H * .46;
-    for (const p of P) {
-      let dx = p.x - cx, dy = p.y - cy, d = Math.hypot(dx, dy) + 1;
-      // orbit the centre with a slowly breathing flow field
-      let ang = Math.atan2(dy, dx) + Math.PI / 2 + Math.sin(d * .006 - t * 2) * .6;
-      let vx = Math.cos(ang) * p.v * 1.3, vy = Math.sin(ang) * p.v * 1.3;
-      vx -= dx / d * .18; vy -= dy / d * .18 * (d > Math.min(W, H) * .42 ? 1 : -.4);
-      if (mouse.on) {                       // a vortex around the cursor
-        const mx = p.x - mouse.x, my = p.y - mouse.y, md = Math.hypot(mx, my) + 1;
-        if (md < 220) { const f = (220 - md) / 220; vx += (-my / md) * 4 * f - mx / md * f; vy += (mx / md) * 4 * f - my / md * f; }
-      }
+  c.parentElement.addEventListener("pointermove", e => { const b = c.getBoundingClientRect(); m = {x: e.clientX - b.left, y: e.clientY - b.top, on: true}; });
+  c.parentElement.addEventListener("pointerleave", () => m.on = false);
+  function frame() { t += .004; x.fillStyle = "rgba(0,0,0,0.12)"; x.fillRect(0, 0, W, H); const cx = W / 2, cy = H * .45;
+    for (const p of P) { let dx = p.x - cx, dy = p.y - cy, d = Math.hypot(dx, dy) + 1, ang = Math.atan2(dy, dx) + Math.PI / 2 + Math.sin(d * .006 - t * 2) * .6;
+      let vx = Math.cos(ang) * p.v * 1.3, vy = Math.sin(ang) * p.v * 1.3; vx -= dx / d * .18; vy -= dy / d * .18 * (d > Math.min(W, H) * .42 ? 1 : -.4);
+      if (m.on) { const mx = p.x - m.x, my = p.y - m.y, md = Math.hypot(mx, my) + 1; if (md < 200) { const f = (200 - md) / 200; vx += (-my / md) * 4 * f - mx / md * f; vy += (mx / md) * 4 * f - my / md * f; } }
       const ox = p.x, oy = p.y; p.x += vx; p.y += vy;
       if (p.x < -20 || p.x > W + 20 || p.y < -20 || p.y > H + 20) { p.x = Math.random() * W; p.y = Math.random() * H; continue; }
-      x.strokeStyle = `rgba(${p.c},${.25 + p.a * .5})`; x.lineWidth = 1.1;
-      x.beginPath(); x.moveTo(ox, oy); x.lineTo(p.x, p.y); x.stroke();
-    }
-    if (!reduce) requestAnimationFrame(frame);
-  }
-  x.fillStyle = "#000"; x.fillRect(0, 0, W, H); frame();
-  if (reduce) for (let i = 0; i < 60; i++) frame();
+      x.strokeStyle = `rgba(${p.c},${.25 + p.a * .5})`; x.lineWidth = 1.1; x.beginPath(); x.moveTo(ox, oy); x.lineTo(p.x, p.y); x.stroke(); }
+    if (!reduce) requestAnimationFrame(frame); }
+  x.fillStyle = "#000"; x.fillRect(0, 0, W, H); frame(); if (reduce) for (let i = 0; i < 60; i++) frame();
 })();
 
-/* ── cursor glow, card spotlight, tilt, magnetic buttons ── */
-const cur = document.getElementById("cursor");
-addEventListener("pointermove", e => { cur.style.transform = `translate(${e.clientX}px,${e.clientY}px)`; });
-document.querySelectorAll(".tile,.card,.door").forEach(el => {
-  el.addEventListener("pointermove", e => {
-    const b = el.getBoundingClientRect(), px = (e.clientX - b.left) / b.width, py = (e.clientY - b.top) / b.height;
-    el.style.setProperty("--mx", px * 100 + "%"); el.style.setProperty("--my", py * 100 + "%");
-    if (!reduce && el.classList.contains("tile")) el.style.transform = `perspective(900px) rotateX(${(.5 - py) * 8}deg) rotateY(${(px - .5) * 10}deg) translateY(-4px)`;
-  });
-  el.addEventListener("pointerleave", () => { el.style.transform = ""; });
-});
-document.querySelectorAll(".magnetic").forEach(el => {
-  el.addEventListener("pointermove", e => { const b = el.getBoundingClientRect();
-    el.style.transform = `translate(${(e.clientX - b.left - b.width / 2) * .25}px,${(e.clientY - b.top - b.height / 2) * .35}px)`; });
-  el.addEventListener("pointerleave", () => el.style.transform = "");
-});
-
-addEventListener("pointerdown", e => { if (reduce) return; const b = document.createElement("span"); b.className = "burst";
+/* ── cursor glow, spotlights, click swirl ── */
+addEventListener("pointermove", e => $("cursor").style.transform = `translate(${e.clientX}px,${e.clientY}px)`);
+document.querySelectorAll(".card").forEach(el => el.addEventListener("pointermove", e => { const b = el.getBoundingClientRect();
+  el.style.setProperty("--mx", (e.clientX - b.left) + "px"); el.style.setProperty("--my", (e.clientY - b.top) + "px"); }));
+addEventListener("pointerdown", e => { if (reduce || e.target.closest("input,select")) return; const b = document.createElement("span"); b.className = "burst";
   b.style.left = e.clientX + "px"; b.style.top = e.clientY + "px"; document.body.appendChild(b); setTimeout(() => b.remove(), 800); });
 
-/* ── reveal on scroll + count-up ── */
-function countUp(el) {
-  const to = parseFloat(el.dataset.count), dec = +(el.dataset.dec || 0), pre = el.dataset.pre || "", suf = el.dataset.suf || "";
-  const t0 = performance.now(), dur = reduce ? 0 : 1400;
-  const step = now => { const k = dur ? Math.min(1, (now - t0) / dur) : 1, e = 1 - Math.pow(1 - k, 3);
-    el.textContent = pre + (to * e).toLocaleString("en-US", {minimumFractionDigits: dec, maximumFractionDigits: dec}) + suf;
-    if (k < 1) requestAnimationFrame(step); };
-  requestAnimationFrame(step);
+/* ── planner ── */
+let D = null;
+const F = {country: $("f-country"), item: $("f-item"), budget: $("f-budget"), method: $("f-method"), window: $("f-window"), date: $("f-date")};
+
+fetch("planner-data.json").then(r => r.json()).then(d => { D = d; init(); }).catch(() => {
+  $("out").innerHTML = `<div class="loading">The planner data could not be loaded. <a class="link" href="${APP}?view=plan" target="_blank">Open the planner in the full app ›</a></div>`; });
+
+function init() {
+  F.country.innerHTML = D.countries.map(([k, n, c]) => `<option value="${k}">${esc(n)}</option>`).join("");
+  F.item.innerHTML = D.items.map(i => `<option>${esc(i)}</option>`).join("");
+  F.method.innerHTML = Object.entries(D.methods).map(([k, n]) => `<option value="${k}">${esc(n)}</option>`).join("");
+  F.window.innerHTML = D.windows.map(w => `<option value="${w}">${w} days</option>`).join("");
+  const q = new URLSearchParams(location.search), dflt = new Date(); dflt.setDate(dflt.getDate() + 90);
+  F.country.value = q.get("country") || "KEN"; F.item.value = q.get("item") || "Laboratory analyzers";
+  F.budget.value = q.get("budget") || 250000; F.method.value = q.get("method") || "RFB"; F.window.value = q.get("window") || 30;
+  F.date.value = q.get("date") || dflt.toISOString().slice(0, 10);
+  Object.values(F).forEach(el => el.addEventListener("input", run));
+  renderSaved(); run();
 }
-const io = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return;
-  e.target.classList.add("in"); e.target.querySelectorAll("[data-count]").forEach(countUp);
-  if (e.target.matches("[data-count]")) countUp(e.target);
-  e.target.querySelectorAll(".meter i").forEach(i => i.style.width = i.dataset.w);
-  io.unobserve(e.target); }), {threshold: .18});
-document.querySelectorAll(".rv,.stats,.trust .card").forEach(el => io.observe(el));
 
-/* ── scroll-lit statement ── */
-(() => {
-  const p = document.getElementById("statement"), out = [];
-  p.childNodes.forEach(n => {
-    const hl = n.nodeType === 1;
-    (n.textContent.match(/\S+\s*/g) || []).forEach(w => out.push(`<span class="w${hl ? " hl" : ""}">${w}</span>`));
-  });
-  p.innerHTML = out.join("");
-  const ws = [...p.querySelectorAll(".w")];
-  const on = () => { const b = p.getBoundingClientRect(), k = Math.min(1, Math.max(0, (innerHeight * .8 - b.top) / (b.height + innerHeight * .35)));
-    ws.forEach((w, i) => w.classList.toggle("on", reduce || i < k * ws.length)); };
-  addEventListener("scroll", on, {passive: true}); on();
-})();
+function estimate(c, item, m, budget, w) {
+  const arr = D.grid[c][item][m], V = D.values, W = D.windows, wi = Math.max(0, W.indexOf(+w));
+  const lv = Math.log(Math.min(Math.max(budget, V[0]), V.at(-1)));
+  let i = 0; while (i < V.length - 2 && lv > Math.log(V[i + 1])) i++;
+  const f = (lv - Math.log(V[i])) / (Math.log(V[i + 1]) - Math.log(V[i]));
+  const a = arr[i * W.length + wi], b = arr[(i + 1) * W.length + wi], mix = k => a[k] + (b[k] - a[k]) * Math.min(1, Math.max(0, f));
+  const p50 = mix(0), p80 = Math.max(mix(1), p50);
+  return {p50, p80, sb: mix(2) / 100, extrap: budget < V[0] || budget > V.at(-1)};
+}
+function inRange(m, v) { const r = D.ranges[m]; return !r || (v >= r[0] && v <= r[1]); }
 
-/* ── timeline from the real model output ── */
-(() => {
-  const g = document.getElementById("gantt"), t0 = Date.parse(D.timeline[0].start), t1 = Date.parse(D.timeline.at(-1).end), span = t1 - t0;
-  const fmt = s => new Date(s).toLocaleDateString("en-GB", {day: "numeric", month: "short", year: "numeric"});
-  g.innerHTML = D.timeline.map((r, i) => {
-    const l = (Date.parse(r.start) - t0) / span * 100, w = Math.max(1.5, (Date.parse(r.end) - Date.parse(r.start)) / span * 100);
-    const cls = r.step.startsWith("3") ? "r" : (r.kind === "Model" ? "m" : "d");
-    return `<div class="grow"><span>${r.step.slice(2)}</span><div class="track"><div class="bar ${cls}" title="${fmt(r.start)} → ${fmt(r.end)} · ${r.note}"
-      style="left:${l}%;width:${w}%;transition-delay:${i * .25}s"></div></div></div>`; }).join("");
-  document.getElementById("gdates").innerHTML = `<span>${fmt(D.timeline[0].start)}</span><span>${fmt(D.timeline.at(-1).end)}</span>`;
-  document.getElementById("miles").innerHTML = [["Likely award", D.timeline[1].end], ["Plan the award for", D.timeline[2].end], ["Delivered by", D.timeline[3].end]]
-    .map(([k, v]) => `<div class="ms"><small>${k}</small><b>${fmt(v)}</b></div>`).join("");
-  io.observe(document.getElementById("ganttcard"));
-})();
+function run() {
+  if (!D) return;
+  const c = F.country.value, item = F.item.value, m = F.method.value, w = +F.window.value, budget = Math.max(1000, +F.budget.value || 0);
+  const od = F.date.value ? new Date(F.date.value + "T00:00:00") : addDays(new Date(), 90);
+  const e = D.ev[c][item], s = estimate(c, item, m, budget, w), A = D.acc, cname = D.countries.find(x => x[0] === c)[1];
+  const deliv = e.deliv ? e.deliv.m : null, dm = deliv ?? 3;
+  const d50 = addDays(od, s.p50), d80 = addDays(od, s.p80), dDel = addDays(d80, dm * 30.44), dBid = addDays(od, w);
+  const lo = Math.max(0, s.p50 - A.mae), hi = s.p50 + A.mae;
 
-/* ── optimizer heatmap ── */
-(() => {
-  const h = document.getElementById("heat"), cells = D.heat, vals = cells.map(c => c.p80);
-  const lo = Math.min(...vals), hi = Math.max(...vals);
-  const col = v => { const k = (v - lo) / (hi - lo || 1); const a = [52, 211, 153], b = [245, 158, 11], r = [239, 68, 68];
-    const m = k < .5 ? a.map((x, i) => x + (b[i] - x) * k * 2) : b.map((x, i) => x + (r[i] - x) * (k - .5) * 2); return `rgb(${m.map(Math.round)})`; };
-  let html = `<div></div>` + D.windows.map(w => `<div class="lab">${w} days</div>`).join("");
-  D.lots.forEach(lot => {
-    html += `<div class="lab">${lot} lot${lot > 1 ? "s" : ""}</div>`;
-    D.windows.forEach((w, j) => { const c = cells.find(z => z.lots === lot && z.window === w);
-      html += `<div class="cell${c.best ? " best" : ""}" style="background:${col(c.p80)};transition-delay:${(j + lot) * .06}s"
-        title="${w}-day window, ${lot} lot(s): P80 ${Math.round(c.p80)} days, single-bid risk ${Math.round(c.sb * 100)}%">${Math.round(c.p80)}</div>`; });
-  });
-  h.innerHTML = html;
-  document.getElementById("winner").innerHTML = D.winner;
-})();
+  // hints under the inputs
+  $("h-country").textContent = D.countries.find(x => x[0] === c)[2] + " lab contracts";
+  $("h-item").textContent = e.val ? `typical ${usd(e.val.m)}` : "";
+  $("h-budget").textContent = usd(budget);
+  $("h-method").textContent = inRange(m, budget) ? "used at this size" : "rarely used at this size";
 
-/* ── pre-mortem ── */
-document.getElementById("risks").innerHTML = D.risks.map((r, i) =>
-  `<div class="risk"><div class="row"><span>${i + 1}. ${r.risk}</span><span>${Math.round(r.p * 100)}%</span></div>
-   <div class="meter"><i data-w="${Math.min(100, r.p * 100)}%"></i></div><small><span class="badge b-d" style="font-size:11px">Derived · n=${r.n}</span> ${r.scope}</small></div>`).join("")
-  + (D.lesson ? `<div class="quote">“${D.lesson.quote}”<small><span class="badge b-e" style="font-size:11px">Evidence</span> <a class="link" style="font-size:13px" href="${D.lesson.url}" target="_blank" rel="noopener">${D.lesson.doc} · ${D.lesson.project} · p. ${D.lesson.page} ↗</a></small></div>` : "");
-io.observe(document.getElementById("risks"));
+  // timeline bar (0 → delivery end)
+  const total = s.p80 + dm * 30.44, P = d => Math.min(100, d / total * 100);
+  const bar = `<div class="bar"><div class="seg b" style="left:0;width:${P(w)}%"></div>
+    <div class="seg e" style="left:${P(w)}%;width:${Math.max(0, P(s.p50) - P(w))}%"></div>
+    <div class="seg r" style="left:${P(Math.max(w, s.p50))}%;width:${Math.max(0, P(s.p80) - P(Math.max(w, s.p50)))}%"></div>
+    <div class="seg d" style="left:${P(s.p80)}%;width:${100 - P(s.p80)}%"></div>
+    <div class="err" title="P50 ± ${Math.round(A.mae)} days (average error on unseen tenders)" style="left:${P(lo)}%;width:${P(hi) - P(lo)}%"></div></div>
+    <div class="barkey"><span><i style="background:#34d399"></i>bidding (${w} d)</span><span><i style="background:#6d5df7"></i>evaluation → likely award</span>
+    <span><i style="background:rgba(91,91,247,.4)"></i>to the planning date</span><span><i style="background:#d1d5db"></i>delivery (assumed)</span>
+    <span>├─┤ ±${Math.round(A.mae)} days typical error</span></div>`;
+
+  const warn = [];
+  if (!inRange(m, budget)) { const r = D.ranges[m]; warn.push(`${esc(D.methods[m])} is rarely used at ${usd(budget)}: in past goods tenders it was mostly used between ${usd(r[0])} and ${usd(r[1])}. Check the threshold in the project's procurement plan.`); }
+  if (s.extrap) warn.push(`Your budget is outside the range the estimates were computed for (${usd(D.values[0])}–${usd(D.values.at(-1))}); the nearest level is used.`);
+  if (e.val && (budget > e.val.p75 * 4 || budget < e.val.p25 / 4)) warn.push(`Your budget is far from typical ${esc(item.toLowerCase())} contracts (middle half ${usd(e.val.p25)}–${usd(e.val.p75)}), so comparisons are weaker.`);
+
+  const dur = e.dur[m] || {};
+  const rows = [
+    ["Invitation → award, history", dur.m != null ? `${dur.m} d · P80 ${dur.p80 ?? "–"} d` : "–", dur.n ? dBadge(dur.n) + ` <small>${esc(dur.scope)}; censoring-aware</small>` : badge("Missing", "b-x")],
+    ["Typical contract value", e.val ? usd(e.val.m) : "–", e.val ? dBadge(e.val.n) + ` <small>middle half ${usd(e.val.p25)}–${usd(e.val.p75)}; ${esc(e.val.scope)}</small>` : badge("Missing", "b-x")],
+    ["Bid window used", e.bw ? `${e.bw.m} days` : "–", e.bw ? dBadge(e.bw.n) + ` <small>median; ${esc(e.bw.scope)}</small>` : badge("Missing", "b-x")],
+    ["Bids per tender", e.bids ? `${e.bids.m} (median)` : "–", e.bids ? dBadge(e.bids.n) + ` <small>${pct(e.bids.sb)} drew a single bid; ${esc(e.bids.scope)}</small>` : badge("Missing", "b-x")],
+    ["Contracted delivery period", e.deliv ? `${e.deliv.m} months` : "–", e.deliv ? dBadge(e.deliv.n) + ` <small>from award notices; ${esc(e.deliv.scope)}</small>` : badge("Missing", "b-x")],
+    ["Methods used", e.mix.length ? `${esc(e.mix[0][0].replace("Request for ", "RF").replace("Quotations", "Q").replace("Bids", "B"))} ${pct(e.mix[0][1])}` : "–", `<small>${e.mix.map(([k, v]) => esc(k) + " " + pct(v)).join(" · ")}</small>`],
+    ["Actual delivery & installation", badge("Missing", "b-x"), "<small>Not in public data: delivery records stay with the implementing agency.</small>"],
+    ["Bid security, evaluation criteria", badge("Missing", "b-x"), "<small>In the bidding documents, which are not published as data.</small>"],
+  ];
+
+  // compare setups at this budget
+  const setups = [];
+  for (const mm of Object.keys(D.methods)) for (const ww of D.windows) { const x = estimate(c, item, mm, budget, ww); setups.push({m: mm, w: ww, ...x, ok: inRange(mm, budget)}); }
+  const okS = setups.filter(x => x.ok), best = (okS.length ? okS : setups).reduce((a, b) => (b.p80 < a.p80 - 3 || (Math.abs(b.p80 - a.p80) <= 3 && b.sb < a.sb)) ? b : a);
+  const cur = setups.find(x => x.m === m && x.w === w);
+  const gain = cur.p80 - best.p80;
+  const cmp = `<table class="cmp"><tr><th>Method</th><th>Window</th><th>P80 award</th><th>Single bid</th></tr>` +
+    setups.map(x => `<tr class="row${x === cur ? " cur" : ""}${x === best ? " best" : ""}${x.ok ? "" : " out"}" data-m="${x.m}" data-w="${x.w}">
+      <td>${x.m}</td><td>${x.w} d</td><td>${Math.round(x.p80)} d</td><td>${pct(x.sb)}</td></tr>`).join("") + `</table>
+    <p style="font-size:12.5px;color:var(--ink2);margin:10px 0 0;line-height:1.45">${best === cur ? "★ Your setup scores best at this budget." :
+      gain < 7 ? `★ ${best.m}, ${best.w} days scores best, but only ${Math.round(gain)} days faster: inside the model's error, so your setup is fine.` :
+      `★ ${best.m}, ${best.w} days scores best: P80 ${Math.round(gain)} days earlier.`} Grey rows: method rarely used at this budget. Click a row to apply. ${badge("Model", "b-m")}</p>`;
+
+  const risks = [["Award amended after signing", e.amend], ["Only one bid received", e.bids && {p: e.bids.sb, n: e.bids.n, scope: e.bids.scope}],
+                 ["A bid rejected at evaluation", e.bids && {p: e.bids.rej, n: e.bids.n, scope: e.bids.scope + (e.bids.top ? "; top reason: " + e.bids.top : "")}],
+                 ["Award took over 6 months", e.slow]].filter(r => r[1]).sort((a, b) => b[1].p - a[1].p);
+
+  $("out").innerHTML = `
+  <div class="results">
+    <div class="panel"><h3>Your dated plan <small>${esc(item)} · ${esc(cname)} · ${usd(budget)}</small></h3>
+      <div class="dates">
+        <div class="date">${badge("Model", "b-m")}<span class="lab">Likely award · P50</span><b>${fmt(d50)}</b><span class="sub">${Math.round(s.p50)} days after invitation. Half of comparable tenders are awarded sooner.</span></div>
+        <div class="date main">${badge("Model", "b-m")}<span class="lab">Planning date · P80</span><b>${fmt(d80)}</b><span class="sub">${Math.round(s.p80)} days. Four in five were awarded by then: <b style="display:inline;font-size:inherit">use this one.</b></span></div>
+        <div class="date">${badge("Assumption", "b-a")}<span class="lab">Delivery, assumed</span><b>${fmt(dDel)}</b><span class="sub">P80 award + ${dm} months ${deliv != null ? "(median contracted period, n=" + e.deliv.n + ")" : "(default; no contract periods on record)"}. Not validated.</span></div>
+      </div>
+      ${bar}
+      <div class="acc"><b>How far to trust it.</b> On ${A.n} later tenders the model never saw, the P50 was off by <b>${Math.round(A.mae)} days</b> on average (one overall median: ${Math.round(A.base)} days), so read the likely award as about <b>${fmt(addDays(od, lo))} – ${fmt(addDays(od, hi))}</b>. The P80 covered <b>${pct(A.cov)}</b> of actual award times (target 80%). Bids close ${fmt(dBid)}.</div>
+      <div class="warn" id="warn" style="display:${warn.length ? "block" : "none"}">${warn.map(x => "⚠️ " + x).join("<br>")}</div>
+      <div class="actions">
+        <button class="btn" id="save">＋ Save to my plan</button>
+        <a class="btn ghost" target="_blank" rel="noopener" href="${APP}?view=plan&country=${c}&item=${encodeURIComponent(item)}&value=${budget}&method=${m}&date=${F.date.value}&window=${w}">Open in the full app ›</a>
+        <button class="btn ghost" id="copy">Copy summary</button>
+      </div>
+    </div>
+    <div class="panel"><h3>The evidence behind it <small>World Bank records</small></h3>
+      <table class="ev">${rows.map(([k, v, h]) => `<tr><td>${k}</td><td class="v">${v}</td><td>${h}</td></tr>`).join("")}</table>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="panel"><h3>Adjust the setup <small>same budget</small></h3>${cmp}</div>
+    <div class="panel"><h3>What went wrong before <small>comparable tenders</small></h3>
+      ${risks.map(([k, r]) => `<div class="risk"><div class="row"><span>${k}</span><span>${pct(r.p)}</span></div><div class="meter"><i style="width:${Math.min(100, r.p * 100)}%"></i></div>
+        <small>${dBadge(r.n)} ${esc(r.scope)}</small></div>`).join("")}
+      <p style="font-size:12.5px;color:var(--ink2);margin:6px 0 0">Lessons from completion reports for these risks: <a class="link" style="font-size:12.5px" target="_blank" rel="noopener" href="${APP}?view=anticipate&country=${c}&item=${encodeURIComponent(item)}&value=${budget}&method=${m}">pre-mortem in the app ›</a></p>
+    </div>
+    <div class="panel"><h3>Recent comparable contracts</h3>
+      ${e.recent.map(r => `<div class="rec"><b>${esc(r[2])}</b> · ${usd(r[3])} · ${esc(r[1])}<br><span style="color:var(--ink2)">${esc(r[5])}</span><br>
+        <small>${esc(r[4])} · contract ${esc(r[0])} · <a target="_blank" rel="noopener" href="https://projects.worldbank.org/en/projects-operations/project-detail/${esc(r[6])}">${esc(r[6])} ↗</a></small></div>`).join("")}
+      <p style="font-size:12.5px;color:var(--ink2);margin:8px 0 0">Largest suppliers: ${e.sup.map(x => esc(x[0]) + " (" + usd(x[2]) + ")").join(", ")}</p>
+    </div>
+  </div>`;
+
+  document.querySelectorAll("table.cmp tr.row").forEach(tr => tr.onclick = () => { F.method.value = tr.dataset.m; F.window.value = tr.dataset.w; run(); $("out").classList.add("flash"); setTimeout(() => $("out").classList.remove("flash"), 600); });
+  const summary = `${item} · ${cname} · ${usd(budget)} · ${D.methods[m]}, ${w}-day bid window. Invitation ${fmt(od)}. Likely award (P50, model) ${fmt(d50)}; planning date (P80, model) ${fmt(d80)}; delivery (assumption) ${fmt(dDel)}. Typical P50 error ±${Math.round(A.mae)} days on ${A.n} unseen tenders.`;
+  $("copy").onclick = () => { navigator.clipboard?.writeText(summary); $("copy").textContent = "Copied ✓"; setTimeout(() => $("copy").textContent = "Copy summary", 1500); };
+  $("save").onclick = () => { const L = load(); L.push({item, country: cname, budget, method: m, window: w, invite: F.date.value,
+    p50: d50.toISOString().slice(0, 10), p80: d80.toISOString().slice(0, 10), delivery: dDel.toISOString().slice(0, 10)}); store(L); renderSaved();
+    $("save").textContent = "Saved ✓"; setTimeout(() => $("save").textContent = "＋ Save to my plan", 1500); };
+}
+
+/* ── saved plan (this browser only) ── */
+function load() { try { return JSON.parse(localStorage.getItem("labprocure-plan") || "[]"); } catch { return []; } }
+function store(L) { try { localStorage.setItem("labprocure-plan", JSON.stringify(L)); } catch {} }
+function renderSaved() {
+  const L = load(), el = $("saved");
+  if (!L.length) { el.style.display = "none"; return; }
+  el.style.display = "block";
+  el.innerHTML = `<h3 style="margin:8px 0 10px">My plan <small style="font-weight:500;color:var(--ink2);font-size:13px">saved in this browser</small></h3>
+    <table><tr><th>Package</th><th>Budget</th><th>Method</th><th>Invitation</th><th>Likely award</th><th>Plan for (P80)</th><th>Delivery (assumed)</th><th></th></tr>
+    ${L.map((r, i) => `<tr><td>${esc(r.item)} · ${esc(r.country)}</td><td>${usd(r.budget)}</td><td>${esc(r.method)} · ${r.window} d</td><td>${r.invite}</td><td>${r.p50}</td><td><b>${r.p80}</b></td><td>${r.delivery}</td>
+      <td><button data-i="${i}">remove</button></td></tr>`).join("")}</table>
+    <div class="actions"><button class="btn ghost" id="csv">⬇ Download CSV</button><a class="btn ghost" href="${APP}?view=myplan" target="_blank" rel="noopener">Excel export with evidence in the app ›</a></div>`;
+  el.querySelectorAll("button[data-i]").forEach(b => b.onclick = () => { const L2 = load(); L2.splice(+b.dataset.i, 1); store(L2); renderSaved(); });
+  $("csv").onclick = () => {
+    const head = ["package", "country", "budget_usd", "method", "bid_window_days", "invitation", "award_p50_model", "award_p80_model_planning_date", "delivery_assumption"];
+    const lines = [head.join(",")].concat(L.map(r => [r.item, r.country, r.budget, r.method, r.window, r.invite, r.p50, r.p80, r.delivery].map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")));
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([lines.join("\n")], {type: "text/csv"})); a.download = "labprocure_plan.csv"; a.click();
+  };
+}
 </script>
 </body>
 </html>
