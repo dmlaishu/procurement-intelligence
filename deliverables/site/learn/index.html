@@ -26,14 +26,14 @@ nav.top .sp{margin-left:auto}
 nav.top a.sm{font-size:12px;opacity:.85}
 nav.top .cta{font-size:12px;background:var(--indigo);color:#fff;border-radius:999px;padding:5px 13px}
 
-.hero{background:#000;color:#f5f5f7;padding:110px 0 40px;text-align:center;position:relative;overflow:hidden}
+.hero{background:#000;color:#f5f5f7;padding:82px 0 26px;text-align:center;position:relative;overflow:hidden}
 .kicker{font-size:19px;font-weight:600;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin:0 0 8px}
-h1{font-size:clamp(40px,7vw,80px);line-height:1.04;font-weight:800;letter-spacing:-.045em;margin:0}
+h1{font-size:clamp(28px,4vw,42px);line-height:1.1;font-weight:800;letter-spacing:-.03em;margin:0}
 h1 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
-.sub{font-size:clamp(18px,2.2vw,23px);color:#a1a1a6;max-width:720px;margin:16px auto 0;line-height:1.4;font-weight:500}
+.sub{font-size:clamp(15px,1.8vw,18px);color:#a1a1a6;max-width:640px;margin:10px auto 0;line-height:1.45;font-weight:500}
 
 /* the learning curve */
-.curvebox{position:relative;max-width:980px;margin:26px auto 0;aspect-ratio:980/330}
+.curvebox{position:relative;max-width:860px;margin:12px auto 0;aspect-ratio:980/330}
 .curvebox svg{width:100%;height:100%;overflow:visible}
 #path{fill:none;stroke:url(#cg);stroke-width:4;stroke-linecap:round;filter:drop-shadow(0 0 10px rgba(124,124,255,.6))}
 #pathbg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:4}
@@ -56,7 +56,7 @@ h1 span{background:var(--grad);-webkit-background-clip:text;background-clip:text
 @media (max-width:700px){.mstages{display:flex}.hint{display:none}.node text{display:none}}
 
 /* stage panel */
-.stage{background:var(--paper);padding:60px 0 90px}
+.stage{background:var(--paper);padding:34px 0 56px}
 .panel{position:relative;background:#fff;border-radius:30px;padding:34px;box-shadow:0 1px 0 var(--line),0 40px 80px -40px rgba(0,0,0,.25);overflow:hidden}
 .panel::before{content:"";position:absolute;inset:0 0 auto 0;height:5px;background:var(--sc,var(--c1))}
 .phead{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
@@ -95,9 +95,52 @@ ol.steps li:last-child::after{display:none}
 .nav2{display:flex;justify-content:space-between;align-items:center;margin-top:26px}
 .nav2 button{background:none;border:0;font:600 16px var(--font);color:#0066cc;cursor:pointer;padding:8px 0}
 .nav2 button:disabled{color:#c7c7cc;cursor:default}
+.nav2 button:focus:not(:focus-visible){outline:none}
 .dots{display:flex;gap:8px}
 .dots b{width:9px;height:9px;border-radius:50%;background:#d2d2d7;cursor:pointer;transition:all .3s}
 .dots b.on{width:28px;border-radius:6px;background:var(--sc,var(--c1))}
+
+
+/* the stage's own answer */
+.buy{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--paper);border-radius:16px;padding:10px 12px;margin:0 0 16px}
+.buy span{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);margin-right:4px}
+.buy select,.buy input{font:500 15px var(--font);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0}
+.buy input{width:120px}.buy label{display:flex;align-items:center;gap:6px;font-weight:600;font-size:14px;color:var(--ink2)}
+.buy select:focus,.buy input:focus{outline:2px solid var(--sc,var(--c1));outline-offset:1px}
+@media (max-width:600px){.buy select{flex:1 1 100%}}
+.live{min-height:120px}
+.muted{color:var(--ink2);font-size:14px;padding:14px 0}
+.dates3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:640px){.dates3{grid-template-columns:1fr}}
+.dt{border-radius:16px;padding:14px 16px;background:var(--paper)}
+.dt.main{background:color-mix(in srgb,var(--sc,var(--c1)) 12%,white);outline:1.5px solid color-mix(in srgb,var(--sc,var(--c1)) 45%,white)}
+.dt small{display:block;font-size:12.5px;font-weight:600;color:var(--ink2)}
+.dt b{display:block;font-size:24px;letter-spacing:-.02em;margin:3px 0}
+.dt span{font-size:12.5px;color:var(--ink2);line-height:1.4}
+.facts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.facts span{font-size:13px;background:var(--paper);border-radius:999px;padding:6px 12px;color:var(--ink2)}
+.facts b{color:var(--ink)}
+.note{font-size:13.5px;color:var(--ink2);line-height:1.5;margin:12px 0 0}
+table.cmp{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}
+table.cmp th{font-size:12px;text-align:left;color:var(--ink2);font-weight:600;padding:5px 6px}
+table.cmp td{padding:8px 6px;border-top:1px solid var(--line)}
+table.cmp tr.best td{font-weight:700;background:color-mix(in srgb,var(--sc,var(--c2)) 8%,white)}
+table.cmp tr.out td{color:#b0b0b5}
+.risk{margin:0 0 14px}
+.risk .row{display:flex;justify-content:space-between;font-weight:600;font-size:15px;margin-bottom:6px}
+.risk .meter{height:9px;border-radius:5px;background:var(--paper);overflow:hidden}
+.risk .meter i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,#f59e0b,#ef4444);transition:width .6s var(--ease)}
+.risk small{color:#8e8e93;font-size:12px}
+.kf{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:640px){.kf{grid-template-columns:1fr}}
+.kf div{background:var(--paper);border-radius:14px;padding:12px}
+.kf b{display:block;font-size:20px}.kf span{display:block;font-size:12.5px;color:var(--ink2);margin-top:2px}
+.rec{font-size:13.5px;padding:9px 0;border-top:1px solid var(--line);line-height:1.45}
+.rec a{color:#0066cc}
+.askai{display:inline-flex;align-items:center;gap:8px;margin-top:14px;border-radius:14px;line-height:1.35;padding:9px 16px;font:600 14px var(--font);color:#fff;background:var(--sc,var(--indigo));
+  transition:transform .25s var(--ease),box-shadow .25s}
+.askai:hover{transform:translateY(-2px);box-shadow:0 10px 24px -12px var(--sc,var(--indigo))}
+.tip{margin-top:16px}
 
 /* quick reference */
 .ref{padding:90px 0;text-align:center}
@@ -141,13 +184,12 @@ footer{background:var(--paper);color:var(--ink2);font-size:12px;padding:26px 0 3
 
 <nav class="top"><div class="wrap">
   <a class="brand" href="../"><i></i>LabProcure</a><span class="sp"></span>
-  <a class="sm" href="../">Home</a><a class="cta" href="https://procurement-intelligence-gkhea5oeh3lwtbbs6yganq.streamlit.app/?view=ask" target="_blank" rel="noopener">AI Assistant</a>
+  <a class="cta" href="../">⌂ Home</a>
 </div></nav>
 
 <section class="hero"><div class="wrap">
-  <p class="kicker">How to use LabProcure</p>
-  <h1>Four stages.<br><span>From first idea to lessons learned.</span></h1>
-  <p class="sub">Click a stage on the curve, or press Next. Each stage tells you where to go, what to do, and gives you something to try in the assistant.</p>
+  <h1>Explore the Procurement Journey</h1>
+  <p class="sub">Four simple steps to plan, understand risks, and learn from past projects.</p>
   <div class="curvebox">
     <svg viewBox="0 0 980 330" id="curve" role="img" aria-label="Learning curve with four stages: Plan, Design, Anticipate, Learn">
       <text class="axis" x="10" y="318">first time</text><text class="axis" x="970" y="318" text-anchor="end">confident</text>
@@ -163,85 +205,59 @@ footer{background:var(--paper);color:var(--ink2);font-size:12px;padding:26px 0 3
 
 <section class="stage"><div class="wrap">
   <div class="panel" id="panel" aria-live="polite">
-    <div class="phead"><div class="pnum" id="pnum">1</div><h2 id="ptitle"></h2><span class="where" id="pwhere"></span></div>
+    <div class="phead"><div class="pnum" id="pnum">1</div><h2 id="ptitle"></h2><span class="where" id="pq"></span></div>
     <p class="goal" id="pgoal"></p>
-    <div class="cols">
-      <div><h4>Do this</h4><ol class="steps" id="psteps"></ol></div>
-      <div>
-        <div class="try"><h4 style="color:#86868b">Try this</h4><q id="ptry"></q>
-          <div class="row"><a class="pill go" id="pgo" target="_blank" rel="noopener">Try it in the assistant ›</a><button class="pill cp" id="pcopy">Copy</button></div></div>
-        <h4>What you'll see</h4><div class="see" id="psee"></div>
-        <div class="tip" id="ptip"></div>
-      </div>
+    <div class="buy">
+      <span>Your purchase</span>
+      <select id="f-item" aria-label="Equipment"></select>
+      <select id="f-country" aria-label="Country"></select>
+      <label>US$ <input id="f-budget" type="number" min="1000" step="1000" inputmode="numeric" aria-label="Budget in US dollars"></label>
     </div>
+    <div id="live" class="live"><div class="muted">Loading the estimates…</div></div>
+    <div class="tip" id="ptip"></div>
     <div class="nav2"><button id="prev">‹ Previous</button><div class="dots" id="dots"></div><button id="next">Next ›</button></div>
   </div>
 </div></section>
 
-<section class="ref"><div class="wrap">
-  <h2>The four stages at a glance.</h2>
-  <div class="cards" id="cards"></div>
-</div></section>
-
-<section class="final"><div class="wrap">
-  <h2>You're ready.</h2>
-  <a class="btn" href="https://procurement-intelligence-gkhea5oeh3lwtbbs6yganq.streamlit.app/?view=ask" target="_blank" rel="noopener">Open the AI Assistant</a><a class="link" href="../">Back to home ›</a>
-</div></section>
 <footer><div class="wrap">LabProcure is an independent demonstration built on World Bank open data. It is not a World Bank Group product.</div></footer>
 
 <script>
 const APP = "https://procurement-intelligence-gkhea5oeh3lwtbbs6yganq.streamlit.app/";
 const S = [
- {k:"plan", t:"Plan", c:"var(--c1)", hex:"#7c7cff", cap:"When will it arrive?", where:"Tab: 🧭 Plan my purchase",
-  goal:"Find out when your purchase will be awarded and delivered, before you invite a single bid.",
-  steps:["Open <b>Plan my purchase</b>.","Describe the purchase in one sentence, or pick the country and equipment type.",
-         "Set the estimated value and the planned invitation date.",
-         "Read the three dates: <b>likely award (P50)</b> and the <b>conservative planning date (P80)</b> are model estimates; <b>delivery</b> is an assumption (P80 + the usual contracted period).",
-         "Scroll the stage-by-stage table: every figure shows how it was worked out."],
-  ex:"We need to buy chemistry analyzers for county hospital laboratories in Kenya", view:"plan",
-  see:["A dated timeline: bidding, award (likely and conservative), delivery (assumed), with the model's typical error of ±47 days.",
-       "Seven lifecycle stages with badges: <span class='badge b-d'>Derived · n</span><span class='badge b-m'>Model</span><span class='badge b-e'>Evidence</span><span class='badge b-x'>Missing</span>"],
-  tip:"<b>Plan on the second date, not the first.</b> Four in five comparable tenders were awarded by the P80 planning date. Treat the delivery date as an assumption to confirm with the supplier."},
- {k:"design", t:"Design", c:"var(--c2)", hex:"#a855f7", cap:"How should I tender it?", where:"Tab: 🧭 Plan my purchase → 🔧 Tender optimizer",
-  goal:"Set up the tender that gets awarded fastest and still draws enough bidders.",
-  steps:["Stay in <b>Plan my purchase</b> and choose a procurement method.","Move the <b>bid window</b> slider.",
-         "Scroll to <b>🔧 Tender optimizer</b>: 36 setups (method × bid window × lots) are scored.",
-         "Compare the green <b>best scored setup</b> with yours, and read the heatmap.",
-         "If a yellow note says a method is rarely used at your contract size, check the procurement plan's threshold."],
-  ex:"Laboratory analyzers in Kenya, US$250,000: compare a 30-day and a 45-day bid window, and 1 lot vs 3 lots", view:"design",
-  see:["A best-setup card with the time saved and the change in single-bid risk.","A heatmap of slow-case days to award for every bid window and lot count."],
-  tip:"<b>Small gains are noise.</b> If the best setup saves less than a week, the app tells you your setup is already about as good as it gets."},
- {k:"anticipate", t:"Anticipate", c:"var(--c3)", hex:"#f59e0b", cap:"What could go wrong?", where:"Tab: 🧭 Plan my purchase → ⚠️ Pre-mortem",
-  goal:"See how comparable tenders went wrong, and how often, before it happens to yours.",
-  steps:["Scroll to <b>⚠️ Pre-mortem</b> in Plan my purchase.","Read the risks, ranked by how often they happened, each with its sample size.",
-         "Read <b>What completion reports say</b> and open a quote on its original page.",
-         "Ask the assistant a follow-up about the risk that worries you most."],
-  ex:"What problems did projects have with laboratory equipment maintenance?", view:"ask",
-  see:["Risk cards: amended awards, slow awards, rejected bids, single bids.","Verified quotes from completion reports, linked to the page."],
-  tip:"<b>Check the n.</b> A risk based on 29 tenders is a signal; one based on 253 is a pattern."},
- {k:"learn", t:"Learn", c:"var(--c4)", hex:"#10b981", cap:"What did others learn?", where:"Tabs: 📄 Documents · 💬 Ask · 📋 My plan",
-  goal:"Use what past projects learned, then keep your plan and its evidence.",
-  steps:["Open <b>Documents</b>, pick a country and a category, and ask a question.","Every sentence in the answer cites its document and page.",
-         "In <b>Ask</b>, follow up naturally: “and in Nigeria?”.",
-         "Press <b>➕ Add to my plan</b>, then open <b>My plan</b> and download Excel, with an evidence sheet per package."],
-  ex:"What lessons were learned about strengthening public health laboratories?", view:"learn",
-  see:["Answers quoted from World Bank project reports, each with a page link.","A portfolio timeline of everything you saved, and an Excel export."],
-  tip:"<b><span class='badge b-x'>Missing</span> means “not in public data”, not zero.</b> Delivery quality and bid security sit with the agency, and the app says so."},
+ {k:"plan", t:"Plan", c:"var(--c1)", hex:"#7c7cff", cap:"When will it arrive?", q:"When might the contract be awarded?",
+  goal:"Choose the equipment, country and budget. These dates come from similar past World Bank tenders.",
+  tip:"<b>Plan on the “Plan for” date, not the likely one.</b> About 4 in 5 similar tenders were awarded by then. Delivery is only an illustration: actual delivery dates are not public."},
+ {k:"design", t:"Design", c:"var(--c2)", hex:"#a855f7", cap:"How should I tender it?", q:"How should the procurement be structured?",
+  goal:"Compare procurement methods and bid windows at your budget. The same models score each setup.",
+  tip:"<b>Small differences are noise.</b> If two setups differ by less than a week, either is fine. Methods in grey are rarely used at this budget."},
+ {k:"anticipate", t:"Anticipate", c:"var(--c3)", hex:"#f59e0b", cap:"What could go wrong?", q:"What could go wrong?",
+  goal:"How often similar tenders ran into these problems, with the number of tenders each figure is based on.",
+  tip:"<b>Check how many tenders a figure rests on.</b> A rate based on 29 tenders is a signal; one based on 250 is a pattern.",
+  ask:"What problems did projects have with laboratory equipment maintenance?"},
+ {k:"learn", t:"Learn", c:"var(--c4)", hex:"#10b981", cap:"What did others learn?", q:"What can we learn from previous projects?",
+  goal:"What similar contracts cost, who supplied them, and recent examples you can open on the World Bank site.",
+  tip:"<b>For lessons written in project reports,</b> ask the AI Assistant: every sentence it gives you cites the report and the page.",
+  ask:"What lessons were learned about strengthening public health laboratories?"},
 ];
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const path = document.getElementById("path"), L = path.getTotalLength();
+const $ = id => document.getElementById(id);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const usd = v => v >= 1e6 ? "US$" + (v / 1e6).toFixed(1) + "M" : "US$" + Math.round(v).toLocaleString("en-US");
+const pct = p => Math.round(p * 100) + "%";
+const fmt = d => d.toLocaleDateString("en-GB", {day: "numeric", month: "short", year: "numeric"});
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + Math.round(n)); return x; };
+const path = $("path"), L = path.getTotalLength();
 const AT = [.06, .36, .62, .92];                      // where each stage sits along the curve
-let cur = 0, youAt = 0;
+let cur = 0, youAt = 0, D = null;
 
 // draw the curve
 path.style.strokeDasharray = L; path.style.strokeDashoffset = L;
 requestAnimationFrame(() => { path.style.transition = reduce ? "none" : "stroke-dashoffset 2.2s cubic-bezier(.22,.61,.36,1)"; path.style.strokeDashoffset = 0; });
 
 // nodes
-const g = document.getElementById("nodes");
+const g = $("nodes");
 S.forEach((s, i) => {
-  const p = path.getPointAtLength(L * AT[i]);
-  const up = i % 2 === 0;
+  const p = path.getPointAtLength(L * AT[i]), up = i % 2 === 0;
   g.insertAdjacentHTML("beforeend", `<g class="node" data-i="${i}" tabindex="0" role="button" aria-label="Stage ${i + 1}: ${s.t}">
     <circle class="halo" cx="${p.x}" cy="${p.y}" r="30" fill="${s.hex}"/>
     <circle class="ring" cx="${p.x}" cy="${p.y}" r="19" stroke="${s.hex}"/>
@@ -253,13 +269,12 @@ g.querySelectorAll(".node").forEach(n => {
   n.addEventListener("click", () => show(+n.dataset.i));
   n.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); show(+n.dataset.i); } });
 });
-
-const ms = document.getElementById("mstages");
+const ms = $("mstages");
 ms.innerHTML = S.map((s, i) => `<button data-i="${i}">${i + 1} · ${s.t}</button>`).join("");
 ms.querySelectorAll("button").forEach(b => b.onclick = () => show(+b.dataset.i));
 
 // the "you are here" dot travels along the curve
-const you = document.getElementById("you");
+const you = $("you");
 function travel(to) {
   const from = youAt, t0 = performance.now(), dur = reduce ? 0 : 900;
   const step = now => { const k = dur ? Math.min(1, (now - t0) / dur) : 1, e = 1 - Math.pow(1 - k, 3);
@@ -268,42 +283,104 @@ function travel(to) {
   requestAnimationFrame(step);
 }
 
-// panel
-const $ = id => document.getElementById(id);
 const dots = $("dots");
 dots.innerHTML = S.map((_, i) => `<b data-i="${i}" title="Stage ${i + 1}"></b>`).join("");
 dots.querySelectorAll("b").forEach(b => b.onclick = () => show(+b.dataset.i));
 function show(i, scroll = true) {
   cur = i; const s = S[i], panel = $("panel");
   panel.style.setProperty("--sc", s.c);
-  $("pnum").textContent = i + 1; $("ptitle").textContent = s.t; $("pwhere").textContent = s.where; $("pgoal").textContent = s.goal;
-  $("psteps").innerHTML = s.steps.map(x => `<li>${x}</li>`).join("");
-  [...$("psteps").children].forEach((li, j) => setTimeout(() => li.classList.add("in"), reduce ? 0 : 90 * j + 60));
-  $("ptry").textContent = s.ex;
-  $("pgo").href = `${APP}?view=${s.view}&q=${encodeURIComponent(s.ex)}`;
-  $("psee").innerHTML = s.see.map(x => `<div><i></i><span>${x}</span></div>`).join("");
+  $("pnum").textContent = i + 1; $("ptitle").textContent = s.t; $("pq").textContent = s.q; $("pgoal").textContent = s.goal;
   $("ptip").innerHTML = s.tip;
-  $("prev").disabled = i === 0; $("next").textContent = i === S.length - 1 ? "Open the assistant ›" : "Next ›";
+  $("prev").disabled = i === 0; $("prev").textContent = "‹ Back";
+  $("next").textContent = i === S.length - 1 ? "Ask the AI Assistant ›" : "Next ›";
   g.querySelectorAll(".node").forEach(n => n.classList.toggle("on", +n.dataset.i === i));
-  $("mstages").querySelectorAll("button").forEach(b => { const on = +b.dataset.i === i; b.classList.toggle("on", on); b.style.setProperty("--sc", S[+b.dataset.i].hex); });
+  ms.querySelectorAll("button").forEach(b => { b.classList.toggle("on", +b.dataset.i === i); b.style.setProperty("--sc", S[+b.dataset.i].hex); });
   dots.querySelectorAll("b").forEach(b => b.classList.toggle("on", +b.dataset.i === i));
   travel(AT[i]);
   history.replaceState(null, "", "#" + s.k);
+  render();
   if (scroll && innerHeight < 900) panel.scrollIntoView({behavior: reduce ? "auto" : "smooth", block: "start"});
 }
 $("prev").onclick = () => cur > 0 && show(cur - 1);
 $("next").onclick = () => cur < S.length - 1 ? show(cur + 1) : window.open(`${APP}?view=ask`, "_blank", "noopener");
-$("pcopy").onclick = () => { navigator.clipboard?.writeText(S[cur].ex); $("pcopy").textContent = "Copied ✓"; setTimeout(() => $("pcopy").textContent = "Copy", 1500); };
-addEventListener("keydown", e => { if (e.target.closest("input,textarea")) return;
+addEventListener("keydown", e => { if (e.target.closest("input,textarea,select")) return;
   if (e.key === "ArrowRight" && cur < S.length - 1) show(cur + 1, false); if (e.key === "ArrowLeft" && cur > 0) show(cur - 1, false); });
-
-// quick reference cards
-$("cards").innerHTML = S.map((s, i) => `<div class="qc" data-i="${i}"><em style="background:${s.hex}">STAGE ${i + 1}</em><b>${s.t}</b><span>${s.goal}</span></div>`).join("");
-$("cards").querySelectorAll(".qc").forEach(c => c.onclick = () => { show(+c.dataset.i, false); $("panel").scrollIntoView({behavior: "smooth"}); });
-
-// a swirl burst wherever you click
-addEventListener("pointerdown", e => { if (reduce) return; const b = document.createElement("span"); b.className = "burst";
+addEventListener("pointerdown", e => { if (reduce || e.target.closest("input,select")) return; const b = document.createElement("span"); b.className = "burst";
   b.style.left = e.clientX + "px"; b.style.top = e.clientY + "px"; document.body.appendChild(b); setTimeout(() => b.remove(), 800); });
+
+/* ── each stage's answer, from the same precomputed model results the planner uses ── */
+const F = {item: $("f-item"), country: $("f-country"), budget: $("f-budget")};
+fetch("../planner-data.json").then(r => r.json()).then(d => {
+  D = d;
+  F.item.innerHTML = D.items.map(i => `<option>${esc(i)}</option>`).join("");
+  F.country.innerHTML = D.countries.map(([k, n]) => `<option value="${k}">${esc(n)}</option>`).join("");
+  F.item.value = "Laboratory analyzers"; F.country.value = "KEN"; F.budget.value = 100000;
+  Object.values(F).forEach(el => el.addEventListener("input", render));
+  render();
+}).catch(() => { $("live").innerHTML = `<div class="muted">The estimates could not be loaded. Try the <a style="color:#0066cc" href="${APP}?view=ask" target="_blank" rel="noopener">AI Assistant</a>.</div>`; });
+
+function estimate(c, item, m, budget, w) {
+  const arr = D.grid[c][item][m], V = D.values, W = D.windows, wi = Math.max(0, W.indexOf(w));
+  const lv = Math.log(Math.min(Math.max(budget, V[0]), V.at(-1)));
+  let i = 0; while (i < V.length - 2 && lv > Math.log(V[i + 1])) i++;
+  const f = Math.min(1, Math.max(0, (lv - Math.log(V[i])) / (Math.log(V[i + 1]) - Math.log(V[i]))));
+  const a = arr[i * W.length + wi], b = arr[(i + 1) * W.length + wi], mix = k => a[k] + (b[k] - a[k]) * f;
+  return {p50: mix(0), p80: Math.max(mix(1), mix(0)), sb: mix(2) / 100};
+}
+const inRange = (m, v) => { const r = D.ranges[m]; return !r || (v >= r[0] && v <= r[1]); };
+function chooseMethod(e, budget) {
+  const hist = e.mix.map(([name, share]) => [Object.keys(D.methods).find(k => D.methods[k] === name), share]).filter(([k]) => k);
+  const ok = hist.filter(([k]) => inRange(k, budget));
+  if (ok.length) return {m: ok[0][0], why: hist[0][0] === ok[0][0]
+    ? `the method ${pct(ok[0][1])} of similar tenders used, and the usual choice at this budget`
+    : `the usual choice at this budget (most similar tenders used ${D.methods[hist[0][0]]}, which is normally used for contracts of ${usd(D.ranges[hist[0][0]][0])}–${usd(D.ranges[hist[0][0]][1])})`};
+  const m = Object.keys(D.methods).find(k => inRange(k, budget)) || "RFB";
+  return {m, why: "the method normally used at this budget"};
+}
+const askBtn = q => `<a class="askai" href="${APP}?view=ask&q=${encodeURIComponent(q)}" target="_blank" rel="noopener">💬 Ask the AI Assistant: “${esc(q)}”</a>`;
+
+function render() {
+  if (!D) return;
+  const c = F.country.value, item = F.item.value, budget = Math.max(1000, +F.budget.value || 0);
+  const e = D.ev[c][item], A = D.acc, rec = chooseMethod(e, budget), name = D.countries.find(x => x[0] === c)[1], k = S[cur].k;
+  let html = "";
+  if (k === "plan") {
+    const s = estimate(c, item, rec.m, budget, 30), od = addDays(new Date(), 90), d80 = addDays(od, s.p80), dm = e.deliv ? e.deliv.m : 3;
+    html = `<div class="dates3">
+      <div class="dt"><small>Likely award</small><b>${fmt(addDays(od, s.p50))}</b><span>Half of similar tenders are awarded sooner.</span></div>
+      <div class="dt main"><small>Plan for</small><b>${fmt(d80)}</b><span>A conservative date: about 4 in 5 are awarded by then.</span></div>
+      <div class="dt"><small>Delivery*</small><b>${fmt(addDays(d80, dm * 30.44))}</b><span>Plan-for date plus the usual ${dm}-month delivery period.</span></div></div>
+      <div class="facts"><span>Bids invited <b>${fmt(od)}</b></span><span>Method <b>${esc(D.methods[rec.m])}</b></span>
+        <span>Typical error <b>±${Math.round(A.mae)} days</b> on ${A.n} unseen tenders</span><span>Plan-for date held in <b>${pct(A.cov)}</b> of tests</span></div>
+      <p class="note">*Illustrative only: actual delivery dates are not in public data.</p>`;
+  } else if (k === "design") {
+    const rows = [];
+    for (const m of Object.keys(D.methods)) for (const w of D.windows) rows.push({m, w, ...estimate(c, item, m, budget, w), ok: inRange(m, budget)});
+    const pool = rows.filter(r => r.ok).length ? rows.filter(r => r.ok) : rows;
+    const best = pool.reduce((a, b) => (b.p80 < a.p80 - 3 || (Math.abs(b.p80 - a.p80) <= 3 && b.sb < a.sb)) ? b : a);
+    html = `<p class="note" style="margin-top:0"><b>Recommended method: ${esc(D.methods[rec.m])}</b>, ${esc(rec.why)}.</p>
+      <table class="cmp"><tr><th>Method</th><th>Bid window</th><th>Plan for (days to award)</th><th>Chance of a single bid</th></tr>
+      ${rows.map(r => `<tr class="${r === best ? "best" : ""}${r.ok ? "" : " out"}"><td>${r === best ? "★ " : ""}${esc(D.methods[r.m])}</td><td>${r.w} days</td><td>${Math.round(r.p80)}</td><td>${pct(r.sb)}</td></tr>`).join("")}</table>
+      <p class="note">★ Best scored at ${usd(budget)}: ${esc(D.methods[best.m])} with a ${best.w}-day bid window. The single-bid figures are rough (the model ranks risk well, AUC ${A.sb_auc.toFixed(2)}, but its percentages are approximate).</p>`;
+  } else if (k === "anticipate") {
+    const risks = [["Award amended after signing", e.amend], ["Only one bid received", e.bids && {p: e.bids.sb, n: e.bids.n, scope: e.bids.scope}],
+      ["A bid rejected at evaluation", e.bids && {p: e.bids.rej, n: e.bids.n, scope: e.bids.scope + (e.bids.top ? "; most often: " + e.bids.top : "")}],
+      ["Award took over 6 months", e.slow]].filter(r => r[1]).sort((a, b) => b[1].p - a[1].p);
+    const ask = `What problems did projects have when buying ${item.toLowerCase()} in ${name}?`;
+    html = risks.map(([t, r]) => `<div class="risk"><div class="row"><span>${t}</span><span>${pct(r.p)}</span></div>
+      <div class="meter"><i style="width:${Math.min(100, r.p * 100)}%"></i></div><small>${r.n} tenders · ${esc(r.scope)}</small></div>`).join("") + askBtn(ask);
+  } else {
+    html = `<div class="kf">
+        <div><b>${e.val ? usd(e.val.m) : "–"}</b><span>typical contract value${e.val ? ` (${e.val.n} contracts)` : ""}</span></div>
+        <div><b>${e.bids && e.bids.m >= 1 ? e.bids.m + " bids" : "not recorded"}</b><span>received per tender, median${e.bids && e.bids.m >= 1 ? ` (${e.bids.n} tenders)` : ""}</span></div>
+        <div><b>${e.deliv ? e.deliv.m + " months" : "–"}</b><span>usual contracted delivery period</span></div></div>
+      <p class="note"><b>Largest suppliers:</b> ${e.sup.map(x => esc(x[0]) + " (" + usd(x[2]) + ")").join(", ")}</p>
+      ${e.recent.map(r => `<div class="rec"><b>${esc(r[2])}</b> · ${usd(r[3])} · ${esc(r[1])}<br><span style="color:var(--ink2)">${esc(r[5])}</span>
+        · <a href="https://projects.worldbank.org/en/projects-operations/project-detail/${esc(r[6])}" target="_blank" rel="noopener">${esc(r[6])} ↗</a></div>`).join("")}
+      ${askBtn(`What lessons did projects in ${name} learn about buying ${item.toLowerCase()}?`)}`;
+  }
+  $("live").innerHTML = html;
+}
 
 const start = Math.max(0, S.findIndex(s => "#" + s.k === location.hash));
 show(start, false);

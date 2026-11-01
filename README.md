@@ -27,13 +27,14 @@ questions in which every statement cites its evidence and is checked against it.
 | 3 | Prototype: pipeline, chatbot and how to run them | [deliverables/03_PROTOTYPE/README.md](deliverables/03_PROTOTYPE/README.md) |
 | 4 | Report: findings, measured results, limitations, next steps | [deliverables/04_REPORT.pdf](deliverables/04_REPORT.pdf) |
 
-The static website in [deliverables/site/](deliverables/site/) has three pages: the **LabProcure landing page**
-(`index.html`, built by `python src/build_landing.py` from `src/landing_template.html`; its timeline, optimizer heatmap,
-pre-mortem and trust figures are computed from the stored records) with two entry points, **AI Assistant** (opens the
-app on the Ask tab) and **Learn how to use it** (`learn/`, an interactive four-stage guide: Plan, Design, Anticipate,
-Learn, each with steps and an example that opens the app pre-filled), the browser-only chatbot (`ask/`) and the report
-(`report.html`). The app accepts deep links: `?view=ask|plan|design|anticipate|learn|countries|suppliers|myplan` and
-an optional `&q=` example to run. Host the folder on any static host.
+The static website in [deliverables/site/](deliverables/site/) is built by `python src/build_landing.py`. The home page
+(`index.html`) explains the project and offers two actions: **Ask the AI Assistant** (opens the app on the Ask tab) and
+**Explore the Four Stages** (`learn/`): an interactive journey through Plan, Design, Anticipate and Learn in which each
+stage shows its answer for the chosen equipment, country (Kenya or India) and budget, computed in advance from the same
+models (`planner-data.json`). Also in the folder but not linked from the home page: the full planner (`plan/`), the
+browser-only chatbot (`ask/`) and the report (`report.html`). The app accepts deep links:
+`?view=ask|plan|design|anticipate|learn|countries|suppliers|myplan` and an optional `&q=` question. Host the folder on any
+static host.
 
 ## Try it
 
