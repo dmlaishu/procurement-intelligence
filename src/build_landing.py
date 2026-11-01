@@ -44,6 +44,7 @@ def main():
         "CONTRACTS_FMT": f"{stats['contracts_in_domain']:,}", "VALUE_B": f"{stats['domain_usd'] / 1e9:.2f}",
         "COUNTRIES": stats["countries_in_domain"], "PROJECTS": stats["projects"], "REPORTS": stats["documents_parsed"],
         "EDGES": f"{stats['kg_edges']:,}", "N_TRAIN": f"{m['n_train']:,}", "N_TEST": m["n_test"],
+        "N_ALL": f"{m['n_train'] + m['n_test']:,}",
         "SPLIT": date.fromisoformat(ins.metrics["split_date"]).strftime("%B %Y"),
         "COV": round(m["p80_coverage"] * 100), "MAE": round(m["mae_days_model_p50"]), "MAE_BASE": round(m["mae_days_global_median"]),
         "BENCH": f"±{round(m['mae_days_km_benchmark'])} days", "CAUGHT": g["caught"], "PLANTED": g["injected_hallucinations"],
