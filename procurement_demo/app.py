@@ -20,7 +20,7 @@ import streamlit as st  # noqa: E402
 from procurement_demo.chatbot import SCHEMA_DOT, ProcurementChat  # noqa: E402
 from procurement_demo.common import GOLD, OUT  # noqa: E402
 from procurement_demo.insights import (ARCHITECTURE_DOT, Insights, build_package, evidence_link,  # noqa: E402
-                                       evidence_rows, linkify)
+                                       evidence_rows)
 from procurement_demo.lifecycle import Lifecycle  # noqa: E402
 from procurement_demo.models import score  # noqa: E402
 
@@ -40,6 +40,12 @@ html,body,[class*="css"],.stMarkdown{font-family:-apple-system,BlinkMacSystemFon
 .answer .lab{display:block;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#1d5fe0;margin-bottom:4px}
 .src{font-size:.92rem;color:#4b5563;margin:6px 0 0}
 .src a{color:#1d5fe0}
+.findings{margin:14px 0 10px;font-size:1rem;line-height:1.55}
+.findings .lab{display:block;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#1d5fe0;margin-bottom:2px}
+.findings .kh{font-weight:700;color:#0f1f3d;margin:10px 0 2px}
+.findings ul.kf{margin:0;padding-left:1.2rem}
+.findings ul.kf li{margin:3px 0}
+.findings a{color:#1d5fe0;text-decoration:none;font-size:.85rem}
 .dates{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:10px 0 8px}
 @media (max-width:700px){.dates{grid-template-columns:1fr}}
 .dcard{border:1.5px solid #dbe5f3;border-radius:14px;padding:16px 18px;background:#fff}
@@ -120,44 +126,88 @@ except TypeError:                     # Streamlit without st.tabs(default=...)
 DATA_INTENTS = {"rank_low", "rank_high", "suppliers", "supplier", "aggregate", "timeline", "graph", "project"}
 
 
-def short_from_bot(ans):
-    """Answer: the first 1-3 verified statements. Source: the records they cite."""
-    stm = [s for s in ans["statements"] if not s.get("abstention")]
-    if not stm:
-        return None, [], ans
-    first = [s for s in stm if s["section"] == stm[0]["section"]][:3]
-    if len(first) == 1:                    # e.g. a total followed by its breakdown: take the next two lines too
-        first = stm[:3]
-    text = " ".join(re.sub(r"\s+", " ", s["text"]).strip() for s in first)
-    ids = list(dict.fromkeys(c for s in first for c in s["citations"]))[:2]
-    srcs = []
+CONTRACT_SOURCE = "World Bank contract awards (calculated from the records)"
+REPORT_SOURCE = "World Bank project reports (appraisal, supervision and completion reports)"
+
+
+def millions(text):
+    """US$11,421,911 → US$11.42M in short findings (the exact figure stays in the table)."""
+    return re.sub(r"US\$(\d{1,3}(?:,\d{3}){2,})(?!\d)", lambda m_: f"US${int(m_.group(1).replace(',', '')) / 1e6:.2f}M", text)
+
+
+def cites(ids, evidence):
+    out = []
     for i in ids:
-        e = ans["evidence"].get(i)
-        if not e:
-            continue
-        row = evidence_rows({i: e}, ins.project_name).iloc[0]
-        label = row["project"] or row["source"]
-        if "fact_contract" in label or "dim_supplier" in label:
-            label = "World Bank contract awards (calculated from the records)"
-        label += f", contract {row['contract']}" if row["contract"] else ""
-        label += f", p. {row['page']}" if row["page"] else ""
-        srcs.append((label if label.startswith("World Bank") else f"{row['type']}: {label}", evidence_link(e)))
-    return text, srcs, ans
+        link = evidence_link(evidence[i]) if i in evidence else None
+        out.append(f'<a href="{esc(link)}" target="_blank">[{esc(i)}]</a>' if link else f"[{esc(i)}]")
+    return " ".join(out)
 
 
-def short_from_docs(res):
-    """Answer: up to two sentences quoted from the documents. Source: the document and page they come from."""
+def names(statements, k=3):
+    """The labels before the colon in breakdown lines: 'Reagents and cartridges: 48 contracts, …' → 'reagents and cartridges'."""
+    out = [re.split(r":| \(", st_["text"], maxsplit=1)[0].strip() for st_ in statements[:k]]
+    return [n if n.isupper() else n[:1].lower() + n[1:] for n in out]
+
+
+def joined(items):
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
+
+
+def present_bot(ans, cname):
+    """Three levels from the chatbot's verified statements: summary + source, key findings, details."""
+    stm = [x for x in ans["statements"] if not x.get("abstention")]
+    if not stm:
+        return None
+    sections = {}
+    for x in stm:
+        sections.setdefault(x["section"], []).append(x)
+    titles = list(sections)
+    route, ev = ans["route"], ans["evidence"]
+    if route == "lessons":
+        n = len(stm)
+        summary = (f"World Bank project reports for {cname} and similar projects contain {n} relevant "
+                   f"passage{'s' if n != 1 else ''} on this question. The most relevant are quoted below, each with its "
+                   "report and page.")
+        source, findings = REPORT_SOURCE, [(t, sections[t]) for t in titles]
+    else:
+        head = sections[titles[0]]
+        summary = " ".join(re.sub(r"\s+", " ", x["text"]).strip() for x in head[:2])
+        rest = [(t, sections[t]) for t in titles[1:]]
+        if route == "aggregate" and rest:
+            summary += f" The largest by value are {joined(names(rest[0][1]))}."
+        elif route == "suppliers" and rest:
+            summary += f" The largest are {joined([n.upper() if n.islower() else n for n in names(rest[0][1]) ])}."
+        ids = list(dict.fromkeys(c for x in head for c in x["citations"]))
+        if all(i.startswith("D") for i in ids):
+            source = CONTRACT_SOURCE
+        elif ids and ids[0] in ev:
+            row = evidence_rows({ids[0]: ev[ids[0]]}, ins.project_name).iloc[0]
+            source = (f"{row['type']}: {row['project'] or row['source']}"
+                      + (f", contract {row['contract']}" if row["contract"] else "")
+                      + (f", p. {row['page']}" if row["page"] else ""))
+            if ids[0].startswith("B"):
+                source = "Historical World Bank tenders (time from invitation to award, counting tenders still open)"
+        else:
+            source = "World Bank records"
+        findings = rest
+    return {"summary": millions(summary), "source": source, "findings": findings, "evidence": ev,
+            "table": ans.get("table"), "route": route, "removed": len(ans["guardrail_log"])}
+
+
+def present_docs(res, cname):
+    """Three levels from the document search: the first quoted sentence, the others, then every source."""
     if not res["answer"]:
-        return None, [], res
-    by_id = {s["id"]: s for s in res["sources"]}
-    first = res["answer"][:2]
-    text = " ".join(a["text"] for a in first)
-    srcs = []
-    for sid in dict.fromkeys(a["source"] for a in first):
-        s = by_id.get(sid)
-        if s:
-            srcs.append((f"{s['doc_type']}, {s['title'][:70]}, p. {s['pages']}", s.get("url")))
-    return text, srcs, res
+        return None
+    by_id = {x["id"]: x for x in res["sources"]}
+    first, others = res["answer"][0], res["answer"][1:]
+    src = by_id.get(first["source"])
+    source = f"{src['doc_type']}, {src['title'][:80]}, p. {src['pages']}" if src else REPORT_SOURCE
+    ev = {x["id"]: {"id": x["id"], "url": x.get("url"), "project_id": x.get("project_id"), "page": x.get("pages"),
+                    "source": f"{x['doc_type']} {x['title']}", "text": x.get("text", "")} for x in res["sources"]}
+    findings = [("What the reports say", [{"text": a["text"], "citations": [a["source"]]} for a in others])] if others else []
+    return {"summary": f"From {cname}'s World Bank project documents: “{first['text']}”", "source": source,
+            "source_url": src.get("url") if src else None, "findings": findings, "evidence": ev, "docs": res["sources"],
+            "table": None, "route": "docs", "removed": 0}
 
 
 PURCHASED = re.compile(r"\b(what|which)\b.*\b(purchased|bought|procured)\b", re.I)
@@ -173,32 +223,93 @@ def ask(question, iso3, cname, category):
         q = question if parsed["countries"] else f"{question} in {cname}"
         if category and category != "Procurement process and contracts" and not parsed["item_types"]:
             q += f" ({category.lower()})"
-        return "data", *short_from_bot(bot.ask(q))
+        return present_bot(bot.ask(q), cname)
     docs = load_docs()
     if docs is not None:
         try:
-            return "docs", *short_from_docs(docs.answer(question, iso3, category))
+            return present_docs(docs.answer(question, iso3, category), cname)
         except Exception:             # e.g. the embedding model could not be loaded here: fall back to the chatbot
             pass
     q = question if parsed["countries"] else f"{question} in {cname}"
-    return "data", *short_from_bot(bot.ask(q))
+    return present_bot(bot.ask(q), cname)
 
 
-def show_detail(kind, full):
-    if kind == "docs":
-        rest = full["answer"][2:]
-        if rest:
-            st.markdown("\n".join(f"- {md(a['text'])} [{a['source']}]" for a in rest))
-        for s in full["sources"][:6]:
-            st.markdown(f"- **[{s['id']}]** {esc(s['doc_type'])} · {md(esc(s['title'][:90]))} · p. {s['pages']} · "
-                        f"[open]({s['url']})")
-    else:
-        st.markdown(linkify(full["answer_md"], full["evidence"]))
-        if full.get("table") is not None and len(full["table"]):
-            st.dataframe(full["table"].head(10), use_container_width=True, hide_index=True)
-        if full["guardrail_log"]:
-            st.caption(f"{len(full['guardrail_log'])} statement(s) removed by the verifier because their figures or "
-                       "quotes were not in the cited record.")
+TABLES = {   # route → (columns to show, display names, money columns)
+    "aggregate": None,
+    "suppliers": (["supplier", "base", "contracts", "total_usd", "countries"],
+                  ["Supplier", "Based in", "Contracts", "Total value (US$)", "Countries"]),
+    "rank_low": (["wb_contract_number", "supplier_name", "supplier_country", "amount_usd", "signing_date", "project_id", "description"],
+                 ["Contract", "Supplier", "Supplier country", "Value (US$)", "Signed", "Project", "Description"]),
+    "timeline": (["item_type", "n", "n_awarded", "median_days", "p80_days"],
+                 ["Equipment type", "Tenders", "Awarded", "Median days to award", "80% awarded within (days)"]),
+}
+TABLES["rank_high"] = TABLES["rank_low"]
+
+
+def detail_table(p):
+    t = p["table"]
+    if t is None or not len(t):
+        return None
+    t = t.copy()
+    if p["route"] == "aggregate":
+        key = t.columns[0]
+        t = t.rename(columns={key: {"item_type": "Equipment type", "country_iso3": "Country", "region": "Region", "year": "Year"}.get(key, key),
+                              "contracts": "Contracts", "total_usd": "Total value (US$)", "suppliers": "Suppliers"})
+        if "Country" in t:
+            t["Country"] = t["Country"].map(bot.country_name).fillna(t["Country"])
+    elif p["route"] in TABLES:
+        cols, labels = TABLES[p["route"]]
+        cols = [c for c in cols if c in t]
+        t = t[cols].rename(columns=dict(zip(TABLES[p["route"]][0], labels)))
+    for c in t.columns:
+        if "US$" in c:
+            t[c] = t[c].map(lambda v: f"{v:,.0f}")
+        elif t[c].dtype.kind == "f":
+            t[c] = t[c].map(lambda v: "" if pd.isna(v) else f"{v:,.0f}")
+        elif t[c].dtype.kind == "M":
+            t[c] = t[c].dt.strftime("%d %b %Y")
+    return t
+
+
+def show_answer(p, cname, category):
+    if p is None:
+        st.markdown(f'<div class="answer"><span class="lab">Answer</span>The {esc(cname)} records do not answer this '
+                    f'directly{" for " + esc(category.lower()) if category != "All categories" else ""}. Try another '
+                    'category or rephrase the question.</div>', unsafe_allow_html=True)
+        return
+    src = (f'<a href="{esc(p["source_url"])}" target="_blank">{esc(p["source"])}</a>' if p.get("source_url") else esc(p["source"]))
+    st.markdown(f'<div class="answer"><span class="lab">Answer</span>{esc(p["summary"])}</div>'
+                f'<p class="src"><b>Source:</b> {src}</p>', unsafe_allow_html=True)
+    if p["findings"]:
+        blocks = []
+        for title, items in p["findings"]:
+            li = []
+            for x in items[:6]:
+                text = re.sub(r"\s+-\s+note:.*$", "", millions(x["text"]))          # rating notes stay in the sources
+                li.append(f"<li>{esc(text)} {cites(x['citations'], p['evidence'])}</li>")
+            title = {"By item type": "By equipment type"}.get(title, title)
+            blocks.append(f'<p class="kh">{esc(title)}</p><ul class="kf">{"".join(li)}</ul>')
+        st.markdown('<div class="findings"><span class="lab">Key findings</span>' + "".join(blocks) + "</div>",
+                    unsafe_allow_html=True)
+    with st.expander("More details and all sources"):
+        t = detail_table(p)
+        if t is not None:
+            st.dataframe(t, use_container_width=True, hide_index=True)
+        if p["route"] == "docs":
+            for x in p["docs"]:
+                st.markdown(md(f"- **[{x['id']}]** {x['doc_type']} · {x['title'][:90]} · p. {x['pages']} · "
+                               f"project {x['project_id']} · [open the document]({x['url']})"))
+        else:
+            rows = evidence_rows(p["evidence"], ins.project_name)
+            for r in rows.itertuples():
+                what = r.project or r.source
+                extra = (f", contract {r.contract}" if r.contract else "") + (f", p. {r.page}" if r.page else "")
+                link = f" · [open]({r.link})" if r.link else ""
+                st.markdown(md(f"- **[{r.id}]** {r.type}: {what}{extra}{link}  \n  <small>{esc(r.excerpt[:200])}</small>"),
+                            unsafe_allow_html=True)
+        if p["removed"]:
+            st.caption(f"{p['removed']} statement(s) were removed by the verifier because their figures or quotes were "
+                       "not in the cited record.")
 
 
 with ask_tab:
@@ -218,24 +329,14 @@ with ask_tab:
         st.session_state.ask_q = str(qp.get("q"))[:300]
     st.caption("Try a question")
     cols = st.columns(4)
-    for i, s in enumerate(samples):
-        if cols[i].button(s, key=f"sample{i}", use_container_width=True):
-            st.session_state.ask_q = s
+    for i, s_ in enumerate(samples):
+        if cols[i].button(s_, key=f"sample{i}", use_container_width=True):
+            st.session_state.ask_q = s_
     question = st.text_input("Your question", key="ask_q", placeholder=f"Ask about laboratory procurement in {cname}…")
     if question.strip():
         with st.spinner("Searching the records…"):
-            kind, text, srcs, full = ask(question.strip(), iso3, cname,
-                                         None if category == "All categories" else category)
-        if text:
-            src_html = " · ".join(f'<a href="{esc(u)}" target="_blank">{esc(lbl)}</a>' if u else esc(lbl) for lbl, u in srcs)
-            st.markdown(f'<div class="answer"><span class="lab">Answer</span>{esc(text)}</div>'
-                        f'<p class="src"><b>Source:</b> {src_html or "World Bank records"}</p>', unsafe_allow_html=True)
-        else:
-            st.markdown(f'<div class="answer"><span class="lab">Answer</span>The {esc(cname)} records do not answer this '
-                        f'directly{" for " + esc(category.lower()) if category != "All categories" else ""}. Try another '
-                        'category or rephrase the question.</div>', unsafe_allow_html=True)
-        with st.expander("More detail and all sources"):
-            show_detail(kind, full)
+            p = ask(question.strip(), iso3, cname, None if category == "All categories" else category)
+        show_answer(p, cname, category)
 
 # ── Plan ────────────────────────────────────────────────────────────────────────────────────────
 PLAN_COUNTRIES = [k for k in ("KEN", "IND") if k in ins.countries()]
