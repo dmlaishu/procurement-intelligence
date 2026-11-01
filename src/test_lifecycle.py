@@ -53,7 +53,17 @@ def run_lifecycle():
         check(f"{iso3}/{item}: timeline is contiguous", all(tl.end.iloc[i] == tl.start.iloc[i + 1] for i in range(len(tl) - 1)), tl)
         check(f"{iso3}/{item}: P80 award after P50", tl.iloc[2].end >= tl.iloc[1].end, tl)
         rec = plan_record(ins.name(iso3), item, "RFB", 200_000, "2027-03-01", s, tl)
-        check(f"{iso3}/{item}: plan record dates in order", rec["invitation"] <= rec["award by (P80)"] <= rec["delivered by"], rec)
+        check(f"{iso3}/{item}: plan record dates in order", rec["invitation"] <= rec["award by (P80)"] <= rec["delivery, assumed (P80 award + contract period)"], rec)
+    from procurement_demo.models import score_many
+    pk = [build_package(c, "Laboratory analyzers", m, v, projects=ins.projects) for c in ("KEN", "NGA") for m in ("RFB", "RFQ")
+          for v in (5e3, 3e5, 4e6)]
+    many = score_many(pk)
+    one = [score(p) for p in pk]
+    check("score_many matches score row by row", all(abs(many.cycle_p50[i] - o["cycle_p50"]) < 1e-6
+                                                    and abs(many.single_bid_prob[i] - o["single_bid_prob"]) < 1e-9 for i, o in enumerate(one)))
+    check("P80 never below P50", (many.cycle_p80 >= many.cycle_p50).all())
+    tl = lc.timeline("KEN", "Laboratory analyzers", "2027-03-01", one[0])
+    check("delivery is labelled an assumption", tl.iloc[3].kind == "Assumption" and "not in public data" in tl.iloc[3].note, tl.iloc[3])
     df, base = lc.optimize("KEN", "Laboratory analyzers", "RFB", 250_000, "2027-03-01")
     check("optimizer: 3 methods x 4 windows x 3 lot options scored", len(df) == 36, len(df))
     check("optimizer: your setup found", base is not None and base.method == "RFB" and base.lots == 1, base)

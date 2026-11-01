@@ -144,6 +144,27 @@ if q_link and not st.session_state.get("q_used"):        # an example sent from 
             st.session_state.plan_note = f"Read as: {req['item_type']} in {ins.name(req['country'])}."
     elif view == "learn":
         st.session_state.doc_question = q_link
+# the website's planner hands over its inputs: ?view=plan&country=KEN&item=...&value=250000&method=RFB&date=2027-03-01&window=30
+qp = st.query_params
+if qp.get("country") and not st.session_state.get("plan_link_used"):
+    st.session_state.plan_link_used = True
+    c_in, i_in = str(qp.get("country")).upper(), str(qp.get("item", ""))
+    if c_in in COUNTRIES and i_in in ITEMS:
+        st.session_state.plan_country, st.session_state.plan_item = c_in, i_in
+        try:
+            st.session_state[f"plan_value_{c_in}_{i_in}"] = max(1_000, int(float(qp.get("value", 0))))
+        except ValueError:
+            pass
+        if qp.get("method") in METHODS:
+            st.session_state[f"plan_method_{c_in}_{i_in}"] = qp.get("method")
+        try:
+            st.session_state.plan_date = date.fromisoformat(str(qp.get("date")))
+        except (TypeError, ValueError):
+            pass
+        try:
+            st.session_state.plan_window = min(90, max(7, int(qp.get("window", 30))))
+        except ValueError:
+            pass
 try:
     _tabs = st.tabs(TAB_LABELS, default=TAB_LABELS[VIEWS[view]] if view in VIEWS else None)
 except TypeError:                     # Streamlit without st.tabs(default=...)
@@ -182,7 +203,7 @@ def show_answer(ans, key):
 
 
 def timeline_chart(tl, height=170):
-    colors = alt.Scale(domain=["Derived", "Model"], range=["#10b981", "#4f46e5"])
+    colors = alt.Scale(domain=["Derived", "Model", "Assumption"], range=["#10b981", "#4f46e5", "#9ca3af"])
     bars = alt.Chart(tl).mark_bar(cornerRadius=5, height=22).encode(
         x=alt.X("start:T", title=None, axis=alt.Axis(format="%b %Y")), x2="end:T",
         y=alt.Y("step:N", title=None, sort=None, axis=alt.Axis(labelLimit=260)),
@@ -203,7 +224,8 @@ def key_points(figs, s, tl):
     """Short written summary built only from the figures above (no free text generation)."""
     f = {x.figure: x for x in figs}
     pts = [f"Award is likely about **{fmt_days(s['cycle_p50'])}** after the invitation; plan for **{fmt_days(s['cycle_p80'])}** "
-           f"(P80), i.e. by **{tl.iloc[2].end:%d %b %Y}**, and delivery by **{tl.iloc[3].end:%d %b %Y}**."]
+           f"(P80), i.e. by **{tl.iloc[2].end:%d %b %Y}**; if delivery takes the usual contracted period, it would end around "
+           f"**{tl.iloc[3].end:%d %b %Y}** (an assumption, not a prediction)."]
     for name, txt in (("Bid window (invitation → deadline)", "Typical bid window: **{v}**."),
                       ("Most used method", "Most comparable tenders used **{v}**."),
                       ("Bids received per tender", "Comparable tenders received **{v}** bids."),
@@ -340,13 +362,26 @@ with plan_tab:
     pkg, s, figs, tl = run_lifecycle(country, item, method, value, open_date, review, window)
     st.markdown("##### 📅 Your timeline")
     k1, k2, k3, k4 = st.columns(4)
-    k1.metric("Likely award (P50)", f"{tl.iloc[1].end:%d %b %Y}", help=f"{fmt_days(s['cycle_p50'])} after the invitation")
-    k2.metric("Plan the award for (P80)", f"{tl.iloc[2].end:%d %b %Y}", help=f"{fmt_days(s['cycle_p80'])} after the invitation")
-    k3.metric("Delivered by", f"{tl.iloc[3].end:%d %b %Y}", help="P80 award plus the median contract duration")
+    k1.metric("Model estimate · likely award (P50)", f"{tl.iloc[1].end:%d %b %Y}",
+              help=f"{fmt_days(s['cycle_p50'])} after the invitation: half of comparable tenders are awarded sooner.")
+    k2.metric("Conservative planning date (P80)", f"{tl.iloc[2].end:%d %b %Y}",
+              help=f"{fmt_days(s['cycle_p80'])} after the invitation: 4 in 5 comparable tenders were awarded by then. "
+                   "Put this date in the plan.")
+    k3.metric("Delivery · assumption", f"{tl.iloc[3].end:%d %b %Y}",
+              help="Not a prediction: the P80 award date plus the median contracted delivery period from award notices. "
+                   "Actual delivery dates are not in public data.")
     rel = s.get("single_bid_prob", 0) / max(s.get("single_bid_base_rate", 1), 1e-9)
     k4.metric("Single-bid risk", "higher than usual" if rel >= 1.5 else ("lower than usual" if rel <= .67 else "about usual"),
               help=f"Model {s.get('single_bid_prob', 0):.0%} vs base rate {s.get('single_bid_base_rate', 0):.0%}; "
                    "AUC 0.67, read as a direction, not a percentage.")
+    st.markdown(
+        f'<div class="lp-card"><b>How accurate is this?</b> On {m.get("n_test", 0)} later tenders the model never saw, '
+        f'the P50 was off by <b>{m.get("mae_days_model_p50", 0):.0f} days</b> on average (a single overall median: '
+        f'{m.get("mae_days_global_median", 0):.0f} days), and the P80 covered <b>{m.get("p80_coverage", 0):.0%}</b> of '
+        f'actual award times (80% would be perfect). Read the P50 as roughly '
+        f'{ui.esc(fmt_days(max(0, s["cycle_p50"] - m.get("mae_days_model_p50", 0))))} to '
+        f'{ui.esc(fmt_days(s["cycle_p50"] + m.get("mae_days_model_p50", 0)))}. {ui.badge("Model")} '
+        f'{ui.badge("Assumption", "Missing")} = delivery, not validated.</div>', unsafe_allow_html=True)
     st.altair_chart(timeline_chart(tl), use_container_width=True)
     if st.button("➕ Add this package to my plan", type="primary", key="plan_add"):
         add_to_plan(country, item, method, value, open_date, s, tl)
