@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 
 from .insights import MIN_N, build_package, km, project_url
-from .models import score, score_many
+from .models import score_many
 
 STAGES = ["Planning", "Tender design", "Bidding & evaluation", "Award & contract", "Delivery", "Monitoring", "Learning"]
 SATISFACTORY = {"highly satisfactory", "satisfactory", "moderately satisfactory"}
@@ -53,7 +53,7 @@ class Lifecycle:
     """Builds the lifecycle for (country, equipment type) from the Insights tables and the knowledge base."""
 
     def __init__(self, ins, kb, gold):
-        self.ins, self.kb = ins, kb
+        self.ins, self.kb, self.gold = ins, kb, gold
         self.t_all, self.t = ins.t_all, ins.t
         self.projects = ins.projects
         self.ratings = pd.read_parquet(gold / "project_ratings_resolved.parquet")
@@ -90,16 +90,11 @@ class Lifecycle:
         if len(length):
             F.append(Fig("Planning", "Planned project length (approval → closing)", f"{length.median():.0f} months",
                          "Derived", f"Median over health projects with lab purchases, {scope}.", len(length)))
-        lab = self.t.merge(self.projects[["project_id", "approval_date"]], on="project_id", how="left")
-        first = (lab.groupby("project_id").agg(c=("country_iso3", "first"), first=("open_date", "min"),
-                                               appr=("approval_date", "first")).dropna())
-        first["days"] = (first["first"] - first["appr"]).dt.days
-        first = first[first.days >= 0]
-        sel = first[first.c == country] if (first.c == country).sum() >= 5 else first
-        if len(sel):
-            F.append(Fig("Planning", "Project approval → first lab tender", f"{sel.days.median() / 30.44:.0f} months",
-                         "Derived", f"Median per project, {'in ' + name if sel is not first else 'all countries'}: "
-                                    "how long projects took to put their first lab or diagnostic tender on the market.", len(sel)))
+        ft = self.first_tender_stats(country)
+        if ft["n"]:
+            F.append(Fig("Planning", "Project approval → first lab tender", f"{ft['months']:.0f} months",
+                         "Derived", f"Median per project, {ft['scope']}: "
+                                    "how long projects took to put their first lab or diagnostic tender on the market.", ft["n"]))
         pp = self.chunks[(self.chunks.doc_type_code == "PP") & (self.chunks.country_iso3 == country)].drop_duplicates("doc_id")
         if len(pp):
             F.append(Fig("Planning", "Procurement plans on file", f"{len(pp)} plan(s)", "Evidence",
@@ -206,6 +201,38 @@ class Lifecycle:
         F.append(Fig("Learning", "Most common lesson themes", ", ".join(f"{k} ({v})" for k, v in cats.head(3).items()),
                      "Derived", "Risk categories of the verified lessons (all countries).", len(L)))
         return F
+
+    # ── evidence behind single figures (used by the app's expandable "View evidence") ──────────────
+    def first_tender_stats(self, country):
+        """Per project: months from Board approval to the opening of its first lab or diagnostic tender. The selected
+        country's projects when there are at least 5, otherwise every project. Median across projects."""
+        lab = self.t.merge(self.projects[["project_id", "approval_date", "project_name"]], on="project_id", how="left")
+        first = (lab.groupby("project_id").agg(c=("country_iso3", "first"), first=("open_date", "min"),
+                                               appr=("approval_date", "first"), name=("project_name", "first"))
+                 .dropna(subset=["c", "first", "appr"]))
+        first["days"] = (first["first"] - first["appr"]).dt.days
+        first = first[first.days >= 0]
+        local = first.c == country
+        sel, scope = (first[local], f"in {self.ins.name(country)}") if local.sum() >= 5 else (first, "all countries")
+        return {"n": len(sel), "months": sel.days.median() / 30.44 if len(sel) else None, "scope": scope,
+                "country_specific": local.sum() >= 5, "n_countries": sel.c.nunique(),
+                "countries": sel.c.map(self.ins.name).value_counts(),
+                "projects": sel.assign(months=sel.days / 30.44).sort_values("months").reset_index()}
+
+    def award_notice_stats(self, country, item_type):
+        """Share of awarded comparable tenders with a revised award notice (a later version) or more than one award
+        notice, the event recorded as award_amended_flag. Not proof that the signed contract changed."""
+        aw, scope = self._scoped(self.t, country, item_type, cond=lambda d: d.award_observed.astype(bool))
+        if not len(aw):
+            return {"n": 0, "scope": scope}
+        flagged = aw[aw.award_amended_flag.astype(bool)]
+        if not hasattr(self, "_notices"):
+            self._notices = pd.read_parquet(self.gold / "notices.parquet")
+        nt = self._notices[(self._notices.notice_type == "Contract Award") & self._notices.bid_ref_key.isin(flagged.tender_id)]
+        notices = nt.groupby("bid_ref_key").notice_id.apply(list).to_dict()
+        ex = [{"tender": r.tender_id, "project": r.project_id, "description": str(r.description)[:110],
+               "notices": notices.get(r.tender_id, [])[:3]} for r in flagged.head(5).itertuples()]
+        return {"n": len(aw), "k": len(flagged), "p": len(flagged) / len(aw), "scope": scope, "examples": ex}
 
     # ── timeline ─────────────────────────────────────────────────────────────────────────────────
     def timeline(self, country, item_type, open_date, scores):

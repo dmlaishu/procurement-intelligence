@@ -20,7 +20,7 @@ import streamlit as st  # noqa: E402
 from procurement_demo.chatbot import SCHEMA_DOT, ProcurementChat  # noqa: E402
 from procurement_demo.common import GOLD, OUT  # noqa: E402
 from procurement_demo.insights import (ARCHITECTURE_DOT, Insights, build_package, evidence_link,  # noqa: E402
-                                       evidence_rows)
+                                       evidence_rows, project_url)
 from procurement_demo.lifecycle import Lifecycle  # noqa: E402
 from procurement_demo.models import score  # noqa: E402
 
@@ -46,6 +46,9 @@ html,body,[class*="css"],.stMarkdown{font-family:-apple-system,BlinkMacSystemFon
 .findings ul.kf{margin:0;padding-left:1.2rem}
 .findings ul.kf li{margin:3px 0}
 .findings a{color:#1d5fe0;text-decoration:none;font-size:.85rem}
+.sources{margin:4px 0 12px;font-size:.9rem;color:#374151;border-top:1px solid #e3e8ef;padding-top:10px}
+.sources .lab{display:block;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#1d5fe0;margin-bottom:2px}
+.sources ul{list-style:none;padding:0;margin:0}.sources li{margin:3px 0}.sources a{color:#1d5fe0}
 .dates{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:10px 0 8px}
 @media (max-width:700px){.dates{grid-template-columns:1fr}}
 .dcard{border:1.5px solid #dbe5f3;border-radius:14px;padding:16px 18px;background:#fff}
@@ -67,6 +70,12 @@ html,body,[class*="css"],.stMarkdown{font-family:-apple-system,BlinkMacSystemFon
 .step p{margin:2px 0 0;color:#4b5563;font-size:.95rem}
 .step .fig{margin-top:4px;font-size:.92rem;color:#0f1f3d}
 .step .fig a{color:#1d5fe0}
+.step .basis{font-size:.84rem;color:#6b7280;margin-top:2px}
+.step .note2{font-size:.86rem;color:#0f1f3d;background:#f5f8ff;border-radius:8px;padding:4px 10px;margin-top:4px;display:inline-block}
+.step details{margin-top:4px}
+.step summary{cursor:pointer;color:#1d5fe0;font-size:.86rem;font-weight:600}
+.step .evd{font-size:.88rem;color:#374151;border-left:2px solid #cfdcf3;padding:4px 0 2px 12px;margin-top:6px}
+.step .evd p{margin:0 0 6px}.step .evd ul{margin:0 0 4px;padding-left:1.1rem}.step .evd a{color:#1d5fe0}
 .ev{font-size:.94rem;line-height:1.55}
 .ev a{color:#1d5fe0}
 </style>""", unsafe_allow_html=True)
@@ -126,8 +135,27 @@ except TypeError:                     # Streamlit without st.tabs(default=...)
 DATA_INTENTS = {"rank_low", "rank_high", "suppliers", "supplier", "aggregate", "timeline", "graph", "project"}
 
 
-CONTRACT_SOURCE = "World Bank contract awards (calculated from the records)"
-REPORT_SOURCE = "World Bank project reports (appraisal, supervision and completion reports)"
+PLAN_COUNTRIES = [k for k in ("KEN", "IND") if k in ins.countries()]
+ITEMS = ins.item_types()
+METHODS = dict(ins.methods())
+
+
+def usual_method(country, item, value):
+    """The competitive method most used for this purchase whose usual contract sizes include the value."""
+    rng = lc.method_ranges()
+    names = {v: k for k, v in METHODS.items()}
+    for name in ins.method_mix(country, item).index:
+        code = names.get(name)
+        if code in rng and rng[code][0] <= value <= rng[code][1]:
+            return code
+    return "RFB" if "RFB" in METHODS else next(iter(METHODS))
+
+
+DOC_TYPES = {"ICR": "Implementation Completion and Results Report", "ICRR": "Implementation Completion Report Review",
+             "PAD": "Project Appraisal Document", "ISR": "Implementation Status and Results Report", "PPR": "Project Paper",
+             "PP": "Procurement Plan", "PPAR": "Project Performance Assessment Report"}
+BENCH_SCOPE = {"country+category+method": "in the selected country", "item_type+method": "across all countries",
+               "item_type": "across all countries", "category+method": "across all countries", "category": "across all countries"}
 
 
 def millions(text):
@@ -150,11 +178,65 @@ def names(statements, k=3):
 
 
 def joined(items):
+    items = list(items)
     return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
 
 
+def project_country(pid):
+    c = ins.projects.loc[ins.projects.project_id == pid, "country_iso3"]
+    if len(c) and isinstance(c.iloc[0], str):
+        return ins.name(c.iloc[0])
+    # no country on the project record: report titles start with it ("Serbia - Second Serbia Health Project")
+    titles = bot.kb.chunks.loc[bot.kb.chunks.project_id == pid, "title"].dropna()
+    prefix = str(titles.iloc[0]).split(" - ")[0].strip() if len(titles) and " - " in str(titles.iloc[0]) else ""
+    if prefix in set(bot.country_name.values()):
+        return prefix
+    return f"{prefix} (regional project)" if prefix else "a regional project"
+
+
+def friendly_scope(scope):
+    return scope.replace("health lab & diagnostics", "laboratory and diagnostic equipment")
+
+
+def source_label(e, scope):
+    """(description, link) for one evidence record: what it is, which records, and where to open it."""
+    kind = e["id"][0]
+    pid = e.get("project_id")
+    if "label" in e:                   # records built by the app itself (model, benchmark) carry their own description
+        return e["label"], None
+    if kind == "D":
+        if "inputs" in e or str(e.get("text", "")).startswith("Derived:"):
+            return (f"Calculated from {', '.join(e.get('inputs', [])) or 'the records above'}: "
+                    f"{str(e['text']).replace('Derived: ', '').replace('Derived from ', '')[:180]}", None)
+        return (f"World Bank Contract Awards: {friendly_scope(scope)}. Statistics calculated from the matching contract "
+                "records (table and calculation under More details).", None)
+    if kind == "C":
+        return (f"World Bank Contract Award: contract {e.get('contract', '')}, project {pid} "
+                f"({ins.project_name.get(pid, '')[:70]}).", project_url(pid))
+    if kind == "B":
+        lvl = re.search(r"benchmark \(([^)]+)\)", str(e.get("text", "")))
+        where = BENCH_SCOPE.get(lvl.group(1), "") if lvl else ""
+        what = re.search(r"for ([^:]+):", str(e.get("text", "")))
+        n = re.search(r"n=(\d+)", str(e.get("text", "")))
+        return (f"World Bank tender notices: time from invitation to award for {what.group(1) if what else 'comparable tenders'}"
+                f" {where}{', ' + n.group(1) + ' tenders' if n else ''}. Tenders still open are counted, not dropped.", None)
+    if kind in "LP":
+        doc = str(e.get("source", "")).split(" ", 1)
+        dtype = DOC_TYPES.get(doc[0], doc[0])
+        return (f"World Bank {dtype}: project {pid} ({project_country(pid)}), page {e.get('page', '?')}"
+                + (" (quote checked on the page)" if kind == "L" else "") + ".", e.get("url"))
+    if kind == "R":
+        return (f"World Bank project ratings: supervision and completion ratings for project {pid} "
+                f"({project_country(pid)}).", project_url(pid))
+    if kind == "T":
+        return f"World Bank tender notice: tender {e.get('tender_id', '')}, project {pid}.", project_url(pid)
+    if kind == "M":
+        return e.get("label", e.get("source", "Model")), None
+    return e.get("source", "World Bank records"), evidence_link(e)
+
+
 def present_bot(ans, cname):
-    """Three levels from the chatbot's verified statements: summary + source, key findings, details."""
+    """Answer, key findings and sources from the chatbot's verified statements."""
     stm = [x for x in ans["statements"] if not x.get("abstention")]
     if not stm:
         return None
@@ -162,59 +244,96 @@ def present_bot(ans, cname):
     for x in stm:
         sections.setdefault(x["section"], []).append(x)
     titles = list(sections)
-    route, ev = ans["route"], ans["evidence"]
+    route, ev, scope = ans["route"], ans["evidence"], ans.get("scope", "")
     if route == "lessons":
-        n = len(stm)
-        summary = (f"World Bank project reports for {cname} and similar projects contain {n} relevant "
-                   f"passage{'s' if n != 1 else ''} on this question. The most relevant are quoted below, each with its "
-                   "report and page.")
-        source, findings = REPORT_SOURCE, [(t, sections[t]) for t in titles]
+        lessons_ = sections.get(titles[0], [])[:3]
+        where = joined(dict.fromkeys(project_country(ev[x["citations"][0]].get("project_id")) for x in lessons_
+                                     if x["citations"] and x["citations"][0] in ev))
+        summary = (f"Completion and appraisal reports of past World Bank health projects document these lessons; the "
+                   f"{len(lessons_)} most relevant come from projects in {where}. Each is quoted below with its report and page.")
+        head_ids = []
+        findings = [("Main lessons (quoted from the reports)", lessons_)]
+        extra = [x for t in titles for x in sections[t] if x not in lessons_]
     else:
         head = sections[titles[0]]
         summary = " ".join(re.sub(r"\s+", " ", x["text"]).strip() for x in head[:2])
-        rest = [(t, sections[t]) for t in titles[1:]]
-        if route == "aggregate" and rest:
-            summary += f" The largest by value are {joined(names(rest[0][1]))}."
-        elif route == "suppliers" and rest:
-            summary += f" The largest are {joined([n.upper() if n.islower() else n for n in names(rest[0][1]) ])}."
-        ids = list(dict.fromkeys(c for x in head for c in x["citations"]))
-        if all(i.startswith("D") for i in ids):
-            source = CONTRACT_SOURCE
-        elif ids and ids[0] in ev:
-            row = evidence_rows({ids[0]: ev[ids[0]]}, ins.project_name).iloc[0]
-            source = (f"{row['type']}: {row['project'] or row['source']}"
-                      + (f", contract {row['contract']}" if row["contract"] else "")
-                      + (f", p. {row['page']}" if row["page"] else ""))
-            if ids[0].startswith("B"):
-                source = "Historical World Bank tenders (time from invitation to award, counting tenders still open)"
-        else:
-            source = "World Bank records"
-        findings = rest
-    return {"summary": millions(summary), "source": source, "findings": findings, "evidence": ev,
-            "table": ans.get("table"), "route": route, "removed": len(ans["guardrail_log"])}
+        findings = [(t, sections[t]) for t in titles[1:]]
+        if route == "aggregate" and findings:
+            summary += f" The largest by value are {joined(names(findings[0][1]))}."
+        elif route == "suppliers" and findings:
+            summary += f" The largest are {joined(names(findings[0][1]))}."
+        head_ids = list(dict.fromkeys(c for x in head[:2] for c in x["citations"]))
+        extra = []
+        if route == "timeline":
+            b = next((ev[i] for i in head_ids if i.startswith("B")), None)
+            lvl = re.search(r"benchmark \(([^)]+)\)", str(b.get("text", ""))) if b else None
+            if lvl and BENCH_SCOPE.get(lvl.group(1)) == "across all countries":
+                findings.insert(0, ("Scope", [{"text": f"This figure uses comparable tenders across all countries: "
+                                                       f"{cname} alone has too few tenders with both dates.", "citations": head_ids}]))
+    return {"summary": millions(summary), "head_ids": head_ids, "findings": findings, "extra": extra, "evidence": ev,
+            "scope": scope, "table": ans.get("table"), "route": route, "removed": len(ans["guardrail_log"])}
 
 
 def present_docs(res, cname):
-    """Three levels from the document search: the first quoted sentence, the others, then every source."""
+    """Answer, findings and sources from the document search (quoted sentences, each with its document and page)."""
     if not res["answer"]:
         return None
-    by_id = {x["id"]: x for x in res["sources"]}
     first, others = res["answer"][0], res["answer"][1:]
-    src = by_id.get(first["source"])
-    source = f"{src['doc_type']}, {src['title'][:80]}, p. {src['pages']}" if src else REPORT_SOURCE
     ev = {x["id"]: {"id": x["id"], "url": x.get("url"), "project_id": x.get("project_id"), "page": x.get("pages"),
-                    "source": f"{x['doc_type']} {x['title']}", "text": x.get("text", "")} for x in res["sources"]}
+                    "source": f"{x['doc_type']} {x['title']}", "text": x.get("text", ""), "doc": x} for x in res["sources"]}
     findings = [("What the reports say", [{"text": a["text"], "citations": [a["source"]]} for a in others])] if others else []
-    return {"summary": f"From {cname}'s World Bank project documents: “{first['text']}”", "source": source,
-            "source_url": src.get("url") if src else None, "findings": findings, "evidence": ev, "docs": res["sources"],
+    return {"summary": f"From {cname}'s World Bank project documents: “{first['text']}”", "head_ids": [first["source"]],
+            "findings": findings, "extra": [], "evidence": ev, "docs": res["sources"], "scope": cname,
             "table": None, "route": "docs", "removed": 0}
 
 
 PURCHASED = re.compile(r"\b(what|which)\b.*\b(purchased|bought|procured)\b", re.I)
+WHEN_AWARD = re.compile(r"\bwhen\b.*\b(award|awarded|expect|contract)\b|\bexpect\b.*\baward", re.I)
+
+
+def present_plan(country, item, cname):
+    """'When should I expect … to be awarded?': the planner's model estimate, with its accuracy and historical basis."""
+    value = ins.value_stats(country, item).get("median") or 100_000
+    meth = usual_method(country, item, value)
+    od = date.today() + timedelta(days=90)
+    s_ = score(build_package(country, item, meth, value, planned_open_date=od, projects=ins.projects))
+    tl_ = lc.timeline(country, item, od, s_)
+    d50_, d80_ = tl_.iloc[1].end, tl_.iloc[2].end
+    bench_ = ins.duration(country, item, meth)
+    bscope = bench_["scope"] + ("" if cname in bench_["scope"] or "all countries" in bench_["scope"] else " across all countries")
+    ev = {"M1": {"id": "M1", "label": (f"LabProcure award-time model (gradient-boosted quantile regression), trained on "
+                                       f"{m.get('n_train', 0):,} World Bank tenders opened before {ins.metrics.get('split_date', '')} "
+                                       f"and tested on {m.get('n_test', 0)} later tenders. A model estimate, not a World Bank record.")},
+          "B1": {"id": "B1", "label": (f"World Bank tender notices: time from invitation to award, {bscope}, "
+                                       f"{bench_['n']} tenders. Tenders still open are counted, not dropped.")}}
+    findings = [
+        ("Model estimate and its accuracy", [
+            {"text": f"Typical error on later tenders: about ±{m.get('mae_days_model_p50', 0):.0f} days; the safer date "
+                     f"held in {m.get('p80_coverage', 0):.0%} of tests (it aims for about 80%).", "citations": ["M1"]},
+            {"text": f"Assumed for this estimate: bids invited on {fmt(od)}, {METHODS[meth]} (the usual method at this "
+                     f"budget), a budget of US${value:,.0f} (the typical contract value) and a 30-day bid window. Change them "
+                     "in the Plan tab.", "citations": ["M1"]}]),
+        ("Historical basis", [
+            {"text": f"Comparable tenders took a median of {bench_['median']:.0f} days from invitation to award; 80% within "
+                     f"{bench_['p80']:.0f} days ({bscope}, {bench_['n']} tenders).", "citations": ["B1"]}]),
+    ] if bench_["median"] is not None else []
+    return {"summary": (f"If bids are invited on {fmt(od)}, a contract for {item.lower()} in {cname} is most likely to be awarded "
+                        f"around {fmt(d50_)}. For safer planning, allow until {fmt(d80_)}. These are estimates, not "
+                        "guaranteed dates."),
+            "head_ids": ["M1"], "findings": findings, "extra": [], "evidence": ev, "scope": cname, "route": "plan",
+            "table": pd.DataFrame([{"Bids invited": fmt(od), "Method": METHODS[meth], "Budget (US$)": f"{value:,.0f}",
+                                    "Likely award": fmt(d50_), "Safer planning date": fmt(d80_),
+                                    "Days to likely award": f"{s_['cycle_p50']:.0f}", "Days to safer date": f"{s_['cycle_p80']:.0f}"}]),
+            "removed": 0}
 
 
 def ask(question, iso3, cname, category):
     parsed = bot.parse(question)
+    if WHEN_AWARD.search(question):   # a planning question: the model answers it, as in the Plan tab
+        c_ = parsed["countries"][0] if parsed["countries"] else iso3
+        items = parsed["item_types"] or ([category] if category in ITEMS else [])
+        if c_ in ins.countries() and len(items) == 1:
+            return present_plan(c_, items[0], ins.name(c_))
     if PURCHASED.search(question):    # "what was bought" is a question for the contract tables, answered exactly
         where = parsed["countries"][0] if parsed["countries"] else None
         question = f"Breakdown of laboratory equipment spending by equipment type in {ins.name(where) if where else cname}"
@@ -234,8 +353,7 @@ def ask(question, iso3, cname, category):
     return present_bot(bot.ask(q), cname)
 
 
-TABLES = {   # route → (columns to show, display names, money columns)
-    "aggregate": None,
+TABLES = {   # route → (columns to show, display names)
     "suppliers": (["supplier", "base", "contracts", "total_usd", "countries"],
                   ["Supplier", "Based in", "Contracts", "Total value (US$)", "Countries"]),
     "rank_low": (["wb_contract_number", "supplier_name", "supplier_country", "amount_usd", "signing_date", "project_id", "description"],
@@ -262,7 +380,7 @@ def detail_table(p):
         cols = [c for c in cols if c in t]
         t = t[cols].rename(columns=dict(zip(TABLES[p["route"]][0], labels)))
     for c in t.columns:
-        if "US$" in c:
+        if "US$" in c and t[c].dtype.kind in "fi":
             t[c] = t[c].map(lambda v: f"{v:,.0f}")
         elif t[c].dtype.kind == "f":
             t[c] = t[c].map(lambda v: "" if pd.isna(v) else f"{v:,.0f}")
@@ -271,42 +389,64 @@ def detail_table(p):
     return t
 
 
+def clean(text):
+    return re.sub(r"\s+-\s+note:.*$", "", millions(re.sub(r"\s+", " ", text)))       # rating notes stay in the sources
+
+
 def show_answer(p, cname, category):
     if p is None:
         st.markdown(f'<div class="answer"><span class="lab">Answer</span>The {esc(cname)} records do not answer this '
                     f'directly{" for " + esc(category.lower()) if category != "All categories" else ""}. Try another '
                     'category or rephrase the question.</div>', unsafe_allow_html=True)
         return
-    src = (f'<a href="{esc(p["source_url"])}" target="_blank">{esc(p["source"])}</a>' if p.get("source_url") else esc(p["source"]))
-    st.markdown(f'<div class="answer"><span class="lab">Answer</span>{esc(p["summary"])}</div>'
-                f'<p class="src"><b>Source:</b> {src}</p>', unsafe_allow_html=True)
+    ev, used = p["evidence"], list(p["head_ids"])
+    st.markdown(f'<div class="answer"><span class="lab">Answer</span>{esc(p["summary"])} '
+                f'{cites(p["head_ids"], ev)}</div>', unsafe_allow_html=True)
     if p["findings"]:
         blocks = []
         for title, items in p["findings"]:
             li = []
             for x in items[:6]:
-                text = re.sub(r"\s+-\s+note:.*$", "", millions(x["text"]))          # rating notes stay in the sources
-                li.append(f"<li>{esc(text)} {cites(x['citations'], p['evidence'])}</li>")
+                used += x["citations"]
+                li.append(f"<li>{esc(clean(x['text']))} {cites(x['citations'], ev)}</li>")
             title = {"By item type": "By equipment type"}.get(title, title)
             blocks.append(f'<p class="kh">{esc(title)}</p><ul class="kf">{"".join(li)}</ul>')
         st.markdown('<div class="findings"><span class="lab">Key findings</span>' + "".join(blocks) + "</div>",
+                    unsafe_allow_html=True)
+    # the sources behind everything shown above, each described and linked where a link exists
+    rows = []
+    for i in dict.fromkeys(used):
+        if i not in ev:
+            continue
+        label, link = source_label(ev[i], p["scope"]) if p["route"] != "docs" else (
+            f"World Bank {DOC_TYPES.get(ev[i]['doc']['doc_type'], ev[i]['doc']['doc_type'])}: {ev[i]['doc']['title'][:80]}, "
+            f"project {ev[i]['project_id']}, page {ev[i]['page']}.", ev[i]["url"])
+        rows.append(f'<li><b>[{esc(i)}]</b> {esc(label)}'
+                    + (f' <a href="{esc(link)}" target="_blank">open ↗</a>' if link else "") + "</li>")
+    if rows:
+        st.markdown('<div class="sources"><span class="lab">Sources</span><ul>' + "".join(rows) + "</ul></div>",
                     unsafe_allow_html=True)
     with st.expander("More details and all sources"):
         t = detail_table(p)
         if t is not None:
             st.dataframe(t, use_container_width=True, hide_index=True)
+        if p["extra"]:
+            st.markdown("**Further passages**")
+            for x in p["extra"]:
+                st.markdown(md(f"- {clean(x['text'])} [{', '.join(x['citations'])}]"))
         if p["route"] == "docs":
+            st.markdown("**All retrieved documents**")
             for x in p["docs"]:
-                st.markdown(md(f"- **[{x['id']}]** {x['doc_type']} · {x['title'][:90]} · p. {x['pages']} · "
+                st.markdown(md(f"- **[{x['id']}]** {x['doc_type']} · {x['title'][:90]} · page {x['pages']} · "
                                f"project {x['project_id']} · [open the document]({x['url']})"))
+        elif p["route"] == "plan":
+            st.caption("The Plan tab shows the full journey, the inputs you can change and the supporting evidence.")
         else:
-            rows = evidence_rows(p["evidence"], ins.project_name)
-            for r in rows.itertuples():
-                what = r.project or r.source
-                extra = (f", contract {r.contract}" if r.contract else "") + (f", p. {r.page}" if r.page else "")
-                link = f" · [open]({r.link})" if r.link else ""
-                st.markdown(md(f"- **[{r.id}]** {r.type}: {what}{extra}{link}  \n  <small>{esc(r.excerpt[:200])}</small>"),
-                            unsafe_allow_html=True)
+            st.markdown("**All records and calculations**")
+            for r in evidence_rows(ev, ins.project_name).itertuples():
+                label, link = source_label(ev[r.id], p["scope"])
+                st.markdown(md(f"- **[{r.id}]** {label}" + (f" [open]({link})" if link else "")
+                               + f"  \n  <small>{esc(str(ev[r.id].get('text', ''))[:260])}</small>"), unsafe_allow_html=True)
         if p["removed"]:
             st.caption(f"{p['removed']} statement(s) were removed by the verifier because their figures or quotes were "
                        "not in the cited record.")
@@ -339,22 +479,6 @@ with ask_tab:
         show_answer(p, cname, category)
 
 # ── Plan ────────────────────────────────────────────────────────────────────────────────────────
-PLAN_COUNTRIES = [k for k in ("KEN", "IND") if k in ins.countries()]
-ITEMS = ins.item_types()
-METHODS = dict(ins.methods())
-
-
-def usual_method(country, item, value):
-    """The competitive method most used for this purchase whose usual contract sizes include the value."""
-    rng = lc.method_ranges()
-    names = {v: k for k, v in METHODS.items()}
-    for name in ins.method_mix(country, item).index:
-        code = names.get(name)
-        if code in rng and rng[code][0] <= value <= rng[code][1]:
-            return code
-    return "RFB" if "RFB" in METHODS else next(iter(METHODS))
-
-
 # the website can hand over its inputs (?view=plan&country=KEN&item=...&value=...&date=...)
 if qp.get("country") and not st.session_state.get("plan_link_used"):
     st.session_state.plan_link_used = True
@@ -411,39 +535,137 @@ with plan_tab:
                 f'Typical prediction error: ±{mae:.0f} days</p>', unsafe_allow_html=True)
 
     # ── your procurement journey: seven stages, one figure each where the data supports it ──
-    figs = {f.figure: f for f in lc.figures(country, item, method, value, s)}
-    risks, lessons = lc.premortem(country, item, s)
+    s_risks, lessons = lc.premortem(country, item, s)
+    HIST, MODEL, ASSUMED, QUOTE = ("t-hist", "historical"), ("t-model", "model"), ("t-assumed", "assumption"), ("t-quote", "report excerpt")
+    NA = '<div class="fig small">Not available in public data.</div>'
+    cname_p = ins.name(country)
 
-    def fig(name, text, tag):
-        f = figs.get(name)
-        if not f or f.basis == "Missing" or str(f.value).startswith("0"):
-            return '<div class="fig small">Not available in public data.</div>'
-        return f'<div class="fig">{text.format(v=esc(str(f.value)))}<span class="tag {tag[0]}">{tag[1]}</span></div>'
+    def tag(t):
+        return f'<span class="tag {t[0]}">{t[1]}</span>'
 
-    HIST, MODEL, ASSUMED, QUOTE = ("t-hist", "historical"), ("t-model", "model"), ("t-assumed", "assumption"), ("t-quote", "report quote")
-    top_risk = (f'<div class="fig">Most common problem: {esc(risks.iloc[0]["risk"].lower())} '
-                f'({risks.iloc[0]["how often"]:.0%} of {int(risks.iloc[0]["n"])} similar tenders)'
-                f'<span class="tag {HIST[0]}">{HIST[1]}</span></div>') if len(risks) else '<div class="fig small">Not available in public data.</div>'
-    if lessons:
-        lsn = lessons[0]
-        q = lsn["quote"] if len(lsn["quote"]) <= 150 else lsn["quote"][:147].rsplit(" ", 1)[0] + "…"
-        lesson = (f'<div class="fig">“{esc(q)}” <a href="{esc(lsn["url"])}" target="_blank">{esc(lsn["doc"])} '
-                  f'{esc(lsn["project"])}, p. {lsn["page"]}</a><span class="tag {QUOTE[0]}">{QUOTE[1]}</span></div>')
+    def based_on(n, label):
+        """'Laboratory analyzers in Kenya' → '29 historical laboratory analyzer tenders in Kenya' (scope always stated)."""
+        it = item.lower().rstrip("s")
+        if label == f"{item} in {cname_p}":
+            txt = f"{n:,} historical {it} tenders in {cname_p}"
+        elif label == f"{item}, all countries":
+            txt = f"{n:,} historical {it} tenders across all countries"
+        elif label == f"all lab tenders in {cname_p}":
+            txt = f"{n:,} historical lab and diagnostic tenders in {cname_p}"
+        elif label == "all lab tenders":
+            txt = f"{n:,} historical lab and diagnostic tenders across all countries"
+        else:
+            txt = f"{n:,} historical tenders ({label})"
+        return txt + (" (a small sample: treat as indicative)" if n < 30 else "")
+
+    def scoped(cond):
+        return lc._scoped(lc.t, country, item, cond=cond)
+
+    DOC = {"ICR": "Implementation Completion and Results Report", "ICRR": "Implementation Completion Report Review",
+           "PAD": "Project Appraisal Document", "ISR": "Implementation Status and Results Report", "PPR": "Project Paper",
+           "PP": "Procurement Plan", "PPAR": "Project Performance Assessment Report"}
+    NOTICE = "https://search.worldbank.org/api/v2/procnotices?format=json&id={}"     # the API the notices were loaded from
+
+    # 1 Planning: project-level statistic, scope stated
+    ft = lc.first_tender_stats(country)
+    if ft["n"]:
+        ctry = ", ".join(f"{k} ({v})" for k, v in ft["countries"].head(5).items())
+        ex_p = "".join(f'<li><a href="{esc(project_url(r.project_id))}" target="_blank">{esc(r.project_id)}</a> '
+                       f'{esc(str(r.name)[:70])}: {r.months:.0f} months</li>' for r in ft["projects"].iloc[
+                           [0, len(ft["projects"]) // 4, len(ft["projects"]) // 2, 3 * len(ft["projects"]) // 4, -1]].itertuples())
+        planning = (
+            f'<div class="fig">Historical finding: in past projects, the first laboratory tender started about '
+            f'{ft["months"]:.0f} months after the overall project was approved.{tag(HIST)}</div>'
+            '<div class="note2">This is a project-level planning statistic, not the time your individual purchase will take.</div>'
+            f'<div class="basis">Based on: {ft["n"]} World Bank health projects '
+            f'{"in " + esc(cname_p) if ft["country_specific"] else "across all countries (" + str(ft["n_countries"]) + " countries)"}.</div>'
+            '<details><summary>View evidence</summary><div class="evd">'
+            '<p><b>How it is calculated.</b> For each health project with lab or diagnostic tenders: the number of months from '
+            'the project\'s Board approval date (World Bank Projects API) to the opening date of its earliest lab or diagnostic '
+            'tender notice (World Bank procurement notices). The figure is the <b>median</b> across projects.</p>'
+            f'<p><b>Projects used:</b> {ft["n"]}. '
+            + ("" if ft["country_specific"] else f'{esc(cname_p)} has fewer than five such projects, so all countries are used. ')
+            + f'<b>Countries with the most projects:</b> {esc(ctry)}.</p>'
+            f'<p><b>Examples (shortest to longest):</b></p><ul>{ex_p}</ul></div></details>')
     else:
-        lesson = '<div class="fig small">Not available in public data.</div>'
+        planning = NA
+
+    # 2 Tender design, 3 Bidding: historical, with sample and scope
+    bw, bw_scope = scoped(lambda d: d.bid_window_days.between(1, 180))
+    design = (f'<div class="fig">Typical bidding period: {bw.bid_window_days.median():.0f} days (median){tag(HIST)}</div>'
+              f'<div class="basis">Based on: {based_on(len(bw), bw_scope)}. Source: World Bank invitation-for-bids notices '
+              '(published and closing dates).</div>') if len(bw) else NA
+    bd, bd_scope = scoped(lambda d: d.n_bidders.notna())
+    med_b = bd.n_bidders.median() if len(bd) else 0
+    bidding = (f'<div class="fig">Typical number of bids: {med_b:g} (median){tag(HIST)}</div>'
+               f'<div class="basis">Based on: {based_on(len(bd), bd_scope)}. Source: World Bank contract award notices '
+               '(bids received).</div>') if len(bd) and med_b >= 1 else NA
+
+    # 4 Award: model, 5 Delivery: assumption
+    award = (f'<div class="fig">Likely award: {fmt(d50)} · safer date: {fmt(d80)}{tag(MODEL)}</div>'
+             f'<div class="basis">Model estimate, not a World Bank record: trained on {m.get("n_train", 0):,} tenders opened before '
+             f'{ins.metrics.get("split_date", "")}, tested on {m.get("n_test", 0)} later ones (typical error ±{mae:.0f} days).</div>')
+    dl, dl_scope = scoped(lambda d: d.contract_duration_months.between(0.01, 60))
+    delivery = (f'<div class="fig">Estimated: {fmt(ddel)}{tag(ASSUMED)}</div>'
+                f'<div class="basis">Assumption: the safer award date plus the usual contracted delivery period ({months} '
+                f'month{"s" if months != 1 else ""}'
+                + (f', median of {based_on(len(dl), dl_scope)}' if len(dl) else "")
+                + '). Actual delivery dates are not in public data.</div>')
+
+    # 6 Monitoring: revised or additional award notices, precisely defined
+    an = lc.award_notice_stats(country, item)
+    if an["n"]:
+        ex_n = "".join(
+            f'<li>{esc(e["description"])} · project <a href="{esc(project_url(e["project"]))}" target="_blank">{esc(e["project"])}</a>'
+            + "".join(f' · <a href="{esc(NOTICE.format(nid))}" target="_blank">notice {esc(nid)} (record)</a>' for nid in e["notices"])
+            + "</li>" for e in an["examples"])
+        monitoring = (
+            f'<div class="fig">Historical finding: {an["p"]:.0%} of similar tenders had a revised or additional award notice '
+            f'recorded.{tag(HIST)}</div>'
+            f'<div class="basis">Based on: {based_on(an["n"], an["scope"])}.</div>'
+            '<details><summary>View evidence</summary><div class="evd">'
+            '<p><b>Definition.</b> A tender counts when the World Bank published a later version of its contract award notice, '
+            'or more than one award notice for the same tender. This can reflect a correction, a change to the award, or '
+            'separate lots; it does not by itself show that the signed contract was amended.</p>'
+            f'<p><b>Tenders analysed:</b> {an["n"]} awarded tenders · <b>meeting the condition:</b> {an["k"]} · '
+            f'<b>filters:</b> {esc(an["scope"])}.</p>'
+            '<p><b>Source:</b> World Bank procurement notices (contract award notices and their versions), loaded from the '
+            'World Bank search API; each example links to its notice record there.</p>'
+            f'<p><b>Examples:</b></p><ul>{ex_n}</ul></div></details>')
+    else:
+        monitoring = NA
+
+    # 7 Learning: a labelled excerpt; the full verified quote and its source one click away
+    verified = lc.lessons[lc.lessons.quote_verified.astype(bool)]
+    lsn = next((x for x in lessons if x["quote"] in set(verified.evidence_quote)), None)
+    if lsn:
+        row = verified[verified.evidence_quote == lsn["quote"]].iloc[0]
+        words = lsn["quote"].split()
+        excerpt = " ".join(words[:18]) + ("…" if len(words) > 18 else "")
+        doc = DOC.get(lsn["doc"], lsn["doc"])
+        pname = ins.project_name.get(lsn["project"], "")
+        pctry = project_country(lsn["project"])
+        learning = (
+            f'<div class="fig">Lesson from a past project (short excerpt): “{esc(excerpt)}”{tag(QUOTE)}</div>'
+            f'<div class="basis">Source: World Bank {esc(doc)}, project {esc(lsn["project"])} ({esc(pctry)}), page {lsn["page"]}.</div>'
+            '<details><summary>View full lesson and source</summary><div class="evd">'
+            f'<p>“{esc(lsn["quote"])}”</p>'
+            f'<p><b>Document:</b> {esc(str(row.title))} ({esc(doc)})<br><b>Project:</b> {esc(pname)} ({esc(lsn["project"])}), '
+            f'{esc(pctry)}<br><b>Page:</b> {lsn["page"]}<br><b>Quote checked:</b> found word for word on the cited page '
+            'of the report.<br>'
+            f'<a href="{esc(lsn["url"])}" target="_blank">Open the report on documents.worldbank.org</a> (go to page '
+            f'{lsn["page"]})</p></div></details>')
+    else:
+        learning = NA
+
     stages = [
-        ("Planning", "Define your equipment needs and budget.",
-         fig("Project approval → first lab tender", "Projects typically took {v} from approval to their first lab tender.", HIST)),
-        ("Tender design", "Choose the procurement method and bid window.",
-         fig("Bid window (invitation → deadline)", "Typical bidding period: {v}.", HIST)),
-        ("Bidding & evaluation", "Receive and compare supplier bids.",
-         fig("Bids received per tender", "Typical number of bids: {v}.", HIST)),
-        ("Award & contract", "Select the supplier and finalize the contract.",
-         f'<div class="fig">Likely award: {fmt(d50)}<span class="tag {MODEL[0]}">{MODEL[1]}</span></div>'),
-        ("Delivery", "Receive and check the equipment.",
-         f'<div class="fig">Estimated: {fmt(ddel)}<span class="tag {ASSUMED[0]}">{ASSUMED[1]}</span></div>'),
-        ("Monitoring", "Watch for delays and contract changes.", top_risk),
-        ("Learning", "Use lessons from previous projects.", lesson),
+        ("Planning", "Define the equipment needed, estimated budget, and procurement requirements.", planning),
+        ("Tender design", "Choose the procurement method and bid window.", design),
+        ("Bidding & evaluation", "Receive and compare supplier bids.", bidding),
+        ("Award & contract", "Select the supplier and finalize the contract.", award),
+        ("Delivery", "Receive and check the equipment.", delivery),
+        ("Monitoring", "Track delays, contract changes, and possible procurement risks.", monitoring),
+        ("Learning", "Use lessons from previous projects to avoid repeating common procurement problems.", learning),
     ]
     st.markdown("#### Your procurement journey")
     st.caption("Seven simple stages, from planning to lessons learned")
@@ -464,9 +686,6 @@ with plan_tab:
         for _, r in ex.iterrows():
             st.markdown(md(f"- {r['supplier']} · US${r['value (US$)']:,.0f} · signed {r['signed']} · {r['description'][:90]} "
                            f"· [{r['project'].split(' · ')[0]}]({r['project page']})"))
-        if lessons:
-            st.markdown(md(f"- Lesson source: [{lessons[0]['doc']} {lessons[0]['project']}, page {lessons[0]['page']}]"
-                           f"({lessons[0]['url']})"))
 
 # ── How it's built ──────────────────────────────────────────────────────────────────────────────
 with build_tab:
