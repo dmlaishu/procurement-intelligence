@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Learn LabProcure · Four stages</title>
+<meta name="description" content="How to use the LabProcure assistant in four stages: Plan, Design, Anticipate, Learn.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1d1d1f;--ink2:#6e6e73;--paper:#f5f5f7;--line:rgba(0,0,0,.08);--indigo:#5b5bf7;
+  --grad:linear-gradient(100deg,#7c7cff 0%,#a855f7 30%,#22d3ee 65%,#34d399 100%);
+  --font:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Helvetica,Arial,sans-serif;--ease:cubic-bezier(.22,.61,.36,1);
+  --c1:#7c7cff;--c2:#a855f7;--c3:#f59e0b;--c4:#10b981}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;font-family:var(--font);color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+nav.top{position:fixed;inset:0 0 auto 0;z-index:50;height:48px;display:flex;align-items:center;
+  background:rgba(22,22,23,.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);color:#e8e8ed}
+nav.top .wrap{display:flex;align-items:center;gap:22px;width:100%}
+nav.top .brand{font-weight:700;display:flex;align-items:center;gap:8px}
+nav.top .brand i{width:18px;height:18px;border-radius:6px;background:var(--grad);display:inline-block;animation:spin 8s linear infinite}
+nav.top .sp{margin-left:auto}
+nav.top a.sm{font-size:12px;opacity:.85}
+nav.top .cta{font-size:12px;background:var(--indigo);color:#fff;border-radius:999px;padding:5px 13px}
+
+.hero{background:#000;color:#f5f5f7;padding:110px 0 40px;text-align:center;position:relative;overflow:hidden}
+.kicker{font-size:19px;font-weight:600;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin:0 0 8px}
+h1{font-size:clamp(40px,7vw,80px);line-height:1.04;font-weight:800;letter-spacing:-.045em;margin:0}
+h1 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{font-size:clamp(18px,2.2vw,23px);color:#a1a1a6;max-width:720px;margin:16px auto 0;line-height:1.4;font-weight:500}
+
+/* the learning curve */
+.curvebox{position:relative;max-width:980px;margin:26px auto 0;aspect-ratio:980/330}
+.curvebox svg{width:100%;height:100%;overflow:visible}
+#path{fill:none;stroke:url(#cg);stroke-width:4;stroke-linecap:round;filter:drop-shadow(0 0 10px rgba(124,124,255,.6))}
+#pathbg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:4}
+.node{cursor:pointer;outline:none}
+.node:focus-visible circle.ring{stroke-width:5}
+.node circle.ring{fill:#000;stroke-width:3;transition:r .3s}
+.node circle.halo{opacity:.0;transition:opacity .3s}
+.node:hover circle.halo,.node.on circle.halo{opacity:.55;animation:pulse 1.8s ease-in-out infinite}
+.node text{fill:#f5f5f7;font:700 17px var(--font);text-anchor:middle}
+.node text.n{font-size:15px;fill:#fff}
+.node text.cap{font:500 13px var(--font);fill:#86868b}
+.node.on text.cap{fill:#e5e5ea}
+#you{fill:#fff;filter:drop-shadow(0 0 10px #fff)}
+.axis{font:500 12px var(--font);fill:#6e6e73}
+.hint{font-size:13px;color:#86868b;margin-top:6px}
+.mstages{display:none;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.mstages button{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#f5f5f7;border-radius:999px;padding:9px 14px;
+  font:600 14px var(--font);cursor:pointer}
+.mstages button.on{background:var(--sc,#7c7cff);border-color:transparent}
+@media (max-width:700px){.mstages{display:flex}.hint{display:none}.node text{display:none}}
+
+/* stage panel */
+.stage{background:var(--paper);padding:60px 0 90px}
+.panel{position:relative;background:#fff;border-radius:30px;padding:34px;box-shadow:0 1px 0 var(--line),0 40px 80px -40px rgba(0,0,0,.25);overflow:hidden}
+.panel::before{content:"";position:absolute;inset:0 0 auto 0;height:5px;background:var(--sc,var(--c1))}
+.phead{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.pnum{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;font-weight:800;font-size:22px;color:#fff;background:var(--sc,var(--c1));
+  box-shadow:0 10px 30px -10px var(--sc,var(--c1))}
+.phead h2{font-size:clamp(28px,4vw,44px);letter-spacing:-.035em;margin:0}
+.phead .where{margin-left:auto;font-size:13px;color:var(--ink2);background:var(--paper);border-radius:999px;padding:6px 12px}
+.goal{font-size:clamp(18px,2vw,22px);color:var(--ink2);margin:12px 0 26px;line-height:1.4;font-weight:500}
+.cols{display:grid;grid-template-columns:1.1fr 1fr;gap:28px}
+@media (max-width:820px){.cols{grid-template-columns:1fr}.phead .where{margin-left:0}}
+h4{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink2);margin:0 0 12px}
+ol.steps{list-style:none;margin:0;padding:0;counter-reset:s}
+ol.steps li{counter-increment:s;position:relative;padding:0 0 16px 44px;line-height:1.45;font-size:16px;opacity:0;transform:translateX(-12px);
+  transition:opacity .5s var(--ease),transform .5s var(--ease)}
+ol.steps li.in{opacity:1;transform:none}
+ol.steps li::before{content:counter(s);position:absolute;left:0;top:-2px;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;
+  font-weight:700;font-size:13px;color:var(--sc,var(--c1));background:color-mix(in srgb,var(--sc,var(--c1)) 14%,white)}
+ol.steps li::after{content:"";position:absolute;left:13.5px;top:30px;bottom:4px;width:1px;background:var(--line)}
+ol.steps li:last-child::after{display:none}
+.try{border-radius:20px;background:#0b0b0d;color:#f5f5f7;padding:20px;margin-bottom:18px}
+.try q{display:block;font-size:17px;line-height:1.45;margin:6px 0 14px;quotes:"“" "”"}
+.try .row{display:flex;gap:10px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;border:0;font-family:inherit;
+  transition:transform .25s var(--ease),box-shadow .25s}
+.pill:hover{transform:translateY(-2px)}
+.pill.go{background:var(--sc,var(--indigo));color:#fff}
+.pill.go:hover{box-shadow:0 10px 26px -10px var(--sc,var(--indigo))}
+.pill.cp{background:rgba(255,255,255,.1);color:#fff}
+.see{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
+.see div{display:flex;gap:10px;align-items:flex-start;font-size:15px;line-height:1.4;color:#3a3a3c}
+.see i{flex:none;width:8px;height:8px;border-radius:50%;margin-top:7px;background:var(--sc,var(--c1))}
+.badge{border-radius:999px;padding:1px 9px;font-size:12px;font-weight:600;display:inline-block;margin:0 2px}
+.b-d{background:rgba(16,185,129,.14);color:#059669}.b-m{background:rgba(91,91,247,.14);color:#4f46e5}
+.b-e{background:rgba(245,158,11,.16);color:#b45309}.b-x{border:1.5px dashed #ef4444;color:#ef4444}
+.tip{border-radius:16px;padding:14px 16px;background:color-mix(in srgb,var(--sc,var(--c1)) 9%,white);font-size:15px;line-height:1.45}
+.nav2{display:flex;justify-content:space-between;align-items:center;margin-top:26px}
+.nav2 button{background:none;border:0;font:600 16px var(--font);color:#0066cc;cursor:pointer;padding:8px 0}
+.nav2 button:disabled{color:#c7c7cc;cursor:default}
+.dots{display:flex;gap:8px}
+.dots b{width:9px;height:9px;border-radius:50%;background:#d2d2d7;cursor:pointer;transition:all .3s}
+.dots b.on{width:28px;border-radius:6px;background:var(--sc,var(--c1))}
+
+/* quick reference */
+.ref{padding:90px 0;text-align:center}
+.ref h2{font-size:clamp(32px,5vw,52px);letter-spacing:-.035em;margin:0 0 36px}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;text-align:left}
+@media (max-width:860px){.cards{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.cards{grid-template-columns:1fr}}
+.qc{position:relative;border-radius:24px;padding:24px;background:var(--paper);cursor:pointer;transition:transform .4s var(--ease);isolation:isolate;overflow:hidden}
+.qc:hover{transform:translateY(-5px)}
+.qc::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:2px;pointer-events:none;
+  background:conic-gradient(from var(--a,0deg),#7c7cff,#a855f7,#22d3ee,#34d399,#f59e0b,#7c7cff);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .4s}
+.qc:hover::after{opacity:1;animation:swirl 2s linear infinite}
+.qc b{display:block;font-size:20px;margin:10px 0 6px;letter-spacing:-.02em}
+.qc span{font-size:14px;color:var(--ink2);line-height:1.45}
+.qc em{font-style:normal;font-weight:800;font-size:13px;color:#fff;border-radius:8px;padding:3px 8px}
+.final{background:#000;color:#f5f5f7;text-align:center;padding:90px 0}
+.final h2{font-size:clamp(32px,5vw,56px);letter-spacing:-.035em;margin:0 0 22px}
+.btn{display:inline-flex;border-radius:999px;padding:12px 24px;font-size:17px;font-weight:500;background:var(--indigo);color:#fff;transition:transform .25s,box-shadow .25s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 10px 30px -8px rgba(91,91,247,.7)}
+.link{color:#2997ff;font-size:17px;margin-left:18px}
+footer{background:var(--paper);color:var(--ink2);font-size:12px;padding:26px 0 38px}
+
+/* click swirl */
+.burst{position:fixed;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;pointer-events:none;z-index:99;
+  background:conic-gradient(from var(--a,0deg),#7c7cff,#a855f7,#22d3ee,#34d399,#f59e0b,#7c7cff);
+  -webkit-mask:radial-gradient(circle,transparent 55%,#000 57%);mask:radial-gradient(circle,transparent 55%,#000 57%);
+  animation:burst .75s var(--ease) forwards,swirl .75s linear}
+@property --a{syntax:"<angle>";inherits:false;initial-value:0deg}
+@keyframes swirl{to{--a:360deg}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{50%{opacity:.2}}
+@keyframes burst{to{transform:scale(7);opacity:0}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}ol.steps li{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <linearGradient id="cg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#7c7cff"/><stop offset=".35" stop-color="#a855f7"/>
+  <stop offset=".7" stop-color="#f59e0b"/><stop offset="1" stop-color="#10b981"/></linearGradient></defs></svg>
+
+<nav class="top"><div class="wrap">
+  <a class="brand" href="../"><i></i>LabProcure</a><span class="sp"></span>
+  <a class="sm" href="../">Home</a><a class="cta" href="https://procurement-intelligence-gkhea5oeh3lwtbbs6yganq.streamlit.app/?view=ask" target="_blank" rel="noopener">AI Assistant</a>
+</div></nav>
+
+<section class="hero"><div class="wrap">
+  <p class="kicker">How to use LabProcure</p>
+  <h1>Four stages.<br><span>From first idea to lessons learned.</span></h1>
+  <p class="sub">Click a stage on the curve, or press Next. Each stage tells you where to go, what to do, and gives you something to try in the assistant.</p>
+  <div class="curvebox">
+    <svg viewBox="0 0 980 330" id="curve" role="img" aria-label="Learning curve with four stages: Plan, Design, Anticipate, Learn">
+      <text class="axis" x="10" y="318">first time</text><text class="axis" x="970" y="318" text-anchor="end">confident</text>
+      <path id="pathbg" d="M60 280 C 220 280, 260 220, 330 200 S 520 150, 600 120 S 820 50, 920 40"/>
+      <path id="path" d="M60 280 C 220 280, 260 220, 330 200 S 520 150, 600 120 S 820 50, 920 40"/>
+      <g id="nodes"></g>
+      <circle id="you" r="7" cx="60" cy="280"/>
+    </svg>
+  </div>
+  <div class="mstages" id="mstages"></div>
+  <p class="hint">Tip: use ← → on your keyboard.</p>
+</div></section>
+
+<section class="stage"><div class="wrap">
+  <div class="panel" id="panel" aria-live="polite">
+    <div class="phead"><div class="pnum" id="pnum">1</div><h2 id="ptitle"></h2><span class="where" id="pwhere"></span></div>
+    <p class="goal" id="pgoal"></p>
+    <div class="cols">
+      <div><h4>Do this</h4><ol class="steps" id="psteps"></ol></div>
+      <div>
+        <div class="try"><h4 style="color:#86868b">Try this</h4><q id="ptry"></q>
+          <div class="row"><a class="pill go" id="pgo" target="_blank" rel="noopener">Try it in the assistant ›</a><button class="pill cp" id="pcopy">Copy</button></div></div>
+        <h4>What you'll see</h4><div class="see" id="psee"></div>
+        <div class="tip" id="ptip"></div>
+      </div>
+    </div>
+    <div class="nav2"><button id="prev">‹ Previous</button><div class="dots" id="dots"></div><button id="next">Next ›</button></div>
+  </div>
+</div></section>
+
+<section class="ref"><div class="wrap">
+  <h2>The four stages at a glance.</h2>
+  <div class="cards" id="cards"></div>
+</div></section>
+
+<section class="final"><div class="wrap">
+  <h2>You're ready.</h2>
+  <a class="btn" href="https://procurement-intelligence-gkhea5oeh3lwtbbs6yganq.streamlit.app/?view=ask" target="_blank" rel="noopener">Open the AI Assistant</a><a class="link" href="../">Back to home ›</a>
+</div></section>
+<footer><div class="wrap">LabProcure is an independent demonstration built on World Bank open data. It is not a World Bank Group product.</div></footer>
+
+<script>
+const APP = "https://procurement-intelligence-gkhea5oeh3lwtbbs6yganq.streamlit.app/";
+const S = [
+ {k:"plan", t:"Plan", c:"var(--c1)", hex:"#7c7cff", cap:"When will it arrive?", where:"Tab: 🧭 Plan my purchase",
+  goal:"Find out when your purchase will be awarded and delivered, before you invite a single bid.",
+  steps:["Open <b>Plan my purchase</b>.","Describe the purchase in one sentence, or pick the country and equipment type.",
+         "Set the estimated value and the planned invitation date.",
+         "Read the three dates at the top: <b>Likely award</b>, <b>Plan the award for</b> and <b>Delivered by</b>.",
+         "Scroll the stage-by-stage table: every figure shows how it was worked out."],
+  ex:"We need to buy chemistry analyzers for county hospital laboratories in Kenya", view:"plan",
+  see:["A dated timeline: bidding, award (likely and slow case), delivery.",
+       "Seven lifecycle stages with badges: <span class='badge b-d'>Derived · n</span><span class='badge b-m'>Model</span><span class='badge b-e'>Evidence</span><span class='badge b-x'>Missing</span>"],
+  tip:"<b>Plan on the second date, not the first.</b> Four in five comparable tenders were awarded by the “Plan the award for” date."},
+ {k:"design", t:"Design", c:"var(--c2)", hex:"#a855f7", cap:"How should I tender it?", where:"Tab: 🧭 Plan my purchase → 🔧 Tender optimizer",
+  goal:"Set up the tender that gets awarded fastest and still draws enough bidders.",
+  steps:["Stay in <b>Plan my purchase</b> and choose a procurement method.","Move the <b>bid window</b> slider.",
+         "Scroll to <b>🔧 Tender optimizer</b>: 36 setups (method × bid window × lots) are scored.",
+         "Compare the green <b>best scored setup</b> with yours, and read the heatmap.",
+         "If a yellow note says a method is rarely used at your contract size, check the procurement plan's threshold."],
+  ex:"Laboratory analyzers in Kenya, US$250,000: compare a 30-day and a 45-day bid window, and 1 lot vs 3 lots", view:"design",
+  see:["A best-setup card with the time saved and the change in single-bid risk.","A heatmap of slow-case days to award for every bid window and lot count."],
+  tip:"<b>Small gains are noise.</b> If the best setup saves less than a week, the app tells you your setup is already about as good as it gets."},
+ {k:"anticipate", t:"Anticipate", c:"var(--c3)", hex:"#f59e0b", cap:"What could go wrong?", where:"Tab: 🧭 Plan my purchase → ⚠️ Pre-mortem",
+  goal:"See how comparable tenders went wrong, and how often, before it happens to yours.",
+  steps:["Scroll to <b>⚠️ Pre-mortem</b> in Plan my purchase.","Read the risks, ranked by how often they happened, each with its sample size.",
+         "Read <b>What completion reports say</b> and open a quote on its original page.",
+         "Ask the assistant a follow-up about the risk that worries you most."],
+  ex:"What problems did projects have with laboratory equipment maintenance?", view:"ask",
+  see:["Risk cards: amended awards, slow awards, rejected bids, single bids.","Verified quotes from completion reports, linked to the page."],
+  tip:"<b>Check the n.</b> A risk based on 29 tenders is a signal; one based on 253 is a pattern."},
+ {k:"learn", t:"Learn", c:"var(--c4)", hex:"#10b981", cap:"What did others learn?", where:"Tabs: 📄 Documents · 💬 Ask · 📋 My plan",
+  goal:"Use what past projects learned, then keep your plan and its evidence.",
+  steps:["Open <b>Documents</b>, pick a country and a category, and ask a question.","Every sentence in the answer cites its document and page.",
+         "In <b>Ask</b>, follow up naturally: “and in Nigeria?”.",
+         "Press <b>➕ Add to my plan</b>, then open <b>My plan</b> and download Excel, with an evidence sheet per package."],
+  ex:"What lessons were learned about strengthening public health laboratories?", view:"learn",
+  see:["Answers quoted from World Bank project reports, each with a page link.","A portfolio timeline of everything you saved, and an Excel export."],
+  tip:"<b><span class='badge b-x'>Missing</span> means “not in public data”, not zero.</b> Delivery quality and bid security sit with the agency, and the app says so."},
+];
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const path = document.getElementById("path"), L = path.getTotalLength();
+const AT = [.06, .36, .62, .92];                      // where each stage sits along the curve
+let cur = 0, youAt = 0;
+
+// draw the curve
+path.style.strokeDasharray = L; path.style.strokeDashoffset = L;
+requestAnimationFrame(() => { path.style.transition = reduce ? "none" : "stroke-dashoffset 2.2s cubic-bezier(.22,.61,.36,1)"; path.style.strokeDashoffset = 0; });
+
+// nodes
+const g = document.getElementById("nodes");
+S.forEach((s, i) => {
+  const p = path.getPointAtLength(L * AT[i]);
+  const up = i % 2 === 0;
+  g.insertAdjacentHTML("beforeend", `<g class="node" data-i="${i}" tabindex="0" role="button" aria-label="Stage ${i + 1}: ${s.t}">
+    <circle class="halo" cx="${p.x}" cy="${p.y}" r="30" fill="${s.hex}"/>
+    <circle class="ring" cx="${p.x}" cy="${p.y}" r="19" stroke="${s.hex}"/>
+    <text class="n" x="${p.x}" y="${p.y + 5}">${i + 1}</text>
+    <text x="${p.x}" y="${up ? p.y - 38 : p.y + 50}">${s.t}</text>
+    <text class="cap" x="${p.x}" y="${up ? p.y - 58 : p.y + 70}">${s.cap}</text></g>`);
+});
+g.querySelectorAll(".node").forEach(n => {
+  n.addEventListener("click", () => show(+n.dataset.i));
+  n.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); show(+n.dataset.i); } });
+});
+
+const ms = document.getElementById("mstages");
+ms.innerHTML = S.map((s, i) => `<button data-i="${i}">${i + 1} · ${s.t}</button>`).join("");
+ms.querySelectorAll("button").forEach(b => b.onclick = () => show(+b.dataset.i));
+
+// the "you are here" dot travels along the curve
+const you = document.getElementById("you");
+function travel(to) {
+  const from = youAt, t0 = performance.now(), dur = reduce ? 0 : 900;
+  const step = now => { const k = dur ? Math.min(1, (now - t0) / dur) : 1, e = 1 - Math.pow(1 - k, 3);
+    youAt = from + (to - from) * e; const p = path.getPointAtLength(L * youAt);
+    you.setAttribute("cx", p.x); you.setAttribute("cy", p.y); if (k < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+
+// panel
+const $ = id => document.getElementById(id);
+const dots = $("dots");
+dots.innerHTML = S.map((_, i) => `<b data-i="${i}" title="Stage ${i + 1}"></b>`).join("");
+dots.querySelectorAll("b").forEach(b => b.onclick = () => show(+b.dataset.i));
+function show(i, scroll = true) {
+  cur = i; const s = S[i], panel = $("panel");
+  panel.style.setProperty("--sc", s.c);
+  $("pnum").textContent = i + 1; $("ptitle").textContent = s.t; $("pwhere").textContent = s.where; $("pgoal").textContent = s.goal;
+  $("psteps").innerHTML = s.steps.map(x => `<li>${x}</li>`).join("");
+  [...$("psteps").children].forEach((li, j) => setTimeout(() => li.classList.add("in"), reduce ? 0 : 90 * j + 60));
+  $("ptry").textContent = s.ex;
+  $("pgo").href = `${APP}?view=${s.view}&q=${encodeURIComponent(s.ex)}`;
+  $("psee").innerHTML = s.see.map(x => `<div><i></i><span>${x}</span></div>`).join("");
+  $("ptip").innerHTML = s.tip;
+  $("prev").disabled = i === 0; $("next").textContent = i === S.length - 1 ? "Open the assistant ›" : "Next ›";
+  g.querySelectorAll(".node").forEach(n => n.classList.toggle("on", +n.dataset.i === i));
+  $("mstages").querySelectorAll("button").forEach(b => { const on = +b.dataset.i === i; b.classList.toggle("on", on); b.style.setProperty("--sc", S[+b.dataset.i].hex); });
+  dots.querySelectorAll("b").forEach(b => b.classList.toggle("on", +b.dataset.i === i));
+  travel(AT[i]);
+  history.replaceState(null, "", "#" + s.k);
+  if (scroll && innerHeight < 900) panel.scrollIntoView({behavior: reduce ? "auto" : "smooth", block: "start"});
+}
+$("prev").onclick = () => cur > 0 && show(cur - 1);
+$("next").onclick = () => cur < S.length - 1 ? show(cur + 1) : window.open(`${APP}?view=ask`, "_blank", "noopener");
+$("pcopy").onclick = () => { navigator.clipboard?.writeText(S[cur].ex); $("pcopy").textContent = "Copied ✓"; setTimeout(() => $("pcopy").textContent = "Copy", 1500); };
+addEventListener("keydown", e => { if (e.target.closest("input,textarea")) return;
+  if (e.key === "ArrowRight" && cur < S.length - 1) show(cur + 1, false); if (e.key === "ArrowLeft" && cur > 0) show(cur - 1, false); });
+
+// quick reference cards
+$("cards").innerHTML = S.map((s, i) => `<div class="qc" data-i="${i}"><em style="background:${s.hex}">STAGE ${i + 1}</em><b>${s.t}</b><span>${s.goal}</span></div>`).join("");
+$("cards").querySelectorAll(".qc").forEach(c => c.onclick = () => { show(+c.dataset.i, false); $("panel").scrollIntoView({behavior: "smooth"}); });
+
+// a swirl burst wherever you click
+addEventListener("pointerdown", e => { if (reduce) return; const b = document.createElement("span"); b.className = "burst";
+  b.style.left = e.clientX + "px"; b.style.top = e.clientY + "px"; document.body.appendChild(b); setTimeout(() => b.remove(), 800); });
+
+const start = Math.max(0, S.findIndex(s => "#" + s.k === location.hash));
+show(start, false);
+</script>
+</body>
+</html>

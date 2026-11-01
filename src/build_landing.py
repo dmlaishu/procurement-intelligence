@@ -1,4 +1,5 @@
-"""Builds deliverables/site/index.html, the LabProcure landing page, from src/landing_template.html.
+"""Builds deliverables/site/index.html (the LabProcure landing page, from src/landing_template.html) and
+deliverables/site/learn/index.html (the four-stage guide, from src/learn_template.html).
 
 Every number and chart on the page is computed here from the stored records and models, for one worked example
 (laboratory analyzers in Kenya): the timeline, the optimizer heatmap, the pre-mortem and the trust figures.
@@ -62,7 +63,7 @@ def main():
     g, m, le = evals["guardrails"], ins.metrics["cycle"], evals["lesson_extraction"]
     fill = {
         "APP_URL": APP_URL, "REPO_URL": REPO_URL, "BUILT": today.strftime("%d %b %Y"),
-        "CONTRACTS": stats["contracts_in_domain"], "VALUE_B": round(stats["domain_usd"] / 1e9, 2),
+        "CONTRACTS": stats["contracts_in_domain"], "CONTRACTS_FMT": f"{stats['contracts_in_domain']:,}", "VALUE_B": round(stats["domain_usd"] / 1e9, 2),
         "COUNTRIES": stats["countries_in_domain"], "PROJECTS": stats["projects"], "REPORTS": stats["documents_parsed"],
         "EDGES": f"{stats['kg_edges']:,}", "EX_LABEL": f"{e['item']} in Kenya, US${e['value']:,.0f}",
         "OPT_N": len(opt), "OPT_METHOD": METHOD_NAMES.get(top.method, top.method),
@@ -76,6 +77,10 @@ def main():
     assert "{{" not in page, "unfilled placeholder"
     out = ROOT / "deliverables" / "site" / "index.html"
     out.write_text(page, encoding="utf-8")
+    learn = (ROOT / "src" / "learn_template.html").read_text(encoding="utf-8").replace("{{APP_URL}}", APP_URL)
+    assert "{{" not in learn, "unfilled placeholder in the guide"
+    (out.parent / "learn").mkdir(exist_ok=True)
+    (out.parent / "learn" / "index.html").write_text(learn, encoding="utf-8")
     print(f"wrote {out} ({len(page) / 1024:.0f} KB): example {fill['EX_LABEL']}, best {fill['OPT_METHOD']}, "
           f"award P80 {s['cycle_p80']:.0f} days")
 
