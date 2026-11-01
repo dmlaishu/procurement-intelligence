@@ -37,19 +37,36 @@ in the browser: open `index.html`, or host the folder on any static host.
 | Chatbot with document Q&A by country (public) | https://procurement-intelligence-gkhea5oeh3lwtbbs6yganq.streamlit.app/ |
 | Chatbot and report, static site (public) | https://dmlaishu.github.io/procurement-intelligence/ |
 
-The Streamlit app is `procurement_demo/app.py`. Its tabs:
+The Streamlit app is `procurement_demo/app.py` (**LabProcure**). Every figure carries its basis: **Derived · n** (a
+statistic over stored records and how many), **Model** (an estimate with its tested accuracy), **Evidence** (quoted
+or counted from project documents, with a link) or **Missing** (not in public data, said plainly).
 
 | Tab | What it does |
 |---|---|
-| Chat | Free questions; every citation links to the contract's project page or the report page, with a source table |
-| Plan a purchase | Pick a country and equipment type (or describe the purchase in a sentence): typical time to award, contract values, methods, suppliers, recent comparable contracts, and a cited brief with the model estimate, risks and lessons |
-| Estimate time | Tender details in, P50/P80 days to award out, next to what comparable tenders took and the model's measured test accuracy; the single-bid risk is shown as indicative and the amendment model (AUC 0.55) is not shown |
-| Countries | India, Kenya and Nigeria (or any countries) side by side: spend, contract values, suppliers, durations, competition and methods |
-| Suppliers | Supplier track records (contracts, value, countries served, competition in their tenders) and a side-by-side comparison |
+| Start | One-click examples, the lifecycle at a glance, and the trust scoreboard (hallucinations caught, tested error) |
+| Plan my purchase | The flagship. Country, equipment type, method, value, dates (or one sentence): a **dated timeline** (bidding → award P50/P80 → delivery); the **lifecycle stage by stage** (planning, tender design, bidding and evaluation, award, delivery, monitoring, learning) with badges; a **what-if tender optimizer** that scores 36 combinations of method, bid window and lots; a **pre-mortem** of how comparable tenders went wrong, with completion-report quotes; the cited brief |
+| Ask | Chat. Planning questions get the lifecycle card; follow-ups ("and in Nigeria?") keep the context; other questions are answered from the data with clickable citations |
+| My plan | Packages saved from anywhere, a portfolio timeline, and an Excel export with one evidence sheet per package |
+| Countries, Suppliers | India / Kenya / Nigeria (or any) side by side; supplier track records and side-by-side comparison |
 | Documents | Document Q&A by country and category (below) |
-| Explore, How it's built, About | Charts and tables; the architecture (deployed app vs the Databricks pipeline) and data model; scope and limits |
+| Explore, How it's built & tested | Charts; the evaluation scoreboard; the architecture (deployed app vs the Databricks pipeline) and data model |
 
-The planning, comparison and estimate logic is in `procurement_demo/insights.py` (tests: `python src/test_insights.py`).
+Logic lives outside the UI so it is tested and reusable: `procurement_demo/insights.py` (benchmarks, comparisons,
+citations), `procurement_demo/lifecycle.py` (lifecycle figures, timeline, optimizer, pre-mortem),
+`procurement_demo/ui.py` (HTML badges and cards). Tests: `python src/test_insights.py`, `python src/test_lifecycle.py`.
+
+### REST API
+
+The same planner as a FastAPI service (`api/main.py`), with a Dockerfile:
+
+```bash
+pip install -r requirements.txt -r requirements_api.txt
+uvicorn api.main:app --reload          # http://127.0.0.1:8000/docs
+docker build -t labprocure-api . && docker run -p 8000:8000 labprocure-api
+```
+
+Endpoints: `GET /health`, `GET /options`, `POST /lifecycle`, `POST /optimize`, `POST /premortem`, `POST /ask`. Set
+`LABPROCURE_API_KEY` to require an `X-API-Key` header.
 
 ## Document Q&A by country (RAG)
 
@@ -69,6 +86,7 @@ Needs Python 3.11+.
 pip install -r requirements_procurement.txt
 python src/test_proc_lib.py                     # shared library tests, ends with ALL PASSED
 python src/test_insights.py                     # planning / comparison / citation tests, ends with ALL PASSED
+python src/test_lifecycle.py                    # lifecycle, optimizer, pre-mortem and API tests
 python -m procurement_demo.run_all              # downloads the public World Bank data and rebuilds everything
 python -m streamlit run procurement_demo/app.py # the chatbot
 ```
@@ -93,6 +111,9 @@ python src/build_web_chatbot.py && python src/build_share_page.py && python src/
 ```
 procurement_demo/                  local pipeline: ingest, build, models, retrieval, copilot, chatbot, evaluate, report
   insights.py                      planning, estimate, country and supplier comparisons, citation links (used by app.py)
+  lifecycle.py                     lifecycle figures with evidence basis, timeline, what-if optimizer, pre-mortem
+  ui.py                            HTML badges, lifecycle table and risk cards for the app
+api/                               FastAPI service over the planner (Dockerfile at the root)
   common.py                        scope settings (PROC_SCOPE) and the equipment taxonomy
   chatbot.py, app.py               chatbot engine and its Streamlit UI
 notebooks/00_proc_config           Databricks settings: catalog proc_demo, the lab-equipment scope, endpoints
