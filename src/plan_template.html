@@ -215,7 +215,7 @@ footer .wrap{border-top:1px solid var(--line);padding-top:14px}
 <section class="planner paper" id="planner" style="padding-top:84px"><div class="wrap">
   <p class="kicker">Planner</p>
   <h2 class="big">Plan your purchase</h2>
-  <p style="margin:0;color:var(--ink2)">Choose a country, the equipment and your budget. The dates update as you type.</p>
+  <p style="margin:0;color:var(--ink2)">Choose Kenya or India, the equipment and your budget. The dates update as you type.</p>
   <form class="form" id="form" onsubmit="return false">
     <label>Country<select id="f-country"></select></label>
     <label>Equipment<select id="f-item"></select></label>
@@ -318,7 +318,7 @@ function init() {
   F.method.innerHTML = `<option value="auto">Recommended for this budget</option>` + Object.entries(D.methods).map(([k, n]) => `<option value="${k}">${esc(n)}</option>`).join("");
   F.window.innerHTML = D.windows.map(w => `<option value="${w}">${w} days</option>`).join("");
   const q = new URLSearchParams(location.search), d0 = new Date(); d0.setDate(d0.getDate() + 90);
-  F.country.value = q.get("country") || "KEN"; F.item.value = q.get("item") || "Laboratory analyzers";
+  F.country.value = D.ev[q.get("country")] ? q.get("country") : "KEN"; F.item.value = q.get("item") || "Laboratory analyzers";
   F.budget.value = q.get("budget") || 100000; F.method.value = q.get("method") || "auto"; F.window.value = q.get("window") || 30;
   F.date.value = q.get("date") || d0.toISOString().slice(0, 10);
   Object.values(F).forEach(el => el.addEventListener("input", run));

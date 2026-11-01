@@ -1,7 +1,7 @@
 """Data for the website's planner (deliverables/site/index.html), which runs without a server.
 
-The award-time and single-bid models are evaluated here, in advance, on a grid: every country with at least
-MIN_CONTRACTS lab contracts × every equipment type × Request for Bids / Request for Quotations × 8 budget levels × 4 bid
+The award-time and single-bid models are evaluated here, in advance, on a grid: the PLANNER_COUNTRIES (Kenya and
+India) × every equipment type × Request for Bids / Request for Quotations × 8 budget levels × 4 bid
 windows. The page interpolates between budget levels (on a log scale) and reads the rest directly, so the website shows
 the same models as the app. The invitation month, which the app also uses, is left out here.
 
@@ -18,6 +18,7 @@ from procurement_demo.lifecycle import Lifecycle
 from procurement_demo.models import score_many
 
 MIN_CONTRACTS = 20
+PLANNER_COUNTRIES = ["KEN", "IND"]      # the website planner covers these countries only
 METHODS = {"RFB": "Request for Bids", "RFQ": "Request for Quotations"}
 VALUES = [5_000, 15_000, 40_000, 100_000, 250_000, 600_000, 1_500_000, 4_000_000]
 WINDOWS = [21, 30, 45, 60]
@@ -29,7 +30,7 @@ def _r(x, nd=0):
 
 def build(ins: Insights, lc: Lifecycle):
     vc = ins.c.country_iso3.value_counts()
-    countries = [k for k in vc.index if k != "REG" and vc[k] >= MIN_CONTRACTS]
+    countries = [k for k in PLANNER_COUNTRIES if vc.get(k, 0) >= MIN_CONTRACTS]
     items = ins.item_types()
 
     # ── model grid ──
