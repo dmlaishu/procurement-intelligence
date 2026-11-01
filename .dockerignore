@@ -1,0 +1,5 @@
+.git
+**/__pycache__
+procurement_rag/data
+deliverables
+docs

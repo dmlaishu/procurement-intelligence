@@ -234,10 +234,22 @@ def main():
     print(json.dumps(metrics, indent=1, default=str))
 
 
+_LOADED = {}
+
+
+def _load(name):
+    """Models are read from disk once per process (the app scores many what-if scenarios per page)."""
+    path = MODELS / f"{name}.joblib"
+    key = (name, path.stat().st_mtime if path.exists() else None)
+    if key not in _LOADED:
+        _LOADED[key] = joblib.load(path) if path.exists() else None
+    return _LOADED[key]
+
+
 def score(package: dict, t_features: pd.DataFrame | None = None):
     """Score one new package (dict with the CAT/NUM feature inputs we know at planning time)."""
     enc = Encoder()
-    enc.__dict__.update(joblib.load(MODELS / "encoder.joblib"))
+    enc.__dict__.update(_load("encoder"))
     row = pd.DataFrame([package])
     for c in CAT_FEATURES:
         v = str(row.at[0, c]) if c in row and pd.notna(row.at[0, c]) else "missing"
@@ -246,11 +258,12 @@ def score(package: dict, t_features: pd.DataFrame | None = None):
         if c not in row:
             row[c] = np.nan
     x = enc.transform(row)
-    out = {f"cycle_p{q}": float(np.expm1(joblib.load(MODELS / f"cycle_p{q}.joblib").predict(x)[0])) for q in (50, 80)}
+    out = {f"cycle_p{q}": float(np.expm1(_load(f"cycle_p{q}").predict(x)[0])) for q in (50, 80)}
+    # the two quantile models are trained separately and can cross; a P80 below the P50 is not a valid range
+    out["cycle_p80"] = max(out["cycle_p80"], out["cycle_p50"])
     for name in ("single_bid", "rebid", "amendment"):
-        path = MODELS / f"{name}.joblib"
-        if path.exists():
-            d = joblib.load(path)
+        d = _load(name)
+        if d is not None:
             p = d["model"].predict_proba(x)[0, 1]
             odds = p / (1 - p + 1e-9) * (d["prior"] / (1 - d["prior"]))
             out[f"{name}_prob"] = float(odds / (1 + odds))
