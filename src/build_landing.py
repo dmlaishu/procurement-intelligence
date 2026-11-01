@@ -1,6 +1,7 @@
 """Builds the website's front page and guide:
 
-    deliverables/site/index.html              the LabProcure home page with the working planner (src/landing_template.html)
+    deliverables/site/index.html              the LabProcure home page (src/landing_template.html)
+    deliverables/site/plan/index.html         the planner page (src/plan_template.html)
     deliverables/site/planner-data.json       the planner's model grid and evidence (src/build_planner_data.py)
     deliverables/site/learn/index.html        the four-stage guide (src/learn_template.html)
 
@@ -49,18 +50,24 @@ def main():
         "COV": round(m["p80_coverage"] * 100), "MAE": round(m["mae_days_model_p50"]), "MAE_BASE": round(m["mae_days_global_median"]),
         "BENCH": f"±{round(m['mae_days_km_benchmark'])} days", "CAUGHT": g["caught"], "PLANTED": g["injected_hallucinations"],
     }
-    page = (ROOT / "src" / "landing_template.html").read_text(encoding="utf-8")
-    for k, v in fill.items():
-        page = page.replace("{{" + k + "}}", str(v))
-    assert "{{" not in page, "unfilled placeholder"
+    def render(template):
+        page = (ROOT / "src" / template).read_text(encoding="utf-8")
+        for k, v in fill.items():
+            page = page.replace("{{" + k + "}}", str(v))
+        assert "{{" not in page, f"unfilled placeholder in {template}"
+        return page
+
+    page = render("landing_template.html")
     (SITE / "index.html").write_text(page, encoding="utf-8")
+    (SITE / "plan").mkdir(exist_ok=True)
+    (SITE / "plan" / "index.html").write_text(render("plan_template.html"), encoding="utf-8")
 
     learn = (ROOT / "src" / "learn_template.html").read_text(encoding="utf-8").replace("{{APP_URL}}", APP_URL)
     assert "{{" not in learn, "unfilled placeholder in the guide"
     (SITE / "learn").mkdir(exist_ok=True)
     (SITE / "learn" / "index.html").write_text(learn, encoding="utf-8")
     kb = (SITE / "planner-data.json").stat().st_size / 1024
-    print(f"wrote {SITE}/index.html ({len(page) / 1024:.0f} KB), planner-data.json ({kb:.0f} KB: {len(data['countries'])} countries x "
+    print(f"wrote {SITE}/index.html ({len(page) / 1024:.0f} KB), plan/index.html, planner-data.json ({kb:.0f} KB: {len(data['countries'])} countries x "
           f"{len(data['items'])} equipment types), learn/index.html")
 
 
