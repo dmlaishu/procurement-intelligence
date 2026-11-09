@@ -15,8 +15,10 @@ Region → Country → Project → Tender → Contract → Supplier → Equipmen
 On top of the graph it benchmarks and predicts tender timelines and risks, and a chatbot and package briefs answer
 questions in which every statement cites its evidence and is checked against it.
 
-**What the data shows** (FY2015 onwards): 2,220 lab and diagnostic contracts worth US$1.38 billion in 91 countries and
-179 projects, from 1,277 suppliers, found by classifying 17,058 health-goods contract descriptions in four languages.
+**Local prototype snapshot (FY2015 onward).** The [local report](deliverables/04_REPORT.md) records 2,220 lab and diagnostic
+contract × supplier rows worth US$1.38 billion across 91 countries and 179 projects, with 1,277 suppliers in this
+equipment subset. The prototype screened 17,058 health-goods contract descriptions in four languages. See
+[Measured results](#measured-results) for the exact totals and the separate Databricks snapshot.
 
 ## Deliverables
 
@@ -142,28 +144,42 @@ src/                               document builders, chatbot web page (src/web_
 deliverables/                      the four deliverables, the chatbot website and its source data
 ```
 
-The Databricks notebooks (`00_proc_config`, 20-29) implement the same lab-equipment scope on a lakehouse (Delta, Unity
-Catalog, Vector Search, MLflow, Lakeflow Jobs), using the same taxonomy and parsers as the local prototype through
-`20_proc_lib`. The local prototype produced the numbers in the deliverables; all notebooks (00, 20-34) have also been
-run end to end on Databricks Free Edition (serverless), on fresh downloads from the World Bank APIs:
+## Measured results
 
-| | Databricks run | Local prototype |
+The local prototype and Databricks use the same equipment taxonomy and parsers in `20_proc_lib`. The figures below
+come from two separate snapshots of the World Bank APIs. The local column uses the snapshot in the
+[26 October 2026 report](deliverables/04_REPORT.md), with the saved
+[procurement evaluation](procurement_demo/output/health_lab/eval_results.json) and
+[document Q&A evaluation](procurement_rag/eval_results.json). The Databricks column uses the
+[27 October 2026 run record](procurement_rag/databricks_run.json), which reports a one-time execution of notebooks
+00 and 20–34 on Databricks Free Edition (serverless).
+
+| Measure | Local prototype | Databricks run |
 |---|---|---|
-| Lab and diagnostic contracts (contract × supplier rows) | 2,221 | 2,220 |
-| Value | US$1,375,796,408 | US$1,375,387,988 |
-| Domain projects | 179 | 179 |
-| Tenders / with an invitation-to-award time | 10,407 / 1,068 | 10,403 / 1,068 |
-| Resolved suppliers | 7,543 | 7,540 |
-| Lessons extracted by the LLM / quote verified | 732 / 711 (97%) | 150 / 98% |
-| Projects with conflicting ratings | 8 of 33 | 8 of 34 |
-| Cycle-time MAE, P50 model vs global median | 49 vs 73 days (P80 coverage 78%) | 47 vs 56 days |
-| Single-bid AUC / amendment AUC | 0.64 / 0.56 | 0.67 / 0.55 |
-| Document Q&A evaluation (10 questions) | 10/10, 9 answered, 1 correctly declined | 10/10 |
+| Lab and diagnostic contract × supplier rows | 2,220 | 2,221 |
+| Lab and diagnostic contract value (rounded to whole US dollars) | US$1,375,387,988 | US$1,375,796,408 |
+| Projects with lab and diagnostic awards | 179 | 179 |
+| Tenders in those projects / with both invitation and award dates | 10,403 / 1,068 | 10,407 / 1,068 |
+| Resolved suppliers across health-goods awards in those projects | 7,540 | 7,543 |
+| Lessons extracted / with a verified source quote | 150 / 147 (98%, rule-based extraction) | 733 / 712 (97%, LLM extraction) |
+| Projects with conflicting ratings / projects with rating evidence | 8 of 34 | 8 of 33 |
+| Invitation-to-award MAE, P50 model | 46.9 days | 49.1 days |
+| Invitation-to-award MAE, global training median | 73.0 days | 73.0 days |
+| Invitation-to-award MAE, Kaplan–Meier benchmark | 56.3 days | — |
+| P80 coverage on the 259-tender cycle-time test set | 76.1% | 78% |
+| Single-bid AUC / amendment AUC | 0.668 / 0.545 | 0.64 / 0.56 |
+| Document Q&A evaluation (Kenya and India) | 10/10 checks passed (9 answered, 1 correctly declined) | 10/10 checks passed (9 answered, 1 correctly declined) |
 
-The small differences come from contracts the World Bank published between the two runs. The models passed the quality
-gate and are registered as `@champion` in Unity Catalog. Changes needed on Free Edition (all committed): models are
-saved with cloudpickle, SQL function parameters are qualified and not used in subqueries, and the model endpoints are
-called through `ai_query`.
+Each document Q&A evaluation checks for expected evidence among the top five sources for nine questions and for a
+correct decline on one question. Both runs recorded that all returned sources belonged to the selected country.
+
+The Databricks models passed the quality gate and were registered as `@champion` in Unity Catalog. On Free Edition,
+the notebooks save models with cloudpickle, qualify SQL function parameters and keep them out of subqueries, and call
+model endpoints through `ai_query`.
+
+The recorded notebook execution includes Step 29, which builds the monitoring views and creates or updates the
+`proc_lab_pipeline` Lakeflow job. The job's weekly schedule is configured as **paused**. Recurring monitoring and
+conditional retraining on that schedule require enabling the trigger.
 
 ## Run it on Databricks
 
@@ -184,7 +200,7 @@ Works on Databricks Free Edition (serverless). Everything is created in its own 
    | `26_proc_risk_models` | benchmarks and models in MLflow / Unity Catalog | 5 min |
    | `27_proc_tools` | UC function tools | 1 min |
    | `28_proc_copilot` | a cited brief for a PCR / GeneXpert tender in Kenya | 2 min |
-   | `29_proc_monitor_job` | monitoring views and the `proc_lab_pipeline` job (schedule paused) | 1 min |
+   | `29_proc_monitor_job` | monitoring views and job setup for `proc_lab_pipeline` (weekly trigger paused) | 1 min |
    | `30_rag_registry` | document Q&A: countries table, seeded with Kenya and India | 1 min |
    | `31_rag_fetch` | about 85 PDFs for Kenya and India into the `rag_docs` volume | 5-10 min |
    | `32_rag_process` | page text and tagged passages (`gold.rag_chunks`) | 5 min |
